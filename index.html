@@ -2586,8 +2586,11 @@ addEventListener('keydown', e => {
   if (e.code !== 'KeyE' || e.repeat || !(controls.isLocked || debug.force)) return;
   if (toggleSlider()) showNotice(SLIDER.target > 0 ? 'Abriendo la puerta corrediza' : 'Cerrando la puerta corrediza');
   else if (toggleGarageDoor()) showNotice(GARAGE.target > 0 ? 'Abriendo el portón' : 'Cerrando el portón');
-  else { const d = toggleBathDoor(); if (d) showNotice(d.target > 0 ? 'Abriendo la puerta del baño' : 'Cerrando la puerta del baño'); }
-  else showNotice('Acercate al portón del garage o a la puerta de vidrio del living para abrirlos o cerrarlos');
+  else {
+    const d = toggleBathDoor();
+    if (d) showNotice(d.target > 0 ? 'Abriendo la puerta del baño' : 'Cerrando la puerta del baño');
+    else showNotice('Acercate al portón del garage, a la puerta de vidrio del living o a una puerta de baño para abrirlos o cerrarlos');
+  }
 });
 addEventListener('keydown', e => {
   if (e.code !== 'KeyT' || e.repeat) return;
