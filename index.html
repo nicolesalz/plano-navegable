@@ -458,6 +458,52 @@ const grassTex = canvasTexture(256, (g, s) => {
   g.fillStyle = '#6f9a4a'; g.fillRect(0, 0, s, s);
   for (let i = 0; i < 5000; i++) { g.fillStyle = `hsl(${85 + Math.random() * 20}, 40%, ${30 + Math.random() * 20}%)`; g.fillRect(Math.random() * s, Math.random() * s, 1.5, 3); }
 });
+// ---- Exterior (ver estilos.md → Exterior) ----
+// Adoquines de granito gris claro 40 x 20 en hiladas trabadas (entrada de autos y camino a la puerta).
+// La textura cubre 1,6 m: 4 adoquines a lo ancho y 8 hiladas.
+const pavingTex = canvasTexture(512, (g, s) => {
+  const rnd = seeded(7), bw = s / 4, bh = s / 8;
+  for (let r = 0; r < 8; r++) for (let c = -1; c < 4; c++) {
+    const x = c * bw + (r % 2) * bw / 2, l = 66 + rnd() * 9;
+    g.fillStyle = `hsl(${32 + rnd() * 10}, ${6 + rnd() * 5}%, ${l}%)`;
+    g.fillRect(x, r * bh, bw, bh);
+  }
+  for (let i = 0; i < 9000; i++) { g.fillStyle = `rgba(${rnd() < 0.5 ? '60,58,55' : '250,248,244'},${0.12 + rnd() * 0.2})`; g.fillRect(rnd() * s, rnd() * s, 1.4, 1.4); }
+  g.fillStyle = '#6f6a63';                                   // juntas
+  for (let r = 0; r <= 8; r++) g.fillRect(0, r * bh - 1.5, s, 3);
+  for (let r = 0; r < 8; r++) for (let c = 0; c <= 4; c++) g.fillRect(c * bw + (r % 2) * bw / 2 - 1.5, r * bh, 3, bh);
+});
+// Tierra con mulch de corteza bajo las borduras
+const soilTex = canvasTexture(256, (g, s) => {
+  const rnd = seeded(11);
+  g.fillStyle = '#3b2c20'; g.fillRect(0, 0, s, s);
+  for (let i = 0; i < 2600; i++) {
+    g.fillStyle = `hsl(${20 + rnd() * 14}, ${25 + rnd() * 20}%, ${12 + rnd() * 18}%)`;
+    g.save(); g.translate(rnd() * s, rnd() * s); g.rotate(rnd() * Math.PI); g.fillRect(-4, -1.2, 8, 2.4); g.restore();
+  }
+});
+// Follaje (cerco, matas): hojitas superpuestas en grises; el verde lo pone cada instancia
+const foliageTex = canvasTexture(256, (g, s) => {
+  const rnd = seeded(5);
+  g.fillStyle = '#5c5c5c'; g.fillRect(0, 0, s, s);
+  for (let i = 0; i < 2400; i++) {
+    const v = 90 + Math.floor(rnd() * 165);
+    g.fillStyle = `rgb(${v},${v},${v})`;
+    g.save(); g.translate(rnd() * s, rnd() * s); g.rotate(rnd() * Math.PI);
+    g.beginPath(); g.ellipse(0, 0, 5, 2.4, 0, 0, Math.PI * 2); g.fill(); g.restore();
+  }
+});
+// Inflorescencias (hortensias, áster): florcitas de 4 pétalos en blanco/gris; el color lo pone cada instancia
+const floretTex = canvasTexture(256, (g, s) => {
+  const rnd = seeded(9);
+  g.fillStyle = '#c4c4c4'; g.fillRect(0, 0, s, s);
+  for (let i = 0; i < 1400; i++) {
+    const v = 225 + Math.floor(rnd() * 30), x = rnd() * s, y = rnd() * s, r = 3 + rnd() * 3, a = rnd() * Math.PI;
+    g.fillStyle = `rgb(${v},${v},${v})`;
+    for (let k = 0; k < 4; k++) { g.beginPath(); g.ellipse(x + Math.cos(a + k * Math.PI / 2) * r * 0.6, y + Math.sin(a + k * Math.PI / 2) * r * 0.6, r * 0.6, r * 0.42, a + k * Math.PI / 2, 0, Math.PI * 2); g.fill(); }
+    g.fillStyle = '#d8d2bc'; g.fillRect(x - 0.8, y - 0.8, 1.6, 1.6);
+  }
+});
 
 // Materiales físicos (PBR): mismos colores, con rugosidad/metal para que reflejen el cielo de forma natural
 const std = (color, roughness, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness, metalness: 0, ...extra });
@@ -470,6 +516,8 @@ const M = {
   grass: std(0xffffff, 1.0, { map: grassTex }),
   tile: std(0xffffff, 0.55, { map: tileTex }),                // calcáreo (galería)
   concrete: std(0xa9a6a0, 0.85),
+  paving: std(0xffffff, 0.8, { map: pavingTex }),            // adoquines de granito (entrada de autos y camino)
+  soil: std(0xffffff, 1.0, { map: soilTex }),                 // tierra con mulch (borduras)
   roof: std(0x8d8a85, 0.9),
   outside: std(0x7e9a68, 1.0),
   medianera: std(0xd8cfc2, 0.95),
@@ -730,7 +778,18 @@ const F = {
   soil: std(0x3a2a1e, 1), bark: std(0x6a5541, 0.9),
   leaf: std(0xffffff, 0.55, { side: THREE.DoubleSide, normalMap: NRM.veneer, normalScale: v2(0.25) }),
   stem: std(0x5c6b38, 0.8),
-  carBody: std(0xf3f3f1, 0.18, { metalness: 0.1 }), carGlass: std(0x1d2226, 0.08, { metalness: 0.3 }), tire: std(0x1b1b1c, 0.9),
+  // Autos: pintura con laca transparente (clearcoat); BMW blanco alpino sólido, Volvo negro onyx metalizado
+  bmwWhite: new THREE.MeshPhysicalMaterial({ color: 0xf0f0eb, roughness: 0.3, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.05 }),
+  volvoBlack: new THREE.MeshPhysicalMaterial({ color: 0x030304, roughness: 0.25, metalness: 0.1, clearcoat: 1, clearcoatRoughness: 0.05 }),
+  carGlass: std(0x0b0e11, 0.06, { side: THREE.DoubleSide }), tire: std(0x1b1b1c, 0.9),
+  carTrim: std(0x131415, 0.55),                                                                         // plásticos negros, parrillas
+  chrome: std(0xdadbdd, 0.12, { metalness: 1 }),
+  headlamp: std(0xaeb6bd, 0.05, { metalness: 0.85 }),
+  taillamp: std(0x8e1118, 0.2, { emissive: 0x2a0306 }),
+  // Jardín: el color de cada hoja, flor o mata lo pone su instancia
+  foliage: std(0xffffff, 0.85, { map: foliageTex, normalMap: normalFrom(foliageTex.image, 3), normalScale: v2(1.2) }),
+  bloom: std(0xffffff, 0.8, { map: floretTex, normalMap: normalFrom(floretTex.image, 3), normalScale: v2(1) }),
+  plume: std(0xffffff, 0.95, { side: THREE.DoubleSide }),
   bordo: std(0x5e2129, 0.55, { normalMap: NRM.veneer, normalScale: v2(0.06) }),                       // biblioteca bordó (laqueado satinado)
   sageFrame: std(0xa2b29c, 0.45),                                                                       // marcos verde salvia (puertas living/cocina)
   millwork: std(0xece5d8, 0.6),                                                                         // boiserie, banco y alacenas de la entrada
@@ -1050,8 +1109,9 @@ function buildFloorsAndCeilings() {
   // Terreno y exterior
   floor(-30, 40, -20, LOT_D + 20, -0.02, M.outside, 4);
   floor(-0.28, LOT_W + 0.28, 0, LOT_D, 0, M.grass, 3);
-  floor(5.52, 8.40, 0, 8.16, 0.004, M.concrete);          // entrada de autos
-  floor(4.02, 5.04, 0, 5.16, 0.004, M.concrete);          // camino a la puerta
+  M.paving.normalMap = normalFrom(pavingTex.image, 2.5); M.paving.normalScale = v2(0.8);
+  floor(5.52, 8.40, 0, 7.86, 0.004, M.paving, 1.6);       // entrada de autos (adoquines de granito)
+  floor(4.02, 5.04, 0, 5.16, 0.004, M.paving, 1.6);       // camino a la puerta
   floor(-0.28, LOT_W + 0.28, GALERIA_Z[0], GALERIA_Z[1], 0.004, M.tile, 0.6);   // calcáreos 30 x 30
   // Pinotea en living, entrada, hall y baño PB; porcelanato 60 x 120 en la cocina
   floor(0, 5.38, 5.16, 13.09, 0.006, M.wood);
@@ -1812,14 +1872,153 @@ function bathSecond(Y) {
   rbox(1.24, 1.28, 11.97, 12.01, Y + 0.86, Y + 0.97, F.vaseOlive, { r: 0.006 });                  // frasquito
 }
 
-// Auto simplificado (blanco, sin logos), con el frente hacia la calle (z0)
-function car([x0, x1, z0, z1]) {
-  rbox(x0 + 0.02, x1 - 0.02, z0, z1, 0.2, 0.8, F.carBody, { r: 0.17 });
-  rbox(x0 + 0.13, x1 - 0.13, z0 + 1.35, z1 - 0.45, 0.74, 1.36, F.carGlass, { r: 0.2 });
-  rbox(x0 + 0.17, x1 - 0.17, z0 + 1.65, z1 - 0.6, 1.3, 1.42, F.carBody, { r: 0.06 });
-  const wheel = new THREE.CylinderGeometry(0.31, 0.31, 0.22, 28); wheel.rotateZ(Math.PI / 2);
-  for (const x of [x0 + 0.12, x1 - 0.12]) for (const z of [z0 + 0.85, z1 - 0.8]) mesh(wheel, F.tire, scene, x, 0.31, -z);
-  colliders.push({ x0, x1, z0, z1, y0: 0, y1: 1.45 });
+// ---- Autos (ver estilos.md → Autos) ----
+// Simplificados pero con las medidas reales (largo, ancho, alto, distancia entre ejes y rodado) y sin logos.
+// La carrocería es el perfil lateral extruido a lo ancho con bordes redondeados y los pasaruedas recortados;
+// la cabina (más angosta, como en los autos de verdad) va encima, con los vidrios apoyados en sus caras.
+// Perfiles en [u, y]: u = distancia desde el paragolpes delantero, y = altura desde el piso (m).
+const CAR_SPECS = {
+  // BMW 120i (F40): hatchback compacto de 5 puertas, 4,32 x 1,80 x 1,43; entre ejes 2,67; rueda 225/45 R17
+  bmw: {
+    L: 4.32, W: 1.80, H: 1.43, axles: [0.84, 3.51], R: 0.315, tire: 0.225, arch: 0.37, sill: 0.2,
+    paint: 'bmwWhite', rim: 'bmw',
+    body: [[0.1, 0.2], [0.01, 0.32], [0, 0.56], [0.06, 0.68], [0.42, 0.79], [1.24, 0.92], [3.95, 0.99], [4.24, 0.96], [4.32, 0.8], [4.31, 0.4], [4.22, 0.2]],
+    cabin: [[1.18, 0.89], [2.02, 1.37], [2.3, 1.43], [3.5, 1.42], [3.86, 1.36], [4.22, 0.93]],
+    cabinW: 1.42,
+    // ventanillas: puerta delantera y trasera (con el quiebre típico de BMW en el pilar de atrás)
+    windows: [[[1.48, 0.98], [2.03, 1.31], [2.58, 1.35], [2.58, 0.99]],
+              [[2.66, 0.99], [2.66, 1.35], [3.44, 1.34], [3.66, 1.13], [3.58, 1.0]]],
+    seams: [1.3, 2.62, 3.6], mirror: 1.45,
+  },
+  // Volvo XC60 (2.ª generación): SUV mediana, 4,69 x 1,90 x 1,66; entre ejes 2,87; rueda 235/55 R19
+  volvo: {
+    L: 4.69, W: 1.90, H: 1.66, axles: [0.93, 3.795], R: 0.37, tire: 0.235, arch: 0.44, sill: 0.25,
+    paint: 'volvoBlack', rim: 'volvo',
+    body: [[0.12, 0.25], [0.02, 0.4], [0, 0.74], [0.05, 0.9], [0.5, 0.99], [1.32, 1.1], [4.05, 1.15], [4.56, 1.12], [4.67, 1.0], [4.69, 0.5], [4.6, 0.25]],
+    cabin: [[1.28, 1.07], [2.18, 1.6], [2.45, 1.66], [4.05, 1.64], [4.38, 1.58], [4.63, 1.1]],
+    cabinW: 1.56,
+    windows: [[[1.56, 1.15], [2.2, 1.55], [2.78, 1.58], [2.78, 1.16]],
+              [[2.86, 1.16], [2.86, 1.58], [3.68, 1.58], [3.68, 1.17]],
+              [[3.76, 1.17], [3.76, 1.58], [4.25, 1.57], [4.45, 1.2]]],
+    seams: [1.4, 2.82, 3.72], mirror: 1.55, cladding: true, rails: true,
+  },
+};
+// Llanta: disco gris oscuro con rayos plateados (la cara que se ve de costado)
+const RIM_TEX = {};
+function rimTexture(style) {
+  return RIM_TEX[style] ||= canvasTexture(256, (g, s) => {
+    const c = s / 2;
+    g.fillStyle = '#202224'; g.fillRect(0, 0, s, s);
+    g.fillStyle = style === 'volvo' ? '#8d9196' : '#c9ccd0';
+    g.beginPath(); g.arc(c, c, c * 0.98, 0, Math.PI * 2); g.arc(c, c, c * 0.86, 0, Math.PI * 2, true); g.fill();   // aro
+    g.lineCap = 'round';
+    for (let k = 0; k < 5; k++) {                                 // 5 rayos dobles
+      for (const d of [-0.11, 0.11]) {
+        const a = k * Math.PI * 2 / 5 + d;
+        g.strokeStyle = style === 'volvo' ? '#b9bdc1' : '#d3d6d9'; g.lineWidth = s * (style === 'volvo' ? 0.055 : 0.065);
+        g.beginPath(); g.moveTo(c + Math.cos(a * 0.98) * c * 0.22, c + Math.sin(a * 0.98) * c * 0.22); g.lineTo(c + Math.cos(a) * c * 0.9, c + Math.sin(a) * c * 0.9); g.stroke();
+      }
+    }
+    g.fillStyle = '#c4c7cb'; g.beginPath(); g.arc(c, c, c * 0.24, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#2a2c2e'; g.beginPath(); g.arc(c, c, c * 0.12, 0, Math.PI * 2); g.fill();   // tapa central lisa, sin logo
+  });
+}
+// xc, zc: centro del auto en el plano. facing = 1: el frente mira a la calle (z0); −1: al fondo.
+function buildCar(S, xc, zc, facing = 1) {
+  const g = new THREE.Group(); g.position.copy(W(xc, 0, zc)); if (facing < 0) g.rotation.y = Math.PI; scene.add(g);
+  const paint = F[S.paint], hl = S.L / 2, Z = u => hl - u;     // en el grupo: x = ancho, y = alto, +z = frente
+  const part = (x, y, z, w, h, d, mat, r = 0.01) => mesh(new RoundedBoxGeometry(w, h, d, 2, Math.min(r, w / 2.01, h / 2.01, d / 2.01)), mat, g, x, y, z);
+  const sides = fn => { fn(1); fn(-1); };
+  // Perfil extruido a lo ancho con bisel (bevelOffset deja el contorno exacto; sólo se redondean las aristas)
+  const extrude = (pts, width, mat, b) => {
+    const shape = new THREE.Shape(pts.map(([u, y]) => new THREE.Vector2(Z(u), y)));
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: width - 2 * b, bevelEnabled: true, bevelThickness: b, bevelSize: b, bevelOffset: -b, bevelSegments: 4, curveSegments: 6 });
+    geo.translate(0, 0, -(width - 2 * b) / 2); geo.rotateY(-Math.PI / 2);
+    return mesh(geo, mat, g);
+  };
+  // Carrocería: perfil de arriba (de adelante hacia atrás) y abajo los pasaruedas (de atrás hacia adelante)
+  const outline = S.body.slice();
+  for (const ax of [S.axles[1], S.axles[0]]) {
+    const a0 = Math.asin((S.sill - S.R) / S.arch);
+    for (let i = 0; i <= 16; i++) { const t = a0 + (Math.PI - 2 * a0) * i / 16; outline.push([ax + S.arch * Math.cos(t), S.R + S.arch * Math.sin(t)]); }
+  }
+  extrude(outline, S.W, paint, 0.07);
+  extrude(S.cabin, S.cabinW, paint, 0.06);
+  // Vidrios: ventanillas laterales sobre las caras de la cabina; parabrisas y luneta sobre sus pendientes
+  for (const win of S.windows) {
+    const geo = new THREE.ShapeGeometry(new THREE.Shape(win.map(([u, y]) => new THREE.Vector2(Z(u), y)))); geo.rotateY(-Math.PI / 2);
+    sides(s => mesh(geo, F.carGlass, g, s * (S.cabinW / 2 + 0.004), 0, 0));
+  }
+  // Pieza apoyada sobre un tramo inclinado del perfil (de [ua, ya] a [ub, yb]), separada `off` hacia afuera
+  const slope = ([ua, ya], [ub, yb], inset, w, mat, { x = 0, t = 0, off = 0.005, i0 = inset } = {}) => {
+    const za = Z(ua), zb = Z(ub), dz = zb - za, dy = yb - ya, len = Math.hypot(dz, dy);
+    const ny = Math.abs(dz) / len, nz = (dz < 0 ? dy : -dy) / len;   // normal hacia afuera (siempre hacia arriba)
+    const L = len - i0 - inset, f = (i0 + L / 2) / len;
+    const geo = t ? new RoundedBoxGeometry(w, L, t, 2, Math.min(0.02, w / 2.01, t / 2.01)) : new THREE.PlaneGeometry(w, L);
+    const m = mesh(geo, mat, g, x, ya + dy * f + ny * off, za + dz * f + nz * off);
+    m.rotation.x = Math.atan2(dz, dy);
+  };
+  slope(S.cabin[0], S.cabin[1], 0.07, S.cabinW - 0.16, F.carGlass);                             // parabrisas
+  slope(S.cabin[4], S.cabin[5], 0.06, S.cabinW - 0.2, F.carGlass);                              // luneta
+  // Juntas de las puertas (líneas oscuras finas en los costados)
+  const belt = u => { const b = S.body; for (let i = 1; i < b.length; i++) if (b[i][0] >= u && b[i - 1][0] <= u) return b[i - 1][1] + (b[i][1] - b[i - 1][1]) * (u - b[i - 1][0]) / (b[i][0] - b[i - 1][0]); return S.H / 2; };
+  for (const u of S.seams) sides(s => part(s * (S.W / 2 + 0.001), (S.sill + 0.06 + belt(u) - 0.03) / 2, Z(u), 0.006, belt(u) - S.sill - 0.09, 0.006, F.carTrim, 0.002));
+  // Espejos retrovisores (carcasa del color del auto, pie negro)
+  sides(s => {
+    const y = belt(S.mirror) + 0.1;
+    part(s * (S.W / 2 + 0.07), y, Z(S.mirror), 0.2, 0.12, 0.16, paint, 0.04);
+    part(s * (S.cabinW / 2 + 0.07), y - 0.06, Z(S.mirror) + 0.02, 0.14, 0.05, 0.08, F.carTrim, 0.01);
+  });
+  // Ruedas: cubierta con hombros redondeados + llanta de rayos
+  const T = S.tire, R = S.R;
+  const tireGeo = new THREE.LatheGeometry([[R * 0.7, -T / 2], [R - 0.035, -T / 2], [R, -T / 2 + 0.04], [R, T / 2 - 0.04], [R - 0.035, T / 2], [R * 0.7, T / 2]].map(([a, b]) => new THREE.Vector2(a, b)), 32);
+  tireGeo.rotateZ(Math.PI / 2);
+  const rimGeo = new THREE.CylinderGeometry(R * 0.7, R * 0.7, T * 0.86, 32); rimGeo.rotateZ(Math.PI / 2);
+  const rimFace = std(0xffffff, 0.3, { metalness: 0.7, map: rimTexture(S.rim) }), rimMats = [F.carTrim, rimFace, rimFace];
+  for (const ax of S.axles) sides(s => {
+    const x = s * (S.W / 2 - T / 2 - 0.035);
+    mesh(tireGeo, F.tire, g, x, R, Z(ax));
+    mesh(rimGeo, rimMats, g, x, R, Z(ax)).rotation.x = (ax + s) * 1.3;                          // cada llanta, girada distinto
+  });
+  const front = Z(0), rear = Z(S.L);
+  if (S.rim === 'bmw') {
+    // Frente: faros finos y la parrilla doble chica (riñones) negra; abajo, toma de aire negra
+    sides(s => {
+      part(s * 0.62, 0.655, front - 0.09, 0.4, 0.05, 0.16, F.headlamp, 0.02);
+      part(s * 0.13, 0.55, front - 0.015, 0.21, 0.15, 0.06, F.chrome, 0.04);                   // riñones: marco cromado
+      part(s * 0.13, 0.55, front, 0.17, 0.11, 0.06, F.carTrim, 0.03);                            // y rejilla negra
+      part(s * 0.7, 0.84, rear + 0.07, 0.3, 0.09, 0.2, F.taillamp, 0.02);                    // faros traseros horizontales
+    });
+    part(0, 0.32, front - 0.01, 0.9, 0.12, 0.06, F.carTrim, 0.03);
+    part(0, 0.27, rear - 0.01, 1.2, 0.1, 0.06, F.carTrim, 0.03);                                 // difusor
+  } else {
+    // Frente: parrilla grande negra con barras verticales cromadas (sin logo) y faros finos a los lados
+    part(0, 0.8, front - 0.02, 0.86, 0.3, 0.08, F.carTrim, 0.03);
+    for (let i = -6; i <= 6; i++) part(i * 0.06, 0.8, front + 0.015, 0.012, 0.26, 0.02, F.chrome, 0.004);
+    part(0, 0.96, front - 0.05, 0.9, 0.025, 0.08, F.chrome, 0.01);
+    sides(s => {
+      part(s * 0.66, 0.9, front - 0.11, 0.42, 0.05, 0.2, F.headlamp, 0.02);
+      // faros traseros verticales en L: suben por el pilar a los costados de la luneta y doblan abajo
+      slope(S.cabin[4], S.cabin[5], 0.04, 0.08, F.taillamp, { x: s * (S.cabinW / 2 - 0.05), t: 0.03, off: 0.003, i0: 0.1 });
+      part(s * (S.W / 2 - 0.22), 1.05, rear + 0.08, 0.3, 0.06, 0.1, F.taillamp, 0.02);
+    });
+    part(0, 0.42, front - 0.02, 1.5, 0.2, 0.08, F.carTrim, 0.04);                               // paragolpes inferior
+    part(0, 0.36, rear - 0.01, 1.6, 0.16, 0.06, F.carTrim, 0.04);
+  }
+  if (S.cladding) {
+    // Revestimiento plástico negro mate en zócalos y pasaruedas (típico de la SUV)
+    const a0 = Math.asin((S.sill - S.R) / S.arch), archGeo = new THREE.TorusGeometry(S.arch + 0.02, 0.035, 6, 24, Math.PI - 2 * a0);
+    sides(s => {
+      for (const ax of S.axles) { const m = mesh(archGeo, F.carTrim, g, s * (S.W / 2 - 0.02), S.R, Z(ax)); m.rotation.y = Math.PI / 2; m.rotation.x = a0; }
+      const z0 = Z(S.axles[0] + S.arch + 0.03), z1 = Z(S.axles[1] - S.arch - 0.03);
+      part(s * (S.W / 2 + 0.005), S.sill + 0.07, (z0 + z1) / 2, 0.05, 0.14, z0 - z1, F.carTrim, 0.02);
+    });
+    // Moldura cromada a lo largo de la línea de las ventanillas
+    sides(s => part(s * (S.cabinW / 2 + 0.008), 1.15, Z(3.0), 0.012, 0.02, 2.9, F.chrome, 0.006));
+  }
+  if (S.rails) sides(s => part(s * (S.cabinW / 2 - 0.12), S.H + 0.03, Z(3.25), 0.04, 0.05, 1.6, F.chrome, 0.015));   // barras de techo
+  colliders.push({ x0: xc - S.W / 2, x1: xc + S.W / 2, z0: zc - S.L / 2, z1: zc + S.L / 2, y0: 0, y1: S.H });
+  return g;
 }
 
 // ---- Cocina ----
@@ -2089,7 +2288,7 @@ function buildFurniture() {
   }
 
   bathPB();                                                                               // baño PB (toilette)
-  car([5.9, 7.7, 8.8, 13.4]);                                                             // garage
+  buildCar(CAR_SPECS.bmw, 6.965, 8.75 + CAR_SPECS.bmw.L / 2);                             // garage: BMW 120i blanco, de frente a la calle
 
   // Galería: plantas grandes en macetas
   modelSlot(['pachira_aquatica_01'], plant('ficus', 0.4, 17.95, { h: 1.5, seed: 21, pot: F.pot }), { x: 0.4, z: 17.95, h: 1.5, variant: 'd' });
@@ -2235,6 +2434,10 @@ function buildExterior() {
   bars.forEach(([x, y0, y1], i) => { mtx.makeScale(1, y1 - y0, 1).setPosition(x, (y0 + y1) / 2, 0); inst.setMatrixAt(i, mtx); });
   scene.add(inst);
   buildJasmine(X0, X1, TOP);
+  buildGarden();
+  // Volvo XC60 negra en el jardín delantero, frente al portón del garage (corrida a la derecha: queda paso
+  // del lado de la casa para llegar al portón)
+  buildCar(CAR_SPECS.volvo, 7.2, 0.95 + CAR_SPECS.volvo.L / 2);
 }
 
 // Enredadera tipo jazmín sobre la reja: hojas verde oscuro y florcitas blancas en manchones
@@ -2283,6 +2486,202 @@ function buildJasmine(X0, X1, TOP) {
   const leafGeo = new THREE.CircleGeometry(0.5, 6); leafGeo.scale(1, 0.45, 1);
   place(leafGeo, M.leaf, leaves, 0.045, () => col.setHSL(0.26 + rnd() * 0.06, 0.45 + rnd() * 0.2, 0.17 + rnd() * 0.1));
   place(new THREE.CircleGeometry(0.5, 5), M.flower, flowers, 0.032, () => col.setHSL(0.13, 0.3, 0.9 + rnd() * 0.1));
+}
+
+// ---- Jardín (ver estilos.md → Exterior; referencia exterior/jardin.png) ----
+// Borduras tipo pradera: gramíneas altas con penachos, hortensias rosas y blancas, espigas rosas (persicaria),
+// sedum bordó y matas de áster blanco, plantadas en manchones que se repiten. Atrás, cerco verde alto contra
+// las medianeras. Todo se arma con instancias (una malla por tipo de pieza) y con semilla fija.
+const GARDEN = new Map();   // tipo de pieza → [[matriz, color], …]
+const _gq = new THREE.Quaternion(), _ge = new THREE.Euler(), _gs = new THREE.Vector3(), _gUp = new THREE.Vector3(0, 1, 0);
+function gPiece(kind, pos, q, sx, sy, sz, color) {
+  if (!GARDEN.has(kind)) GARDEN.set(kind, []);
+  GARDEN.get(kind).push([new THREE.Matrix4().compose(pos, q, _gs.set(sx, sy, sz)), color]);
+}
+const hsl = (h, s, l) => new THREE.Color().setHSL(h, s, l);
+// Esfera deformada con ondas suaves (follaje, cabezas de hortensia). Las normales quedan las de la esfera: se ve redondeada.
+function blobGeometry(detail, amp, seed) {
+  const geo = new THREE.IcosahedronGeometry(1, detail), p = geo.attributes.position, v = new THREE.Vector3(), r = seeded(seed);
+  const k = [r() * 6, r() * 6, r() * 6];
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i).normalize();
+    const n = 1 + amp * (Math.sin(v.x * 5 + k[0]) * Math.sin(v.y * 4 + k[1]) * Math.sin(v.z * 5 + k[2]) + 0.5 * Math.sin(v.x * 11 + v.z * 9 + k[0]) * Math.sin(v.y * 9 + k[1]));
+    p.setXYZ(i, v.x * n, v.y * n, v.z * n);
+  }
+  return geo;
+}
+function spindleGeometry(seg = 6) {   // penacho / espiga: huso de 1 m de alto con la base en 0
+  return new THREE.LatheGeometry([[0, 0], [0.3, 0.12], [0.5, 0.45], [0.35, 0.8], [0, 1]].map(([a, b]) => new THREE.Vector2(a, b)), seg);
+}
+function bladeGeometry() {             // hoja de gramínea: angosta, se afina y se arquea hacia afuera
+  const geo = new THREE.PlaneGeometry(1, 1, 1, 5); geo.translate(0, 0.5, 0);
+  const p = geo.attributes.position;
+  for (let i = 0; i < p.count; i++) { const t = p.getY(i); p.setXYZ(i, p.getX(i) * (1 - t * 0.85), t, -t * t * 0.3); }
+  geo.computeVertexNormals();
+  return geo;
+}
+// Tallo inclinado desde la base: devuelve el extremo (mundo) y la rotación
+function gStalk(base, yaw, tilt, len, roll = 0) {
+  const q = new THREE.Quaternion().setFromEuler(_ge.set(-tilt, yaw, roll, 'YXZ'));
+  return [base.clone().add(_gUp.clone().applyQuaternion(q).multiplyScalar(len)), q];
+}
+// Plantas (x, z en el plano; rnd = generador con semilla)
+const PLANTS = {
+  // Gramínea alta (calamagrostis / miscanthus): mata de hojas verde amarillento y penachos rosados o pajizos
+  grass(x, z, rnd, { h = 1.3, plume = 'pink' } = {}) {
+    const base = W(x, 0, z);
+    for (let i = 0; i < 26; i++) {
+      const [, q] = gStalk(base, rnd() * Math.PI * 2, 0.1 + rnd() * 0.5, 1, (rnd() - 0.5) * 0.5), L = h * (0.4 + rnd() * 0.3);
+      gPiece('blade', base.clone().add(new THREE.Vector3((rnd() - 0.5) * 0.12, 0, (rnd() - 0.5) * 0.12)), q, 0.022, L, L, hsl(0.17 + rnd() * 0.07, 0.35 + rnd() * 0.2, 0.32 + rnd() * 0.16));
+    }
+    for (let i = 0; i < 14; i++) {
+      const L = h * (0.68 + rnd() * 0.25), [top, q] = gStalk(base, rnd() * Math.PI * 2, rnd() * 0.28, L);
+      gPiece('stalk', base, q, 0.004, L, 0.004, hsl(0.13, 0.3, 0.55));
+      const c = plume === 'pink' ? hsl(0.02 + rnd() * 0.03, 0.25 + rnd() * 0.15, 0.66 + rnd() * 0.1) : hsl(0.11 + rnd() * 0.02, 0.35, 0.7 + rnd() * 0.1);
+      gPiece('plume', top.clone().sub(_gUp.clone().applyQuaternion(q).multiplyScalar(h * 0.28)), q, 0.035, h * 0.32, 0.035, c);
+    }
+    return h;
+  },
+  // Hortensia paniculata: mata redonda verde oscuro con cabezas cónicas rosa, blancas o de blanco a rosa
+  hydrangea(x, z, rnd, { h = 1.0, tone = 'pink' } = {}) {
+    const r = h * 0.48, c = W(x, h * 0.42, z);
+    gPiece('foliage', c, _gq.setFromEuler(_ge.set(0, rnd() * 6, 0)), r, h * 0.42, r, hsl(0.29 + rnd() * 0.03, 0.38, 0.17 + rnd() * 0.04));
+    for (let i = 0; i < 14; i++) {
+      const yaw = rnd() * Math.PI * 2, el = 0.2 + rnd() * 1.1;
+      const p = c.clone().add(new THREE.Vector3(Math.cos(yaw) * Math.cos(el) * r, Math.sin(el) * h * 0.42, Math.sin(yaw) * Math.cos(el) * r));
+      const t = tone === 'white' ? 0.1 * rnd() : tone === 'mixed' ? rnd() : 0.6 + rnd() * 0.4;     // 0 = blanco, 1 = rosa
+      const col = hsl(0.97, 0.15 + t * 0.4, 0.92 - t * 0.2);
+      gPiece('bloom', p, _gq.setFromEuler(_ge.set((rnd() - 0.5) * 0.5, rnd() * 6, (rnd() - 0.5) * 0.5)), 0.1, 0.15, 0.1, col);
+    }
+    return h;
+  },
+  // Persicaria: hojas lanceoladas abajo y espigas finas rosas arriba
+  persicaria(x, z, rnd, { h = 0.75 } = {}) {
+    const base = W(x, 0, z);
+    for (let i = 0; i < 16; i++) {
+      const [, q] = gStalk(base, rnd() * Math.PI * 2, 0.6 + rnd() * 0.6, 1);
+      gPiece('leaf', base.clone().add(new THREE.Vector3((rnd() - 0.5) * 0.2, 0.05 + rnd() * 0.15, (rnd() - 0.5) * 0.2)), q, 0.07, 0.24, 0.24, hsl(0.27 + rnd() * 0.04, 0.4, 0.2 + rnd() * 0.08));
+    }
+    for (let i = 0; i < 22; i++) {
+      const L = h * (0.6 + rnd() * 0.3), b = base.clone().add(new THREE.Vector3((rnd() - 0.5) * 0.3, 0, (rnd() - 0.5) * 0.3));
+      const [top, q] = gStalk(b, rnd() * Math.PI * 2, rnd() * 0.3, L);
+      gPiece('stalk', b, q, 0.004, L, 0.004, hsl(0.25, 0.35, 0.3));
+      gPiece('spike', top, q, 0.024, h * (0.15 + rnd() * 0.08), 0.024, hsl(0.94 + rnd() * 0.04, 0.45 + rnd() * 0.15, 0.55 + rnd() * 0.15));
+    }
+    return h;
+  },
+  // Sedum: mata gris verdosa con cabezas planas bordó
+  sedum(x, z, rnd, { h = 0.5 } = {}) {
+    const c = W(x, h * 0.35, z);
+    gPiece('foliage', c, _gq.setFromEuler(_ge.set(0, rnd() * 6, 0)), 0.26, h * 0.35, 0.26, hsl(0.3, 0.18, 0.32));
+    for (let i = 0; i < 7; i++) {
+      const yaw = rnd() * Math.PI * 2, d = rnd() * 0.18;
+      gPiece('bloom', c.clone().add(new THREE.Vector3(Math.cos(yaw) * d, h * 0.3 + rnd() * 0.06, Math.sin(yaw) * d)), _gq.identity(), 0.09, 0.035, 0.09, hsl(0.97, 0.5, 0.22 + rnd() * 0.06));
+    }
+    return h;
+  },
+  // Áster blanco: mata verde salpicada de ramilletes de florcitas blancas y lila muy claro
+  aster(x, z, rnd, { h = 0.6 } = {}) {
+    const r = 0.28, c = W(x, h * 0.42, z);
+    gPiece('foliage', c, _gq.setFromEuler(_ge.set(0, rnd() * 6, 0)), r, h * 0.42, r, hsl(0.28, 0.3, 0.22 + rnd() * 0.04));
+    for (let i = 0; i < 16; i++) {
+      const yaw = rnd() * Math.PI * 2, el = 0.15 + rnd() * 1.3;
+      const p = c.clone().add(new THREE.Vector3(Math.cos(yaw) * Math.cos(el) * r, Math.sin(el) * h * 0.42, Math.sin(yaw) * Math.cos(el) * r));
+      gPiece('bloom', p, _gq.setFromEuler(_ge.set(rnd() * 3, rnd() * 6, 0)), 0.06, 0.035, 0.06, hsl(0.75, 0.12 + rnd() * 0.15, 0.9));
+    }
+    return h;
+  },
+  // Bola de boj recortada
+  boxball(x, z, rnd, { h = 0.7 } = {}) {
+    gPiece('foliage', W(x, h / 2, z), _gq.setFromEuler(_ge.set(0, rnd() * 6, 0)), h * 0.55, h / 2, h * 0.55, hsl(0.27, 0.42, 0.2));
+    return h;
+  },
+};
+// Mezclas por fila de la bordura (atrás = contra el muro o el cerco, adelante = contra el césped)
+const BED_MIX = {
+  back: [['grass', { h: 1.5, plume: 'pink' }], ['hydrangea', { h: 1.15, tone: 'pink' }], ['grass', { h: 1.35, plume: 'straw' }], ['hydrangea', { h: 1.1, tone: 'white' }], ['grass', { h: 1.6, plume: 'pink' }]],
+  mid: [['persicaria', { h: 0.8 }], ['hydrangea', { h: 0.9, tone: 'mixed' }], ['grass', { h: 1.0, plume: 'straw' }], ['aster', { h: 0.65 }], ['sedum', { h: 0.55 }]],
+  front: [['sedum', { h: 0.45 }], ['aster', { h: 0.5 }], ['persicaria', { h: 0.6 }], ['boxball', { h: 0.55 }]],
+  low: [['hydrangea', { h: 0.8, tone: 'pink' }], ['aster', { h: 0.5 }], ['hydrangea', { h: 0.75, tone: 'white' }], ['sedum', { h: 0.45 }], ['persicaria', { h: 0.6 }]],
+};
+// Bordura a lo largo de un borde: axis = 'x' si el borde corre a lo largo de x (en c = z) y 'z' si corre a lo
+// largo de z (en c = x); dir = hacia dónde crece (+1 / −1); a0..a1 = tramo; depth = profundidad media (el
+// frente ondula). rows: mezclas de atrás hacia adelante.
+function border({ axis, c, dir, a0, a1, depth, seed, rows = ['back', 'mid', 'front'], spacing = 0.5 }) {
+  const rnd = seeded(seed), ph = rnd() * 6;
+  const dAt = a => depth * (0.85 + 0.15 * Math.sin(a * 1.1 + ph) + 0.07 * Math.sin(a * 2.9 + ph * 2));
+  const P = (a, d) => axis === 'x' ? [a, c + dir * d] : [c + dir * d, a];
+  // tierra con mulch (forma con el borde ondulado)
+  const n = Math.ceil((a1 - a0) / 0.15), pts = [];
+  for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * i / n; pts.push(P(a, dAt(a) + 0.12)); }
+  pts.push(P(a1, 0), P(a0, 0));
+  const geo = new THREE.ShapeGeometry(new THREE.Shape(pts.map(([x, z]) => new THREE.Vector2(x, z))));
+  geo.rotateX(-Math.PI / 2);                                        // (x, z del plano) → mundo (x, 0, −z), mirando hacia arriba
+  scaleUV(geo, 1 / 1.2);
+  const soil = mesh(geo, M.soil, scene, 0, 0.003, 0); soil.userData.noCast = true;
+  // plantas en filas escalonadas, en manchones de la misma especie
+  for (let a = a0 + 0.3; a < a1 - 0.2; a += spacing * (0.85 + rnd() * 0.3)) {
+    const D = dAt(a), nr = Math.max(1, Math.min(rows.length, Math.round(D / 0.45)));
+    for (let r = 0; r < nr; r++) {
+      const row = rows[Math.round(r * (rows.length - 1) / Math.max(1, nr - 1))], mix = BED_MIX[row];
+      let k = Math.floor(a / 1.5 + r * 1.7 + ph) % mix.length;
+      if (rnd() < 0.15) k = Math.floor(rnd() * mix.length);
+      const d = (r + 0.5) / nr * D + (rnd() - 0.5) * 0.12, aa = a + (r % 2) * spacing * 0.45 + (rnd() - 0.5) * 0.12;
+      if (aa > a1 - 0.15) continue;
+      const [x, z] = P(aa, d), [kind, opt] = mix[k];
+      const h = PLANTS[kind](x, z, rnd, { ...opt, h: opt.h * (0.88 + rnd() * 0.24) });
+      if (h > 0.4) colliders.push({ x0: x - 0.16, x1: x + 0.16, z0: z - 0.16, z1: z + 0.16, y0: 0, y1: h });
+    }
+  }
+}
+// Cerco verde alto (ligustro / eleagnus) contra una medianera: núcleo macizo y matas superpuestas con el borde irregular
+const HEDGE_CORE = std(0x22301c, 0.95);
+function hedge(x0, x1, z0, z1, H, seed) {
+  const rnd = seeded(seed), alongX = x1 - x0 > z1 - z0;
+  const [a0, a1] = alongX ? [x0, x1] : [z0, z1], [c0, c1] = alongX ? [z0, z1] : [x0, x1], cm = (c0 + c1) / 2, th = c1 - c0;
+  box(x0 + 0.1, x1 - 0.1, z0 + 0.1, z1 - 0.1, 0, H - 0.3, HEDGE_CORE);                       // núcleo (también choca)
+  for (let a = a0 + 0.2; a < a1; a += 0.42 + rnd() * 0.12) {
+    for (const [y, ry] of [[0.55, 0.6], [1.35, 0.6], [H - 0.45, 0.5]]) {
+      const ra = 0.38 + rnd() * 0.14, rc = th * (0.52 + rnd() * 0.12), cc = cm + (rnd() - 0.5) * 0.12;
+      const [x, z] = alongX ? [a, cc] : [cc, a];
+      gPiece('hedge', W(x, y + (rnd() - 0.5) * 0.15, z), _gq.setFromEuler(_ge.set((rnd() - 0.5) * 0.3, rnd() * 6, (rnd() - 0.5) * 0.3)),
+        alongX ? ra : rc, ry * (0.9 + rnd() * 0.25), alongX ? rc : ra, hsl(0.27 + rnd() * 0.05, 0.38 + rnd() * 0.12, 0.15 + rnd() * 0.06));
+    }
+  }
+}
+// Una InstancedMesh por tipo de pieza
+function flushGarden() {
+  const GEO = {
+    blade: [bladeGeometry(), F.leaf], leaf: [leafGeometry('oval'), F.leaf],
+    stalk: [new THREE.CylinderGeometry(1, 1, 1, 4, 1, true).translate(0, 0.5, 0), F.leaf],
+    plume: [spindleGeometry(5), F.plume], spike: [spindleGeometry(5), F.plume],
+    foliage: [blobGeometry(2, 0.12, 3), F.foliage], hedge: [blobGeometry(2, 0.16, 4), F.foliage],
+    bloom: [blobGeometry(1, 0.1, 8), F.bloom],
+  };
+  for (const [kind, list] of GARDEN) {
+    const [geo, mat] = GEO[kind], inst = new THREE.InstancedMesh(geo, mat, list.length);
+    list.forEach(([m, c], i) => { inst.setMatrixAt(i, m); inst.setColorAt(i, c); });
+    inst.computeBoundingSphere();
+    scene.add(inst);
+  }
+  GARDEN.clear();
+}
+function buildGarden() {
+  const H = 2.45, back = LOT_D, start = GALERIA_Z[1] + 0.4;
+  // Jardín delantero: borduras contra la reja, la medianera izquierda y bajo la ventana del living;
+  // una franja angosta de gramíneas entre el camino y la entrada de autos (deja paso junto a la casa)
+  border({ axis: 'x', c: 0.12, dir: 1, a0: 0, a1: 4.0, depth: 0.95, seed: 101 });
+  border({ axis: 'z', c: 0, dir: 1, a0: 1.15, a1: 4.45, depth: 0.95, seed: 102 });
+  border({ axis: 'x', c: 5.16, dir: -1, a0: 1.1, a1: 4.0, depth: 0.6, seed: 103, rows: ['low'] });
+  border({ axis: 'z', c: 5.08, dir: 1, a0: 0.12, a1: 4.3, depth: 0.4, seed: 104, rows: ['mid'], spacing: 0.55 });
+  // Patio trasero: cerco alto contra las tres medianeras y borduras anchas delante, con el frente ondulado
+  hedge(0, 0.8, start, back, H, 201);
+  hedge(LOT_W - 0.8, LOT_W, start, back, H, 202);
+  hedge(0.8, LOT_W - 0.8, back - 0.8, back, H, 203);
+  border({ axis: 'z', c: 0.8, dir: 1, a0: start + 0.6, a1: back - 0.8, depth: 1.35, seed: 211 });
+  border({ axis: 'z', c: LOT_W - 0.8, dir: -1, a0: start + 0.6, a1: back - 0.8, depth: 1.35, seed: 212 });
+  border({ axis: 'x', c: back - 0.8, dir: -1, a0: 0.8, a1: LOT_W - 0.8, depth: 1.5, seed: 213 });
+  flushGarden();
 }
 
 buildWalls();
