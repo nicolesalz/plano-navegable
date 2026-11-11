@@ -44,9 +44,20 @@ Referencias: `cocina/`, `pisos/piso galeria.jpeg`
 - Muebles en madera tono miel (roble o nogal claro), veta vertical, frentes lisos con uñeros o perillas chicas.
 - Columna de alacenas de piso a techo con horno empotrado negro/grafito y un módulo de estantes abiertos.
 - Isla: base verde muy oscuro con un costado de estantes abiertos en madera; colgante lineal negro arriba.
-- Mesada clara (cuarcita o mármol crema) con un poco de brillo; bacha de acero bajo mesada, grifería acero.
+- Mesada clara (cuarcita o mármol crema) con un poco de brillo.
+- Bacha de acero bajo mesada **en la isla** (no en la mesada contra la pared), con grifería de acero. En la mesada de la pared va el anafe de inducción negro.
+- Ventana de paño fijo (no se abre) de 1,50 x 1,50 m sobre la mesa del comedor diario, centrada sobre la mesa, con marco blanco fino como el resto de las carpinterías.
 - Paredes blanco cálido, sin azulejos. Piso: porcelanato claro (ver Pisos).
 - Galería: piso de calcáreos; abertura grande vidriada hacia el patio. Sin columnas: el techo (losa) de la galería va en voladizo desde el muro del fondo de la casa, sin apoyos visibles.
+
+### Distribución (mirando desde el hall hacia la galería)
+La columna de alacenas, el módulo de estantes abiertos y la isla no están dibujados en `plano.pdf`; se ubican sin cambiar paredes ni medidas.
+- **Pared izquierda (medianera)**, del muro del baño hacia el fondo:
+  - Bajo mesada con anafe (del muro del baño hasta 2,7 m), en L con la bajo mesada contra el muro del baño.
+  - **Módulo de estantes abiertos** (50 cm de ancho): sobre la mesada, desde la mesada hasta el techo, en madera miel, con platos, tazas y libros de cocina.
+  - **Columna de alacenas** (1,27 m de ancho, de piso a techo, 62 cm de fondo) en el rincón del fondo, donde el plano marca la heladera: dos módulos con alacenas arriba; el **horno grafito** empotrado a la altura de la mano en el módulo junto a los estantes. Llega hasta el muro del fondo, al lado de la puerta-ventana a la galería.
+- **Isla** (1,04 x 1,30 m) en el centro, frente a la mesada de la pared (pasillo de 90 cm): bacha con grifería del lado de la mesada, banquetas del lado del comedor, estantes abiertos en el costado que mira a la galería, colgante lineal negro arriba.
+- **Comedor diario**: mesa redonda con cuatro sillas contra el muro del fondo, a la derecha de la puerta-ventana; la ventana fija de 1,50 x 1,50 m (dintel a 2,05 m, alineado arriba con la puerta-ventana corrediza a la galería; antepecho a 55 cm) está centrada sobre la mesa y da a la galería.
 
 ## Dormitorios
 Referencias: `habitaciones/`
