@@ -1671,9 +1671,10 @@ function bathMain(Y) {
   box(2.5, 3.355, 14.97, 14.982, Y + 0.55, Y + 2.0, M.glass, false);                              // mampara
   box(3.345, 3.365, 14.96, 14.99, Y + 0.55, Y + 2.0, BK, false);                                  // perfil negro
   // inodoro y bidet contra la pared izquierda, como en el plano
-  toilet(1.666, 14.43, Y, 1);
-  bidet(1.666, 13.72, Y, 1, BK);
-  paperHolder(1.666, Y + 0.68, 14.0, 1, 0, BK);
+  // (el bidet queda 15 cm más adentro que en el plano para dejar 52 cm de paso entre él y la esquina de la puerta)
+  toilet(1.666, 14.46, Y, 1);
+  bidet(1.666, 13.86, Y, 1, BK);
+  paperHolder(1.666, Y + 0.68, 14.70, 1, 0, BK);
   towelBar(3.364, 3.364, 14.05, 14.55, Y + 1.25, -1, 0, BK, [0.34, 0.5]);
   ceilingLight(2.55, 14.25, TOP, 4);
   // antebaño: vanitory chico de nogal flotante (80 cm), tapa blanca, bacha de apoyo verde salvia y grifería
