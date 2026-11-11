@@ -2086,7 +2086,7 @@ function buildFurniture() {
   const PD = { y0: Y, mat: F.millwork, pull: F.black };
   bathSlidingDoor({ ...PD, along: 'x', a0: 0.10, a1: 0.82, c: 11.778, dir: 1 });                     // hall → antebaño del segundo baño (del lado del hall)
   bathSlidingDoor({ ...PD, along: 'x', a0: 0.10, a1: 0.82, c: 13.394, dir: 1, limit: 1.514 });                     // antebaño → segundo baño (del lado del baño)
-  bathSlidingDoor({ ...PD, along: 'x', a0: 1.91, a1: 2.64, c: 13.394, dir: 1, limit: 3.364 });      // antebaño → baño principal (del lado del baño)
+  bathSlidingDoor({ ...PD, along: 'x', a0: 1.91, a1: 2.64, c: 13.066, dir: 1 });                    // antebaño → baño principal (del lado del antebaño: del lado del baño chocaría con el bidet)
   bathSlidingDoor({ ...PD, along: 'z', a0: 12.34, a1: 13.09, c: 3.732, dir: -1 });                  // hall → antebaño del baño principal (del lado del hall)
 }
 
