@@ -9,7 +9,9 @@ Reglas para todas las zonas:
 ## Base (toda la casa)
 Referencias: `base/`, `pisos/`
 - Paredes interiores: blanco cálido, mate.
-- Carpinterías: marcos finos negros o grafito, vidrio claro.
+- Carpinterías: todos los marcos de ventanas y puertas-ventana blancos y finos, con vidrio claro.
+- Puerta de entrada: marco blanco fino.
+- Portón del garage: seccional blanco, de paneles horizontales, con marco blanco fino.
 - Escalera: totalmente revestida en madera (pedadas, alzadas y laterales), en el mismo tono que el piso de madera, con baranda metálica negra fina. El bajo escalera queda vacío y abierto: sin paredes, placard ni cerramiento debajo.
 - Fachada: revoque gris cemento liso; baranda de vidrio en planta alta.
 - Reja y portón del frente: planchuelas verticales negras, con enredadera (tipo jazmín) creciendo sobre la reja.
