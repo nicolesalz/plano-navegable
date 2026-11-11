@@ -59,10 +59,11 @@ La columna de alacenas, el módulo de estantes abiertos y la isla no están dibu
 - **Isla** (1,04 x 1,30 m) en el centro, frente a la mesada de la pared (pasillo de 90 cm): bacha con grifería del lado de la mesada, banquetas del lado del comedor, estantes abiertos en el costado que mira a la galería, colgante lineal negro arriba.
 - **Comedor diario**: mesa redonda con cuatro sillas contra el muro del fondo, a la derecha de la puerta-ventana; la ventana fija de 1,50 x 1,50 m (dintel a 2,05 m, alineado arriba con la puerta-ventana corrediza a la galería; antepecho a 55 cm) está centrada sobre la mesa y da a la galería.
 
-## Dormitorios
+## Dormitorios + escritorio
 Referencias: `habitaciones/`
 - Dormitorio principal: tonos beige y crudo; placard de pared completa con puertas de paneles de esterilla (rattan) enmarcados en blanco; cama tapizada beige con almohadones rosa viejo; mesas de luz redondas de madera clara; alfombra cruda.
-- Dormitorio chico / escritorio: paredes y estanterías verde oliva; escritorio flotante y estantes del mismo verde; silla de madera curva; lámparas colgantes de vidrio opalino; cortina de lino blanca.
+- Dormitorio chico: dormitorio, en los mismos tonos beige y crudo que el principal; cama tapizada beige con almohadón rosa viejo, mesa de luz redonda de madera clara con velador, placard de esterilla con marco blanco y alfombra cruda.
+- Escritorio (el cuartito del fondo que en el plano dice "Depósito"): paredes y estanterías verde oliva; escritorio flotante y estantes del mismo verde; silla de madera curva; lámparas colgantes de vidrio opalino; cortina de lino blanca. Referencia `habitaciones/habitacionchicaescritorio.jpg`.
 
 ### Distribución
 El placard de esterilla y el escritorio con estantes verdes no están dibujados en `plano.pdf`; se ubican sin cambiar paredes ni medidas.
@@ -72,13 +73,19 @@ El placard de esterilla y el escritorio con estantes verdes no están dibujados 
   - **Alfombra cruda** debajo de los dos tercios de la cama hacia los pies.
   - El bloque de placard que el plano dibuja en el nicho de la derecha (junto a la caja de la escalera) queda como placard liso color crudo.
   - Paredes en beige suave.
-- **Dormitorio chico / escritorio** = habitación 3 (la más chica, 2,9 x 3,5, al fondo, ventana al patio). Cama y placard quedan donde los marca el plano.
-  - **Contra la pared derecha** (medianera), del placard hacia el fondo:
-    - **Mueble de estantes** (98 cm de ancho, 38 cm de fondo): puertas abajo y estantes abiertos hasta el techo, con libros.
-    - **Escritorio flotante** (1,85 m x 55 cm, a 77 cm de alto) hasta el rincón de la ventana, con dos estantes flotantes arriba.
-  - **Silla** giratoria de madera curva frente al escritorio; dos colgantes de vidrio opalino frente al mueble de estantes.
+- **Dormitorio chico** = habitación 3 (2,9 x 3,5, al fondo, ventana al patio). Cama y placard quedan donde los marca el plano.
+  - **Cama** de una plaza contra la pared de la puerta, con la cabecera bajo la ventana.
+  - **Mesa de luz** redonda de madera clara junto a la cabecera, con velador de pantalla de lino.
+  - **Placard** (el del plano, junto a la puerta) con puertas de esterilla y marco blanco, como el del principal.
+  - **Alfombra cruda** al costado de la cama y **globo opalino** colgante en el centro.
+  - Paredes en beige suave.
+- **Escritorio** = el cuartito de 1,9 x 2,3 m al fondo del hall de planta alta, entre el baño PA 2 y el dormitorio chico (en el plano, "Depósito"); puerta a la derecha y ventana al patio.
+  - **Contra la pared izquierda** (la del baño PA 2), de la puerta hacia el fondo:
+    - **Mueble de estantes** (70 cm de ancho, 38 cm de fondo): puertas abajo y estantes abiertos hasta el techo, con libros.
+    - **Escritorio flotante** (1,55 m x 55 cm, a 77 cm de alto) hasta el rincón de la ventana, con dos estantes flotantes arriba.
+  - **Silla** giratoria de madera curva frente al escritorio; dos colgantes de vidrio opalino arriba, entre el escritorio y los estantes.
   - **Cortina de lino blanca** recogida del lado derecho de la ventana.
-  - Paredes y placard en verde oliva.
+  - Paredes en verde oliva.
 
 ## Baños
 Referencias: `banos/`
