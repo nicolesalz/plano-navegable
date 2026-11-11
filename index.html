@@ -179,7 +179,12 @@ const SLAB_RECTS = [
   [-0.28, 5.52, 9.98, 17.54], [5.52, 8.68, 7.86, 17.54], [5.24, 5.52, 8.16, 9.98],
 ];
 const PA_FLOORS = [[0, 5.38, 5.44, 8.16], [0, 4.32, 8.16, 9.11], [0, 2.43, 9.11, 9.98], [0, 5.38, 9.98, 15.69], [5.52, 8.40, 8.16, 15.69]];
-const PA_ROOF = [[-0.29, 5.52, 5.16, 15.83], [5.38, 8.69, 7.86, 15.83]];
+const PA_ROOF = [[-0.29, 5.52, 5.16, 15.83], [5.38, 8.69, 7.86, 15.83]];   // losas de techo de planta alta (cielorraso a 2,60)
+// Techos (ver estilos.md → Techos), por encima de la losa de techo, sin tocar la planta alta:
+// volumen principal (PA_ROOF[0]) a dos aguas de teja colonial, con la cumbrera de frente a fondo y el hastial
+// (triángulo) mirando a la calle; alero chico. Volumen de la derecha (PA_ROOF[1]): techo plano con parapeto liso.
+const GABLE = { x0: -0.29, x1: 5.52, z0: 5.16, z1: 15.83, pitch: 30, eave: 0.25, rake: 0.2 };   // pitch en grados; aleros en m
+const PARAPET = { h: 0.6, t: 0.15 };
 
 // Muebles: las ubicaciones y medidas están en buildFurniture() (sección 3b), dentro de los mismos
 // rectángulos que ocupaban los bloques del plano original.
@@ -300,7 +305,7 @@ function fitSunShadow(mapSize) {
   // Esquinas del lote (casa, medianeras, reja) en el espacio de la luz
   const inv = cam.matrixWorldInverse, p = new THREE.Vector3();
   const lo = new THREE.Vector3(Infinity, Infinity, Infinity), hi = lo.clone().negate();
-  for (const x of [-0.6, 9.0]) for (const y of [0, 6]) for (const z of [0.5, -40.2]) {
+  for (const x of [-0.6, 9.0]) for (const y of [0, 7.6]) for (const z of [0.5, -40.2]) {   // 7,6: hasta la cumbrera
     p.set(x, y, z).applyMatrix4(inv); lo.min(p); hi.max(p);
   }
   Object.assign(cam, { left: lo.x, right: hi.x, bottom: lo.y, top: hi.y, near: Math.max(0.1, -hi.z - 1), far: -lo.z + 1 });
@@ -510,6 +515,36 @@ function normalFrom(src, strength) {
   return t;
 }
 const v2 = (k) => new THREE.Vector2(k, k);
+
+// Teja colonial terracota: canales y cobijas alternados que bajan por la pendiente (20 cm por par), en hiladas
+// de 40 cm que se solapan (el borde de abajo de cada hilada levanta y hace sombra sobre la de abajo). Tono
+// distinto pieza a pieza. 1 textura = ROOF_TEX m; u = hacia arriba de la pendiente.
+const ROOF_TEX = 0.8;
+const roofTileTex = (() => {
+  const S = 512, ROWS = 2, CH = 4, rnd = seeded(43);
+  const tone = Array.from({ length: ROWS * CH * 2 }, () => rnd() - 0.5);
+  const mk = () => { const c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d'); return [c, g, g.createImageData(S, S)]; };
+  const [cc, cg, ci] = mk(), [hc, hg, hi] = mk();
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const u = x / S * ROWS, f = u - Math.floor(u), row = Math.floor(u);   // f: 0 = borde de abajo de la teja, 1 = arriba
+    const v = y / S * CH, tt = v - Math.floor(v);
+    const prof = -Math.cos(2 * Math.PI * tt);                              // +1 = lomo de la cobija, −1 = fondo del canal
+    const cob = prof > 0, piece = cob ? Math.floor(v) : Math.floor(v + 0.5) % CH;
+    const k = tone[(row * CH + piece) * 2 + (cob ? 1 : 0)];
+    let L = 0.95 + 0.12 * prof + 0.2 * k + (rnd() - 0.5) * 0.07;
+    if (f > 0.88) L *= 0.5 + 0.5 * (1 - f) / 0.12;                         // sombra bajo el borde de la hilada de arriba
+    const i = (y * S + x) * 4;
+    ci.data[i] = Math.min(255, 176 * L); ci.data[i + 1] = Math.min(255, (86 + 16 * k) * L); ci.data[i + 2] = Math.min(255, (56 + 10 * k) * L); ci.data[i + 3] = 255;
+    const h = 0.4 + 0.28 * prof + 0.25 * (1 - f);
+    hi.data[i] = hi.data[i + 1] = hi.data[i + 2] = Math.max(0, Math.min(255, h * 255)); hi.data[i + 3] = 255;
+  }
+  cg.putImageData(ci, 0, 0); hg.putImageData(hi, 0, 0);
+  const map = new THREE.CanvasTexture(cc);
+  map.wrapS = map.wrapT = THREE.RepeatWrapping; map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = 8;
+  return { map, normal: normalFrom(hc, 12) };
+})();
+M.roofTile = std(0xffffff, 0.75, { map: roofTileTex.map, normalMap: roofTileTex.normal, normalScale: v2(1) });
+M.roofEdge = std(0x9c4e33, 0.8);                                     // cantos de teja y cumbrera
 
 // Calcáreo: alturas solo con las juntas (la baldosa es lisa) + poro muy fino
 const tileHeight = (() => {
@@ -1028,6 +1063,41 @@ function buildFloorsAndCeilings() {
   for (const [x0, x1, z0, z1] of SLAB_RECTS) box(x0, x1, z0, z1, H_WALL, PA_Y, M.ceiling, false);
   const roofMats = [M.facade, M.facade, M.roof, M.ceiling, M.facade, M.facade];
   for (const [x0, x1, z0, z1] of PA_ROOF) box(x0, x1, z0, z1, PA_Y + H_WALL, PA_Y + H_WALL + SLAB, roofMats, false);
+}
+
+// Techos (ver estilos.md → Techos). Todo va arriba de la losa de techo de planta alta (5,60), así que la
+// planta alta queda igual: mismos muros, mismo cielorraso a 2,60.
+function buildRoofs() {
+  const G = GABLE, th = THREE.MathUtils.degToRad(G.pitch), tan = Math.tan(th);
+  const base = PA_Y + H_WALL + SLAB;
+  const xm = (G.x0 + G.x1) / 2, half = (G.x1 - G.x0) / 2, rise = half * tan, D = G.z1 - G.z0, zc = -(G.z0 + G.z1) / 2;
+  // Hastiales: triángulos de revoque crema al frente (mirando a la calle) y al fondo, con el entretecho macizo entre ambos
+  const tri = new THREE.Shape([new THREE.Vector2(G.x0, 0), new THREE.Vector2(G.x1, 0), new THREE.Vector2(xm, rise)]);
+  const prism = new THREE.Mesh(new THREE.ExtrudeGeometry(tri, { depth: D, bevelEnabled: false }), M.facade);
+  prism.position.set(0, base, -G.z1);
+  scene.add(prism);
+  // Faldones de teja colonial (8 cm), apoyados en los hastiales; alero de 25 cm a los costados y 20 cm adelante y atrás
+  const t = 0.08, run = half + G.eave, L = run / Math.cos(th), len = D + 2 * G.rake;
+  for (const s of [-1, 1]) {                                          // −1 = faldón izquierdo, +1 = derecho
+    const geo = new THREE.BoxGeometry(L, t, len), uv = geo.attributes.uv;
+    for (let i = 8; i < 12; i++) uv.setXY(i, -s * uv.getX(i) * L / ROOF_TEX, uv.getY(i) * len / ROOF_TEX);   // cara de arriba: canales pendiente abajo
+    const m = new THREE.Mesh(geo, [M.roofEdge, M.roofEdge, M.roofTile, M.facade, M.roofEdge, M.roofEdge]);   // abajo: alero crema
+    m.rotation.z = -s * th;
+    m.position.set(xm + s * (run / 2 + Math.sin(th) * t / 2), base + rise - (run / 2) * tan + Math.cos(th) * t / 2, zc);
+    scene.add(m);
+  }
+  // Cumbrera: media caña de teja a lo largo de toda la cumbrera
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, len, 16, 1, false, Math.PI / 2, Math.PI), M.roofEdge);
+  cap.rotation.x = Math.PI / 2;
+  cap.position.set(xm, base + rise + t / Math.cos(th) - 0.04, zc);
+  scene.add(cap);
+
+  // Volumen de la derecha: techo plano (la membrana gris de la losa) con parapeto liso crema al frente, al
+  // costado y al fondo; del lado izquierdo se apoya contra el volumen principal (ahí baja el faldón derecho)
+  const [, x1, z0, z1] = PA_ROOF[1], P = PARAPET, top = base + P.h;
+  box(G.x1, x1, z0, z0 + P.t, base, top, M.facade, false);             // frente
+  box(G.x1, x1, z1 - P.t, z1, base, top, M.facade, false);             // fondo
+  box(x1 - P.t, x1, z0 + P.t, z1 - P.t, base, top, M.facade, false);   // costado derecho
 }
 
 function buildStairs() {
@@ -2217,6 +2287,7 @@ function buildJasmine(X0, X1, TOP) {
 
 buildWalls();
 buildFloorsAndCeilings();
+buildRoofs();
 buildStairs();
 buildFurniture();
 buildExterior();
