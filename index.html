@@ -29,17 +29,17 @@
   #overlay p { margin: 6px 0; }
   #overlay kbd { background: #eee; border: 1px solid #ccc; border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; font-size: 13px; }
   #overlay .go { margin-top: 14px; font-weight: 600; color: #1a6dd6; }
-  #quality { margin-top: 14px; padding-top: 12px; border-top: 1px solid #e3e3e3; font-size: 14px; cursor: default; }
-  #quality button { margin: 0 2px; padding: 4px 10px; border: 1px solid #c8c8c8; border-radius: 6px; background: #f6f6f6; color: #222; font: inherit; cursor: pointer; }
-  #quality button.on { background: #1a6dd6; border-color: #1a6dd6; color: #fff; }
-  #quality .hint { margin-top: 6px; font-size: 12px; color: #777; }
+  .opts { margin-top: 14px; padding-top: 12px; border-top: 1px solid #e3e3e3; font-size: 14px; cursor: default; }
+  .opts button { margin: 0 2px; padding: 4px 10px; border: 1px solid #c8c8c8; border-radius: 6px; background: #f6f6f6; color: #222; font: inherit; cursor: pointer; }
+  .opts button.on { background: #1a6dd6; border-color: #1a6dd6; color: #fff; }
+  .opts .hint { margin-top: 6px; font-size: 12px; color: #777; }
   #notice { position: fixed; top: 12px; right: 12px; padding: 8px 12px; border-radius: 8px; background: rgba(20, 24, 30, .72); color: #fff; font-size: 13px; pointer-events: none; opacity: 0; transition: opacity .4s; }
   #crosshair { position: fixed; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: rgba(255,255,255,.8); pointer-events: none; }
 </style>
 </head>
 <body>
 <div id="hud"><div class="room" id="roomName">Jardín delantero</div><div class="floor" id="floorName">Exterior</div></div>
-<div id="help">Clic para entrar · <b>WASD</b>/flechas: caminar · <b>Shift</b>: correr · <b>Mouse</b>: mirar · <b>Esc</b>: salir</div>
+<div id="help">Clic para entrar · <b>WASD</b>/flechas: caminar · <b>Shift</b>: correr · <b>Mouse</b>: mirar · <b>T</b>: hora del día · <b>Esc</b>: salir</div>
 <div id="crosshair"></div>
 <div id="notice"></div>
 <div id="overlay">
@@ -49,7 +49,11 @@
     <p><kbd>Shift</kbd> para correr · mouse para mirar</p>
     <p>La escalera está en el living, junto al hall</p>
     <p><kbd>Esc</kbd> para salir</p>
-    <div id="quality">Calidad:
+    <div id="timeofday" class="opts">Hora:
+      <button data-t="manana">Mañana</button><button data-t="mediodia">Mediodía</button><button data-t="tarde">Tarde</button>
+      <div class="hint">También con la tecla <kbd>T</kbd> mientras recorrés.</div>
+    </div>
+    <div id="quality" class="opts">Calidad:
       <button data-q="baja">Baja</button><button data-q="media">Media</button><button data-q="alta">Alta</button>
       <div class="hint">Baja apaga la oclusión ambiental; usala si se traba.</div>
     </div>
@@ -208,9 +212,24 @@ const ROOMS = [
 /* ==========================================================================
    2. ESCENA, CÁMARA Y MATERIALES
    ========================================================================== */
-// Posición del sol (grados). elevation: altura sobre el horizonte. azimuth: 0 = sol de frente a la
-// fachada (entra por las ventanas del frente), 90 = desde la derecha, 180 = desde el fondo, -90 = izquierda.
-const SUN = { elevation: 32, azimuth: -28 };
+// Sol real de Buenos Aires. Orientación de la casa: el frente (calle) mira al SE y el costado
+// del garage (derecha del plano) mira al NE. En el mundo 3D: +z = SE, +x = NE, −z = NO, −x = SO.
+const LATITUDE = -34.6;                         // Buenos Aires (hemisferio sur: el sol pasa por el norte)
+const SEASON_DECL = 0;                          // declinación solar: 0 = otoño/primavera, −23,4 = verano, +23,4 = invierno
+const TIMES = {                                 // hora solar de cada momento del día
+  manana:   { label: 'Mañana',   hour: 8 },     // sol del este: frente y costado del garage
+  mediodia: { label: 'Mediodía', hour: 12.5 },  // sol del norte: costado del garage
+  tarde:    { label: 'Tarde',    hour: 16.5 },  // sol del oeste-noroeste: patio y galería
+};
+const NORTH = new THREE.Vector3(1, 0, -1).normalize(), EAST = new THREE.Vector3(1, 0, 1).normalize();
+// Dirección hacia el sol para una hora solar (fórmula astronómica estándar)
+function solarDirection(hour, target = new THREE.Vector3()) {
+  const r = THREE.MathUtils.degToRad, lat = r(LATITUDE), d = r(SEASON_DECL), h = r(15 * (hour - 12));
+  const e = -Math.cos(d) * Math.sin(h);                                                   // componente este
+  const n = Math.sin(d) * Math.cos(lat) - Math.cos(d) * Math.cos(h) * Math.sin(lat);      // componente norte
+  const u = Math.sin(d) * Math.sin(lat) + Math.cos(d) * Math.cos(h) * Math.cos(lat);      // componente arriba
+  return target.copy(EAST).multiplyScalar(e).addScaledVector(NORTH, n).setY(u).normalize();
+}
 const EXPOSURE = 0.6;           // exposición de la "cámara"
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -227,9 +246,7 @@ document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.05, 200);
 
-// Dirección hacia el sol (mundo: +z = hacia el frente de la casa, +x = derecha)
-const sunDir = new THREE.Vector3().setFromSphericalCoords(1,
-  THREE.MathUtils.degToRad(90 - SUN.elevation), THREE.MathUtils.degToRad(SUN.azimuth));
+const sunDir = solarDirection(TIMES.manana.hour);   // se actualiza con setTimeOfDay()
 
 // Cielo físico (procedural, sin descargas). Se usa dos veces:
 //  - tal cual, como fondo visible;
@@ -255,9 +272,13 @@ function buildEnvironment() {
   pmrem.dispose();
   return { background, lighting };
 }
-const env = buildEnvironment();
-scene.environment = env.lighting;
-scene.background = env.background;
+let env = null;
+function applyEnvironment() {
+  if (env) { env.background.dispose(); env.lighting.dispose(); }
+  env = buildEnvironment();
+  scene.environment = env.lighting;
+  scene.background = env.background;
+}
 
 // Sol: luz direccional con sombras. El área de sombra cubre todo el lote.
 const sun = new THREE.DirectionalLight(0xfff1dc, 3.2);
@@ -283,6 +304,23 @@ function fitSunShadow(mapSize) {
   sun.shadow.mapSize.set(mapSize, mapSize);
   if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
   renderer.shadowMap.needsUpdate = true;
+}
+
+// Cambia la hora del día: mueve el sol, regenera cielo y luz ambiente y recalcula la sombra
+const SUN_LOW = new THREE.Color(0xffc890), SUN_HIGH = new THREE.Color(0xfff6ec);
+let timeOfDay = null;
+function setTimeOfDay(name) {
+  if (!TIMES[name]) return;
+  timeOfDay = name;
+  solarDirection(TIMES[name].hour, sunDir);
+  const elev = THREE.MathUtils.radToDeg(Math.asin(sunDir.y));
+  const t = THREE.MathUtils.clamp((elev - 10) / 45, 0, 1);       // 0 = sol bajo (cálido), 1 = alto (blanco)
+  sun.color.copy(SUN_LOW).lerp(SUN_HIGH, t);
+  sun.intensity = 2.6 + 0.8 * t;
+  applyEnvironment();
+  fitSunShadow(sun.shadow.mapSize.x);
+  try { localStorage.setItem('hora', name); } catch (e) {}
+  document.querySelectorAll('#timeofday button').forEach(b => b.classList.toggle('on', b.dataset.t === name));
 }
 
 function canvasTexture(size, draw) {
@@ -662,6 +700,27 @@ function setQuality(name, byUser = false) {
 document.querySelectorAll('#quality button').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); setQuality(b.dataset.q, true); }));
 document.getElementById('quality').addEventListener('click', e => e.stopPropagation());
 
+// Hora del día: botones del cartel, tecla T (pasa a la siguiente) y ?hora= en la dirección
+(function initTimeOfDay() {
+  let t = new URLSearchParams(location.search).get('hora');
+  if (!TIMES[t]) { try { t = localStorage.getItem('hora'); } catch (e) { t = null; } }
+  setTimeOfDay(TIMES[t] ? t : 'manana');
+})();
+document.querySelectorAll('#timeofday button').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); setTimeOfDay(b.dataset.t); }));
+document.getElementById('timeofday').addEventListener('click', e => e.stopPropagation());
+function showNotice(text) {
+  const n = document.getElementById('notice');
+  n.textContent = text; n.style.opacity = 1;
+  clearTimeout(showNotice.timer); showNotice.timer = setTimeout(() => { n.style.opacity = 0; }, 2500);
+}
+addEventListener('keydown', e => {
+  if (e.code !== 'KeyT' || e.repeat) return;
+  const names = Object.keys(TIMES), next = names[(names.indexOf(timeOfDay) + 1) % names.length];
+  setTimeOfDay(next);
+  const h = TIMES[next].hour;
+  showNotice(`${TIMES[next].label} (${Math.floor(h)}:${String(Math.round(h % 1 * 60)).padStart(2, '0')})`);
+});
+
 // Si la compu no da abasto (menos de ~30 cuadros por segundo), baja la calidad sola una vez por nivel
 const perf = { time: 0, frames: 0 };
 function watchPerformance(dt) {
@@ -670,9 +729,7 @@ function watchPerformance(dt) {
   if (perf.time < 4) return;
   if (perf.frames / perf.time < 30) {
     setQuality(quality === 'alta' ? 'media' : 'baja');
-    const n = document.getElementById('notice');
-    n.textContent = `Calidad ajustada a "${quality}" para que ande más fluido`;
-    n.style.opacity = 1; setTimeout(() => { n.style.opacity = 0; }, 4000);
+    showNotice(`Calidad ajustada a "${quality}" para que ande más fluido`);
   }
   perf.time = perf.frames = 0;
 }
@@ -697,7 +754,7 @@ addEventListener('resize', () => {
 
 // Utilidades para pruebas automáticas (no afectan el uso normal)
 window.__debug = Object.assign(debug, {
-  player, keys, camera, room: () => currentRoom(), setQuality, quality: () => quality,
+  player, keys, camera, room: () => currentRoom(), setQuality, quality: () => quality, setTimeOfDay, timeOfDay: () => timeOfDay,
   place(x, z, feet = 0, yawDeg = 0) { Object.assign(player, { x, z, feet, vy: 0, eyeY: feet + EYE }); camera.rotation.set(0, yawDeg * Math.PI / 180, 0, 'YXZ'); camera.position.set(x, feet + EYE, -z); },
   simulate(codes, seconds, look) { if (look !== undefined) camera.rotation.set(0, look * Math.PI / 180, 0, 'YXZ'); codes.forEach(c => keys.add(c)); for (let t = 0; t < seconds; t += 1 / 60) update(1 / 60, true); codes.forEach(c => keys.delete(c)); updateHud(); },
 });
