@@ -16,6 +16,15 @@ Referencias: `base/`, `pisos/`
 - Fachada: revoque liso pintado color crema (cálido, mate); baranda de vidrio en planta alta.
 - Reja y portón del frente: planchuelas verticales negras, con enredadera (tipo jazmín) creciendo sobre la reja.
 
+## Techos
+Referencia: `base/techos.jpeg` (de esa imagen, solo los techos; el resto no aplica).
+Van por encima de la losa de techo de planta alta: no cambian muros, medidas ni el cielorraso interior (2,60).
+- **Volumen principal** (izquierda: dormitorio principal, hall, baños y escritorio; 5,81 x 10,67 m): techo a dos aguas de teja colonial terracota (canales y cobijas, con variación de tono pieza a pieza).
+  - Cumbrera de frente a fondo, centrada, con media caña de teja; pendiente de 30° (la cumbrera queda a unos 7,30 m del piso).
+  - Hastial (el triángulo) mirando a la calle, en revoque liso crema como la fachada; otro igual al fondo.
+  - Alero chico: 25 cm a los costados y 20 cm adelante y atrás, con la cara de abajo en crema.
+- **Volumen de la derecha** (habitación 2 y dormitorio chico, sobre el garage): techo plano con parapeto liso de 60 cm, del mismo crema de la fachada, al frente, al costado y al fondo; del lado izquierdo se apoya contra el volumen principal y ahí baja el faldón derecho de teja.
+
 ## Pisos
 Referencias: `pisos/`, `cocina/`
 - Living, hall de planta baja, dormitorios y hall de planta alta: madera natural de tablas largas, tono cálido tipo pinotea, satinado.
