@@ -13,7 +13,7 @@ Referencias: `base/`, `pisos/`
 - Puerta de entrada: marco blanco fino.
 - Portón del garage: seccional blanco, de paneles horizontales, con marco blanco fino.
 - Escalera: totalmente revestida en madera (pedadas, alzadas y laterales), en el mismo tono que el piso de madera, con baranda metálica negra fina. El bajo escalera queda vacío y abierto: sin paredes, placard ni cerramiento debajo.
-- Fachada: revoque gris cemento liso; baranda de vidrio en planta alta.
+- Fachada: revoque liso pintado color crema (cálido, mate); baranda de vidrio en planta alta.
 - Reja y portón del frente: planchuelas verticales negras, con enredadera (tipo jazmín) creciendo sobre la reja.
 
 ## Pisos
@@ -46,7 +46,7 @@ Referencias: `cocina/`, `pisos/piso galeria.jpeg`
 - Isla: base verde muy oscuro con un costado de estantes abiertos en madera; colgante lineal negro arriba.
 - Mesada clara (cuarcita o mármol crema) con un poco de brillo; bacha de acero bajo mesada, grifería acero.
 - Paredes blanco cálido, sin azulejos. Piso: porcelanato claro (ver Pisos).
-- Galería: piso de calcáreos; abertura grande vidriada hacia el patio.
+- Galería: piso de calcáreos; abertura grande vidriada hacia el patio. Sin columnas: el techo (losa) de la galería va en voladizo desde el muro del fondo de la casa, sin apoyos visibles.
 
 ## Dormitorios
 Referencias: `habitaciones/`

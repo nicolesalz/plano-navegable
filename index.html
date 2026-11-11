@@ -103,7 +103,7 @@ const GALERIA_Z = [17.54, 19.52];
 const LOT_D = GALERIA_Z[1] + 20.1;   // patio trasero de 20,1 detrás de la galería
 
 // Muros [x0, x1, z0, z1, caras exteriores] medidos a escala desde plano.pdf.
-// Caras exteriores (revoque gris): 'z0' = hacia el frente, 'z1' = hacia el fondo, 'x0' = izquierda, 'x1' = derecha.
+// Caras exteriores (revoque pintado crema): 'z0' = hacia el frente, 'z1' = hacia el fondo, 'x0' = izquierda, 'x1' = derecha.
 const PB_WALLS = [
   [0, 1.07, 17.37, 17.57, 'z1'], [3.24, 5.88, 17.40, 17.54, 'z1'], [8.06, 8.40, 17.40, 17.54, 'z1'], // fondo (a galería)
   [5.38, 5.52, 14.19, 17.40], [5.38, 5.52, 7.86, 13.37], [5.38, 5.52, 5.16, 7.86, 'x1,z0'],          // cocina/hall | garage
@@ -132,7 +132,7 @@ const PA_WALLS = [
 ];
 
 // Aberturas en los huecos de los muros. door: dintel arriba. window: antepecho + vidrio + dintel.
-// ext: cara(s) que dan afuera (revoque gris). frame: marco blanco fino en puertas. leaf: hoja de vidrio fija.
+// ext: cara(s) que dan afuera (revoque crema). frame: marco blanco fino en puertas. leaf: hoja de vidrio fija.
 const OPENINGS = [
   // Planta baja
   { lvl: 0, t: 'door',   r: [4.02, 5.04, 5.16, 5.44], ext: 'z0', frame: true },                // puerta de entrada
@@ -455,7 +455,7 @@ const grassTex = canvasTexture(256, (g, s) => {
 const std = (color, roughness, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness, metalness: 0, ...extra });
 const M = {
   wall: std(0xf2ebdf, 0.95),                                  // blanco cálido mate (interior)
-  facade: std(0x939699, 0.9),                                 // revoque gris cemento liso (exterior)
+  facade: std(0xeadcc0, 0.95),                                // revoque pintado crema cálido, mate (exterior)
   ceiling: std(0xfaf6ef, 0.95),
   wood: std(0xffffff, 0.42, { map: woodTex }),                // pinotea satinada (pisos y escalera)
   porcelain: std(0xffffff, 0.75, { map: porcelainTex }),      // porcelanato claro mate (cocina)
@@ -651,7 +651,7 @@ const colliders = [];   // cajas sólidas {x0,x1,z0,z1,y0,y1[,maxFeet]} en coord
 
 // Caras de BoxGeometry en orden: +x, −x, +y, −y, +z (frente del plano), −z (fondo del plano)
 const FACE = { x1: 0, x0: 1, z0: 4, z1: 5 };
-// mat: un material, o un array de 6 (uno por cara). ext: caras exteriores ('z0', 'x1,z0', …) que llevan revoque gris.
+// mat: un material, o un array de 6 (uno por cara). ext: caras exteriores ('z0', 'x1,z0', …) que llevan revoque crema.
 function box(x0, x1, z0, z1, y0, y1, mat, solid = true, ext = '') {
   let m = mat;
   if (ext) { m = Array(6).fill(mat); for (const f of ext.split(',')) m[FACE[f.trim()]] = M.facade; }
@@ -875,7 +875,7 @@ function buildFloorsAndCeilings() {
   floor(5.52, 8.40, 8.16, 17.40, 0.006, M.concrete);      // garage
   for (const [x0, x1, z0, z1] of PA_FLOORS) floor(x0, x1, z0, z1, PA_Y + 0.004, M.wood);
   floor(-0.28, 8.68, 15.83, 17.54, PA_Y + 0.004, M.roof); // techo sobre cocina/garage
-  // Losa PB/PA (techo blanco de planta baja) y techo de planta alta (cantos con revoque gris)
+  // Losa PB/PA (techo blanco de planta baja) y techo de planta alta (cantos con revoque crema)
   for (const [x0, x1, z0, z1] of SLAB_RECTS) box(x0, x1, z0, z1, H_WALL, PA_Y, M.ceiling, false);
   const roofMats = [M.facade, M.facade, M.roof, M.ceiling, M.facade, M.facade];
   for (const [x0, x1, z0, z1] of PA_ROOF) box(x0, x1, z0, z1, PA_Y + H_WALL, PA_Y + H_WALL + SLAB, roofMats, false);
@@ -1470,9 +1470,8 @@ function buildExterior() {
   box(-0.28, 0, 0, LOT_D, 0, H_WALL, M.medianera);
   box(LOT_W, LOT_W + 0.28, 0, LOT_D, 0, H_WALL, M.medianera);
   box(-0.28, LOT_W + 0.28, LOT_D, LOT_D + 0.28, 0, H_WALL, M.medianera);
-  // Galería: losa y columnas
+  // Galería: losa en voladizo desde el muro del fondo, sin columnas ni apoyos visibles
   box(-0.28, LOT_W + 0.28, GALERIA_Z[0], GALERIA_Z[1], H_WALL, H_WALL + 0.18, [M.facade, M.facade, M.roof, M.ceiling, M.facade, M.facade], false);
-  for (const [x0, x1] of [[1.96, 2.15], [4.10, 4.30], [6.26, 6.45]]) box(x0, x1, 19.32, 19.52, 0, H_WALL, M.facade);
 
   // Reja del frente sobre la L.M (h = 2,00 m): planchuelas negras verticales, con portón peatonal
   // y portón de autos (cerrados) del mismo diseño
@@ -1792,7 +1791,7 @@ function buildPathTracingScene() {
     if (!o.isMesh) return;                                  // las aristas (líneas) no se trazan
     if (o.isInstancedMesh) { add(expandInstanced(o, materialFor)); return; }
     if (!Array.isArray(o.material)) { add(new THREE.Mesh(o.geometry, o.material), o.matrixWorld); return; }
-    // Muros con cara exterior gris (un material por cara): el path tracer no asigna bien los materiales
+    // Muros con cara exterior crema (un material por cara): el path tracer no asigna bien los materiales
     // de estas mallas, así que cada cara va como una malla aparte (misma geometría, mismo material)
     const g = o.geometry;
     for (const grp of g.groups) {
