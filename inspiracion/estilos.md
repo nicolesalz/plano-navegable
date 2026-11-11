@@ -38,7 +38,7 @@ Referencias: `living/` (`living.jpg`, `entrada.png`, `puerta separadoralivingaco
 - Sillón curvo en tonos terracota/óxido, alfombra con dibujo en rosas y crudos, lámpara colgante de papel plisado.
 - Living y cocina separados por puertas de vidrio repartido (referencia `living/puerta separadoralivingacocina.jpg`): corredizas, marco verde salvia, paños de vidrio divididos y zócalo ciego abajo. Desde el living se tiene que ver la cocina a través del vidrio.
 - Entrada (mud room): mueble recibidor con boiserie de listones verticales blanco cálido, banco empotrado y alacenas altas lisas, ganchos para colgar.
-- Puerta del living al jardín delantero: puerta-ventana corrediza de vidrio, del mismo tipo que la de la cocina a la galería (marco blanco fino, una hoja fija y la otra corrida/abierta). En el plano está donde se ve dibujada la "ventana" del living, de 2,52 m.
+- Puerta del living al garage: corrediza de vidrio, del mismo tipo que la de la cocina a la galería (marco blanco fino, una hoja fija y la otra corrida/abierta). La ventana del living al jardín delantero queda como ventana.
 
 ### Distribución (mirando desde la puerta de entrada)
 Estos muebles no están dibujados en `plano.pdf`; se ubican sin cambiar paredes ni medidas.
@@ -46,9 +46,10 @@ Estos muebles no están dibujados en `plano.pdf`; se ubican sin cambiar paredes 
 - **Tele**: empotrada en la columna del centro de la biblioteca, a la altura de la vista sentado, con estantes arriba.
 - **Sillón curvo**: mira hacia la tele, así que al entrar a la casa se lo ve de espaldas. Va en el centro del living con la mesa ratona y la alfombra entre el sillón y la biblioteca; el colgante de papel queda sobre la mesa ratona. Se deja libre el paso de la entrada hacia la escalera y las puertas de vidrio.
 - **Puertas corredizas de vidrio**: en el vano corredizo que ya existe entre el living y el hall (2,4 m). Del otro lado del hall está la cocina, que se ve a través del vidrio. Dos hojas: la del lado del hall queda fija a la izquierda y la del lado del living corre por delante (tecla E para abrir o cerrar).
-- **Entrada (recibidor)**: ocupa solo la pared angosta que se ve de frente al entrar, que es el lateral de la caja de la escalera (1,01 m de ancho). No va en la pared larga de la derecha, que queda libre. Banco empotrado con cajones (44 cm de fondo), boiserie con tres ganchos arriba del banco y alacenas altas hasta el techo.
-- **Puerta-ventana al jardín**: corrediza de vidrio en el frente del living, del ancho de la abertura del plano (2,52 m). La hoja de la izquierda (del lado de la biblioteca) queda fija y la de la derecha, abierta. Afuera, un descanso de adoquines; la bordura de plantas queda solo entre la puerta-ventana y el camino de entrada.
-- **Plantas**: apenas entrás al living no hay ninguna planta. Solo queda la mata frondosa en el rincón entre la biblioteca y la puerta-ventana.
+- **Entrada (recibidor)**: ocupa solo la pared angosta que se ve de frente al entrar, que es el lateral de la caja de la escalera (1,01 m de ancho). No va en la pared larga de la derecha: ahí está la puerta corrediza de vidrio al garage. Banco empotrado con cajones (44 cm de fondo), boiserie con tres ganchos arriba del banco y alacenas altas hasta el techo.
+- **Puerta corrediza al garage**: en la pared larga de la derecha al entrar (la que da al garage descubierto del frente, donde se estaciona la Volvo), entre la puerta de entrada y el recibidor: vano de 1,76 m. La hoja del lado del recibidor queda fija y la del lado de la puerta de entrada, abierta.
+- **Ventana al jardín**: la del plano, con antepecho a 90 cm (no es puerta). Afuera, la bordura de plantas sigue debajo.
+- **Plantas**: apenas entrás al living no hay ninguna planta. Solo queda la mata frondosa en el rincón entre la biblioteca y la ventana.
 
 ## Cocina + galería
 Referencias: `cocina/`, `pisos/piso galeria.jpeg`
@@ -91,6 +92,10 @@ Referencias: `habitaciones/`
 
 ### Distribución
 El placard de esterilla y el escritorio con estantes verdes no están dibujados en `plano.pdf`; se ubican sin cambiar paredes ni medidas.
+- **Suite principal**: el dormitorio principal tiene el baño en suite (el de la ducha, Baño PA 1 con su antebaño).
+  - Al subir la escalera, la pared que queda de frente (la del dormitorio) sigue un poco más hacia el fondo, y ahí está la **puerta de la suite** (80 cm), corrediza del lado del hall hacia la escalera.
+  - Esa pared sigue hasta el antebaño, así que la franja de la izquierda (1,02 m de ancho) queda adentro de la suite como **paso**: une el dormitorio (abertura del rincón) con el antebaño del baño en suite.
+  - Entre el paso y el antebaño: **puerta corrediza** que corre embutida dentro del muro (no hay pared libre a los costados).
 - **Dormitorio principal** (mirando desde la puerta, que está en el rincón del fondo a la izquierda):
   - **Placard de esterilla**: pared completa del fondo, desde la puerta hasta el muro de la escalera (3,09 m), 60 cm de fondo, de piso a techo. Seis puertas push (sin tiradores) con marco blanco y tres paños de esterilla cada una.
   - **Cama** (1,70 x 2,00) con la cabecera contra el placard, centrada; una mesa de luz redonda a cada lado: velador a la izquierda y globo opalino colgante a la derecha, con una plantita.
@@ -131,13 +136,14 @@ Los artefactos van donde los marca `plano.pdf`; los muebles, revestimientos y lu
   - **Inodoro y bidet** blancos de pie contra la pared izquierda, como en el plano (el bidet, 15 cm más adentro para dejar paso libre junto a la puerta). Portarrollos y toallero negros.
   - **Antebaño**: vanitory chico (80 cm) de nogal, flotante, con tapa blanca y bacha de apoyo verde salvia, grifería negra de pared, espejo ovalado alargado con marco de madera y toallero negro con toalla beige en el frente del mueble.
   - Paredes crudo; piso de porcelanato beige.
-- **Segundo baño** = Baño PA 1 (1,52 x 2,32, el de la ducha) + su antebaño (Lavatorio Baño PA 1):
+- **Segundo baño = baño en suite** de la habitación principal = Baño PA 1 (1,52 x 2,32, el de la ducha) + su antebaño (Lavatorio Baño PA 1); se entra desde el paso de la suite, no desde el hall:
   - **Ducha** al fondo, donde el plano marca el plato: plato blanco, azulejo blanco 6 x 30 en la pared del fondo y la lateral, ducha de lluvia y llave de bronce, mampara fija (entrada libre del lado izquierdo).
   - **Inodoro y bidet** blancos de pie contra la pared derecha, como en el plano; portarrollos y toallero de bronce.
   - **Antebaño**: vanitory flotante de nogal oscuro contra la pared derecha, en todo el largo (1,13 m), con estante abierto abajo y mesada gruesa de mármol claro con bacha integrada; dos griferías de pared de bronce, zócalo de azulejo blanco, espejo grande sin marco y aplique lineal negro arriba.
   - Paredes blancas; piso de mosaico blanco y negro tipo tejido (basketweave) en el baño y el antebaño.
 - **Puertas**: todas las puertas de los baños son corredizas, aunque el plano dibuje alguna de abrir. Corren por delante del muro, hacia el lado donde hay pared libre, y se abren y cierran con E. Las de planta alta son lisas, laqueadas crudo, con tirador negro:
-  - Hall → antebaño del segundo baño: del lado del hall, abre hacia la derecha.
+  - Paso de la suite → antebaño del baño en suite: corre embutida dentro del muro, hacia la derecha.
+  - Hall → suite principal: del lado del hall, abre hacia la escalera.
   - Antebaño → segundo baño: del lado del baño, abre hacia la derecha.
   - Antebaño → baño principal: del lado del antebaño (del lado del baño chocaría con el bidet), abre hacia la derecha.
   - Hall → antebaño del baño principal: del lado del hall, abre hacia el frente; abierta asoma unos 20 cm más allá del muro, porque ese tramo de pared es más corto que la hoja.
