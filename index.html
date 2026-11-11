@@ -349,58 +349,6 @@ function canvasTexture(size, draw) {
 // Random con semilla fija: las texturas y la enredadera salen siempre iguales
 function seeded(seed) { return () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
 
-// Pinotea: tablas angostas (≈10 cm) y largas, en sentido frente-fondo, tono cálido anaranjado,
-// veta "catedral" marcada. 1 textura = 2 m. Las tablas corren a lo largo de v.
-const woodTex = canvasTexture(1024, (g, s) => {
-  const rnd = seeded(7), cols = 20, w = s / cols;
-  const wrapLines = (fn) => { for (const dy of [-s, 0, s]) fn(dy); };
-  for (let c = 0; c < cols; c++) {
-    const x0 = c * w;
-    let y = rnd() * s;                               // juntas de punta escalonadas entre tablas
-    const yEnd = y + s;
-    while (y < yEnd) {
-      const len = Math.min(yEnd - y, s * (0.7 + rnd() * 0.6));   // tablas de 1,4 a 2,6 m
-      const hue = 25 + rnd() * 6, sat = 55 + rnd() * 12, lig = 47 + rnd() * 9;
-      g.save();
-      g.beginPath();
-      for (const dy of [-s, 0]) g.rect(x0, y + dy, w, len);
-      g.clip();
-      g.fillStyle = `hsl(${hue}, ${sat}%, ${lig}%)`;
-      g.fillRect(x0, 0, w, s);
-      // veta catedral: arcos anidados alrededor de un eje de la tabla (periódica en v para no cortar)
-      const cx = x0 + w * (0.3 + rnd() * 0.4), period = s / (1 + Math.floor(rnd() * 3)), ph = rnd() * Math.PI * 2;
-      const n = 9 + Math.floor(rnd() * 5);
-      for (let j = 0; j < n; j++) {
-        const d = (j + 0.6) / n * w * 0.9, amp = 0.08 + rnd() * 0.22;
-        g.strokeStyle = `rgba(${110 + rnd() * 30}, ${50 + rnd() * 15}, 15, ${0.12 + rnd() * 0.18})`;
-        g.lineWidth = 1 + rnd() * 1.8;
-        for (const side of [-1, 1]) {
-          g.beginPath();
-          for (let yy = 0; yy <= s; yy += 8) {
-            const k = Math.sin(yy / period * Math.PI * 2 + ph + j * 0.15);
-            const xx = cx + side * d * (1 + amp * k);
-            yy === 0 ? g.moveTo(xx, yy) : g.lineTo(xx, yy);
-          }
-          g.stroke();
-        }
-      }
-      // fibras finas
-      for (let k = 0; k < 40; k++) {
-        const fx = x0 + rnd() * w;
-        g.fillStyle = `rgba(90, 40, 10, ${0.05 + rnd() * 0.08})`;
-        g.fillRect(fx, 0, 0.8, s);
-      }
-      g.restore();
-      // junta de punta
-      g.fillStyle = 'rgba(60, 28, 8, .55)';
-      g.fillRect(x0, y % s, w, 1.5);
-      y += len;
-    }
-    g.fillStyle = 'rgba(55, 25, 6, .5)';             // junta entre tablas
-    g.fillRect(x0, 0, 1.5, s);
-  }
-});
-
 // Porcelanato de la cocina: placas 60 x 120 (largo frente-fondo), blanco cálido, juntas finas.
 // 1 textura = 2,4 m → 4 x 2 placas.
 const porcelainTex = canvasTexture(1024, (g, s) => {
@@ -419,62 +367,7 @@ const porcelainTex = canvasTexture(1024, (g, s) => {
   for (let j = 0; j < 2; j++) g.fillRect(0, j * th, s, 1.5);
 });
 
-// Calcáreo de la galería: baldosa 30 x 30 blanca con dibujo gris (roseta de 8 pétalos, arcos que
-// forman círculos entre baldosas, estrellitas en los cruces y guarda escalonada). 1 textura = 2 x 2 baldosas.
-const tileTex = canvasTexture(512, (g, s) => {
-  const T = s / 2, gray = '#8b8f95', grayDark = '#6f7378';
-  const petal = (len, wid, a) => { g.save(); g.rotate(a); g.beginPath(); g.ellipse(len / 2, 0, len / 2, wid / 2, 0, 0, Math.PI * 2); g.fill(); g.restore(); };
-  const star = (r) => { g.beginPath(); for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4, rr = k % 2 ? r * 0.28 : r; g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } g.closePath(); g.fill(); };
-  for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
-    g.save(); g.translate(i * T, j * T);
-    g.fillStyle = '#ebe8e2'; g.fillRect(0, 0, T, T);
-    g.strokeStyle = gray; g.lineWidth = T * 0.028;
-    // guarda escalonada (cuadrado con escalones en los lados)
-    const a = T * 0.2, b = T * 0.8, st = T * 0.06;
-    g.beginPath();
-    g.moveTo(a + st, a); g.lineTo(b - st, a); g.lineTo(b - st, a + st); g.lineTo(b, a + st); g.lineTo(b, b - st); g.lineTo(b - st, b - st);
-    g.lineTo(b - st, b); g.lineTo(a + st, b); g.lineTo(a + st, b - st); g.lineTo(a, b - st); g.lineTo(a, a + st); g.lineTo(a + st, a + st); g.closePath();
-    g.stroke();
-    // arcos de las esquinas (se completan en círculos con las baldosas vecinas)
-    for (const [cx, cy] of [[0, 0], [T, 0], [0, T], [T, T]]) { g.beginPath(); g.arc(cx, cy, T * 0.3, 0, Math.PI * 2); g.stroke(); }
-    // cuadrifolio alrededor de la roseta
-    g.lineWidth = T * 0.022;
-    for (let k = 0; k < 4; k++) { const an = k * Math.PI / 2; g.beginPath(); g.arc(T / 2 + Math.cos(an) * T * 0.12, T / 2 + Math.sin(an) * T * 0.12, T * 0.12, an - Math.PI / 2, an + Math.PI / 2); g.stroke(); }
-    // roseta central de 8 pétalos
-    g.save(); g.translate(T / 2, T / 2);
-    g.fillStyle = grayDark;
-    for (let k = 0; k < 4; k++) petal(T * 0.2, T * 0.085, k * Math.PI / 2 + Math.PI / 4);
-    g.fillStyle = gray;
-    for (let k = 0; k < 4; k++) petal(T * 0.16, T * 0.07, k * Math.PI / 2);
-    g.fillStyle = '#b7ad9f'; g.beginPath(); g.arc(0, 0, T * 0.045, 0, Math.PI * 2); g.fill();
-    g.restore();
-    // estrellitas en las esquinas
-    g.fillStyle = gray;
-    for (const [cx, cy] of [[0, 0], [T, 0], [0, T], [T, T]]) { g.save(); g.translate(cx, cy); star(T * 0.11); g.restore(); }
-    g.restore();
-  }
-  g.fillStyle = 'rgba(150,145,138,.6)';              // juntas
-  for (let k = 0; k <= 2; k++) { g.fillRect(k * T - 1, 0, 2, s); g.fillRect(0, k * T - 1, s, 2); }
-});
-const grassTex = canvasTexture(256, (g, s) => {
-  g.fillStyle = '#6f9a4a'; g.fillRect(0, 0, s, s);
-  for (let i = 0; i < 5000; i++) { g.fillStyle = `hsl(${85 + Math.random() * 20}, 40%, ${30 + Math.random() * 20}%)`; g.fillRect(Math.random() * s, Math.random() * s, 1.5, 3); }
-});
 // ---- Exterior (ver estilos.md → Exterior) ----
-// Adoquines de granito gris claro 40 x 20 en hiladas trabadas (entrada de autos y camino a la puerta).
-// La textura cubre 1,6 m: 4 adoquines a lo ancho y 8 hiladas.
-const pavingTex = canvasTexture(512, (g, s) => {
-  const rnd = seeded(7), bw = s / 4, bh = s / 8;
-  for (let r = 0; r < 8; r++) for (let c = -1; c < 4; c++) {
-    const x = c * bw + (r % 2) * bw / 2, l = 66 + rnd() * 9;
-    g.fillStyle = `hsl(${32 + rnd() * 10}, ${6 + rnd() * 5}%, ${l}%)`;
-    g.fillRect(x, r * bh, bw, bh);
-  }
-  for (let i = 0; i < 9000; i++) { g.fillStyle = `rgba(${rnd() < 0.5 ? '60,58,55' : '250,248,244'},${0.12 + rnd() * 0.2})`; g.fillRect(rnd() * s, rnd() * s, 1.4, 1.4); }
-  g.fillStyle = '#6f6a63';                                   // juntas
-  for (let r = 0; r <= 8; r++) g.fillRect(0, r * bh - 1.5, s, 3);
-  for (let r = 0; r < 8; r++) for (let c = 0; c <= 4; c++) g.fillRect(c * bw + (r % 2) * bw / 2 - 1.5, r * bh, 3, bh);
-});
 // Tierra con mulch de corteza bajo las borduras
 const soilTex = canvasTexture(256, (g, s) => {
   const rnd = seeded(11);
@@ -513,12 +406,12 @@ const M = {
   wall: std(0xf2ebdf, 0.95),                                  // blanco cálido mate (interior)
   facade: std(0xeadcc0, 0.95),                                // revoque pintado crema cálido, mate (exterior)
   ceiling: std(0xfaf6ef, 0.95),
-  wood: std(0xffffff, 0.42, { map: woodTex }),                // pinotea satinada (pisos y escalera)
+  wood: std(0x664429, 0.5),                                   // nogal (Megascans, ver texturas): pisos de madera y escalera
   porcelain: std(0xffffff, 0.75, { map: porcelainTex }),      // porcelanato claro mate (cocina)
-  grass: std(0xffffff, 1.0, { map: grassTex }),
-  tile: std(0xffffff, 0.55, { map: tileTex }),                // calcáreo (galería)
+  lawn: std(0x51502c, 1.0),                                   // césped del patio trasero (Megascans)
+  tile: std(0x8a7f74, 0.6),                                   // calcáreo con flores de la galería (Megascans)
   concrete: std(0xa9a6a0, 0.85),
-  paving: std(0xffffff, 0.8, { map: pavingTex }),            // adoquines de granito (entrada de autos y camino)
+  pavers: std(0x815446, 0.8),                                 // baldosas rojas del jardín delantero (Megascans)
   soil: std(0xffffff, 1.0, { map: soilTex }),                 // tierra con mulch (borduras)
   roof: std(0x8d8a85, 0.9),
   outside: std(0x7e9a68, 1.0),
@@ -596,14 +489,6 @@ const roofTileTex = (() => {
 M.roofTile = std(0xffffff, 0.75, { map: roofTileTex.map, normalMap: roofTileTex.normal, normalScale: v2(1) });
 M.roofEdge = std(0x9c4e33, 0.8);                                     // cantos de teja y cumbrera
 
-// Calcáreo: alturas solo con las juntas (la baldosa es lisa) + poro muy fino
-const tileHeight = (() => {
-  const rnd = seeded(21), T = 256;
-  return heightCanvas(512, (x, y) => {
-    const jx = Math.min(x % T, T - x % T), jy = Math.min(y % T, T - y % T);
-    return (Math.min(jx, jy) < 2 ? 0.35 : 0.8) + rnd() * 0.06;
-  });
-})();
 // Tela: trama tipo lino (hilos cruzados con nudos irregulares). 1 textura = 15 cm
 const fabricHeight = (() => {
   const rnd = seeded(31), p = 8, slub = Array.from({ length: 64 }, () => 0.75 + rnd() * 0.5);
@@ -679,17 +564,48 @@ const rugTex = canvasTexture(512, (g, s) => {
 rugTex.wrapS = rugTex.wrapT = THREE.ClampToEdgeWrapping;
 
 const NRM = {
-  wood: normalFrom(woodTex.image, 3),
   porcelain: normalFrom(porcelainTex.image, 2.5),
-  tile: normalFrom(tileHeight, 3),
   fabric: normalFrom(fabricHeight, 2.2),
   veneer: normalFrom(veneerTex.image, 2),
   stone: normalFrom(stoneTex.image, 1),
   rattan: normalFrom(rattanTex.image, 3),
 };
-M.wood.normalMap = NRM.wood; M.wood.normalScale = v2(0.7);
 M.porcelain.normalMap = NRM.porcelain; M.porcelain.normalScale = v2(0.8);
-M.tile.normalMap = NRM.tile; M.tile.normalScale = v2(0.8);
+
+// ---- Texturas escaneadas (Megascans; carpeta texturas/, ver estilos.md → Pisos y Exterior) ----
+// Mapas BaseColor, Normal, Roughness y AO, achicados para la web por scripts/preparar-texturas.py en
+// texturas/<carpeta>/web/. texturas/texturas.json trae la medida real de cada escaneo (Scan Area del .json de
+// Megascans) y la repetición sale de ahí, así cada textura queda en su tamaño real. unit = metros que mide una
+// unidad de UV en las mallas de ese material (pisos: 1; madera: 2, como la escalera y woodBox).
+// Mientras cargan (o si no cargan) los materiales se ven del color promedio del escaneo.
+const SCANNED = [
+  { mat: M.pavers, dir: 'galeria-frente', unit: 1 },   // piso de todo el jardín delantero
+  { mat: M.tile, dir: 'galeria-jardin', unit: 1 },     // piso de la galería del fondo
+  { mat: M.lawn, dir: 'pasto-jardin', unit: 1 },       // césped del patio trasero
+  { mat: M.wood, dir: 'piso-madera', unit: 2 },        // living, halls, dormitorios y escalera
+];
+function loadScannedTextures() {
+  const loader = new THREE.TextureLoader(), aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  fetch('texturas/texturas.json').then(r => r.json()).then(info => {
+    for (const { mat, dir, unit } of SCANNED) {
+      const t = info[dir];
+      if (!t) continue;
+      const [w, h] = t.medida;
+      for (const name of t.mapas) {
+        loader.load(`texturas/${dir}/web/${name}.jpg`, tex => {
+          tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+          tex.anisotropy = aniso;
+          tex.repeat.set(unit / w, unit / h);
+          if (name === 'basecolor') { tex.colorSpace = THREE.SRGBColorSpace; mat.map = tex; mat.color.set(0xffffff); }
+          else if (name === 'normal') mat.normalMap = tex;
+          else if (name === 'roughness') { mat.roughnessMap = tex; mat.roughness = 1; }
+          else if (name === 'ao') mat.aoMap = tex;
+          mat.needsUpdate = true;
+        }, undefined, err => console.warn(`No se pudo cargar texturas/${dir}/web/${name}.jpg`, err));
+      }
+    }
+  }).catch(err => console.warn('No se pudo leer texturas/texturas.json', err));
+}
 
 // ---- Revestimientos de los baños (ver estilos.md → Baños) ----
 // Cada uno se dibuja dos veces con la misma función: en color y como mapa de alturas (junta hundida),
@@ -889,10 +805,12 @@ function woodBox(x0, x1, z0, z1, y0, y1, texSize = 2) {
   }
   return mesh;
 }
-function floor(x0, x1, z0, z1, y, mat, texSize = 2) {
+// world = true: UV anclada al plano (no a la esquina del rectángulo), para que la textura siga sin corte
+// entre rectángulos vecinos del mismo piso.
+function floor(x0, x1, z0, z1, y, mat, texSize = 2, world = false) {
   const geo = new THREE.PlaneGeometry(x1 - x0, z1 - z0);
-  const uv = geo.attributes.uv;
-  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * (x1 - x0) / texSize, uv.getY(i) * (z1 - z0) / texSize);
+  const uv = geo.attributes.uv, ox = world ? x0 : 0, oz = world ? z0 : 0;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, (ox + uv.getX(i) * (x1 - x0)) / texSize, (oz + uv.getY(i) * (z1 - z0)) / texSize);
   const mesh = new THREE.Mesh(geo, mat);
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.set((x0 + x1) / 2, y, -(z0 + z1) / 2);
@@ -1112,12 +1030,14 @@ function buildWalls() {
 function buildFloorsAndCeilings() {
   // Terreno y exterior
   floor(-30, 40, -20, LOT_D + 20, -0.02, M.outside, 4);
-  floor(-0.28, LOT_W + 0.28, 0, LOT_D, 0, M.grass, 3);
-  M.paving.normalMap = normalFrom(pavingTex.image, 2.5); M.paving.normalScale = v2(0.8);
-  floor(5.52, 8.40, 0, 7.86, 0.004, M.paving, 1.6);       // entrada de autos (adoquines de granito)
-  floor(4.02, 5.04, 0, 5.16, 0.004, M.paving, 1.6);       // camino a la puerta
-  floor(-0.28, LOT_W + 0.28, GALERIA_Z[0], GALERIA_Z[1], 0.004, M.tile, 0.6);   // calcáreos 30 x 30
-  // Pinotea en living, entrada, hall y baño PB; porcelanato 60 x 120 en la cocina
+  // Jardín delantero: todo el piso de baldosas rojas, sin pasto (también la entrada de autos y el camino a la
+  // puerta), de la reja a la fachada y, del lado del garage, hasta el portón. Dos rectángulos con la UV anclada
+  // al plano para que las juntas sigan sin corte.
+  floor(-0.28, LOT_W + 0.28, 0, 5.16, 0, M.pavers, 1, true);
+  floor(5.38, LOT_W + 0.28, 5.16, 7.86, 0, M.pavers, 1, true);
+  floor(-0.28, LOT_W + 0.28, GALERIA_Z[0], GALERIA_Z[1], 0.004, M.tile, 1);       // galería: calcáreo con flores
+  floor(-0.28, LOT_W + 0.28, GALERIA_Z[1], LOT_D, 0, M.lawn, 1);                   // césped del patio trasero
+  // Nogal en living, entrada, hall y baño PB; porcelanato 60 x 120 en la cocina
   floor(0, 5.38, 5.16, 13.09, 0.006, M.wood);
   floor(0, 5.38, 13.09, 17.40, 0.006, M.porcelain, 2.4);
   floor(5.52, 8.40, 8.16, 17.40, 0.006, M.concrete);      // garage
@@ -2790,9 +2710,9 @@ function flushGarden() {
 }
 function buildGarden() {
   const H = 2.45, back = LOT_D, start = GALERIA_Z[1] + 0.4;
-  // Jardín delantero: borduras contra la reja, la medianera izquierda y bajo la ventana del living;
-  // una franja angosta de gramíneas entre el camino y la entrada de autos (deja paso junto a la casa)
-  border({ axis: 'x', c: 0.12, dir: 1, a0: 0, a1: 4.0, depth: 0.95, seed: 101 });
+  // Jardín delantero (piso de baldosas, sin pasto): canteros contra la medianera izquierda y bajo la ventana
+  // del living, y una franja angosta de gramíneas entre el camino y la entrada de autos (deja paso junto a la
+  // casa). Contra la reja no va cantero.
   border({ axis: 'z', c: 0, dir: 1, a0: 1.15, a1: 4.45, depth: 0.95, seed: 102 });
   border({ axis: 'x', c: 5.16, dir: -1, a0: 1.1, a1: 4.0, depth: 0.6, seed: 103, rows: ['low'] });
   border({ axis: 'z', c: 5.08, dir: 1, a0: 0.12, a1: 4.3, depth: 0.4, seed: 104, rows: ['mid'], spacing: 0.55 });
@@ -2821,6 +2741,7 @@ scene.traverse(o => {
   o.castShadow = o.material !== M.glass && o.material !== M.outside && !o.userData.noCast;
 });
 loadModels();
+loadScannedTextures();
 
 /* ==========================================================================
    4. ALTURA DEL PISO (planta baja, planta alta y escalera)

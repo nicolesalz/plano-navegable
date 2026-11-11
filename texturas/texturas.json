@@ -1,0 +1,57 @@
+{
+  "galeria-frente": {
+    "nombre": "Red Pavers",
+    "medida": [
+      2.0,
+      2.0
+    ],
+    "color": "#815446",
+    "mapas": [
+      "basecolor",
+      "normal",
+      "roughness",
+      "ao"
+    ]
+  },
+  "galeria-jardin": {
+    "nombre": "Flower Patterned Tiles",
+    "medida": [
+      2.0,
+      2.0
+    ],
+    "color": null,
+    "mapas": [
+      "basecolor",
+      "normal",
+      "roughness",
+      "ao"
+    ]
+  },
+  "pasto-jardin": {
+    "nombre": "Lawn Grass",
+    "medida": [
+      2.0,
+      2.0
+    ],
+    "color": "#51502C",
+    "mapas": [
+      "basecolor",
+      "normal",
+      "roughness",
+      "ao"
+    ]
+  },
+  "piso-madera": {
+    "nombre": "Walnut Veneer",
+    "medida": [
+      1.0,
+      2.0
+    ],
+    "color": "#664429",
+    "mapas": [
+      "basecolor",
+      "normal",
+      "roughness"
+    ]
+  }
+}
