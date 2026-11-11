@@ -90,48 +90,50 @@ const LOT_W = 8.4;
 const GALERIA_Z = [17.54, 19.52];
 const LOT_D = GALERIA_Z[1] + 20.1;   // patio trasero de 20,1 detrás de la galería
 
-// Muros [x0, x1, z0, z1] medidos a escala desde plano.pdf
+// Muros [x0, x1, z0, z1, caras exteriores] medidos a escala desde plano.pdf.
+// Caras exteriores (revoque gris): 'z0' = hacia el frente, 'z1' = hacia el fondo, 'x0' = izquierda, 'x1' = derecha.
 const PB_WALLS = [
-  [0, 1.07, 17.37, 17.57], [3.24, 5.88, 17.40, 17.54], [8.06, 8.40, 17.40, 17.54], // fondo (a galería)
-  [5.38, 5.52, 14.19, 17.40], [5.38, 5.52, 5.16, 13.37],                            // cocina/hall | garage
+  [0, 1.07, 17.37, 17.57, 'z1'], [3.24, 5.88, 17.40, 17.54, 'z1'], [8.06, 8.40, 17.40, 17.54, 'z1'], // fondo (a galería)
+  [5.38, 5.52, 14.19, 17.40], [5.38, 5.52, 7.86, 13.37], [5.38, 5.52, 5.16, 7.86, 'x1,z0'],          // cocina/hall | garage
   [0, 2.66, 13.09, 13.37], [2.49, 2.63, 12.14, 13.09],                              // baño PB
   [0, 0.92, 12.14, 12.28], [2.33, 2.49, 12.14, 12.26],
   [0, 0.92, 9.98, 10.06], [3.33, 5.38, 9.98, 10.06],                                // living | hall
-  [3.42, 4.32, 9.02, 9.11],                                                         // bajo escalera
-  [5.24, 5.38, 5.16, 9.98], [4.23, 5.24, 7.86, 8.16],                               // caja de escalera
-  [5.52, 5.72, 7.86, 8.16], [8.21, 8.40, 7.86, 8.16],                               // frente garage
-  [0, 0.60, 5.16, 5.44], [3.12, 4.02, 5.18, 5.44], [5.04, 5.24, 5.16, 5.44],        // frente living
+  [5.24, 5.38, 5.16, 9.98, 'z0'], [4.23, 5.24, 7.86, 8.16],                         // caja de escalera
+  [5.52, 5.72, 7.86, 8.16, 'z0'], [8.21, 8.40, 7.86, 8.16, 'z0'],                   // frente garage
+  [0, 0.60, 5.16, 5.44, 'z0'], [3.12, 4.02, 5.18, 5.44, 'z0'], [5.04, 5.24, 5.16, 5.44, 'z0'], // frente living
+  // (el bajo escalera queda abierto: sin muro ni tabique debajo de la escalera)
 ];
 const PA_WALLS = [
-  [-0.29, 0.60, 15.69, 15.83], [1.52, 2.05, 15.69, 15.83], [2.97, 3.81, 15.69, 15.83], // fondo
-  [5.07, 5.81, 15.69, 15.83], [7.83, 8.69, 15.69, 15.83],
-  [-0.29, 0, 5.16, 15.69], [8.40, 8.69, 7.86, 15.69],                                  // laterales
+  [-0.29, 0.60, 15.69, 15.83, 'z1,x0'], [1.52, 2.05, 15.69, 15.83, 'z1'], [2.97, 3.81, 15.69, 15.83, 'z1'], // fondo
+  [5.07, 5.81, 15.69, 15.83, 'z1'], [7.83, 8.69, 15.69, 15.83, 'z1,x1'],
+  [-0.29, 0, 5.16, 15.69, 'x0,z0'], [8.40, 8.69, 7.86, 15.69, 'x1,z0'],                // laterales
   [1.52, 1.66, 13.09, 15.69], [3.37, 3.51, 13.09, 15.69], [5.38, 5.52, 13.00, 15.69],  // baños | depósito | hab 3
   [0, 0.10, 13.09, 13.37], [0.82, 1.52, 13.09, 13.37], [1.66, 1.91, 13.09, 13.37],
   [2.64, 3.37, 13.09, 13.37], [3.51, 4.46, 13.09, 13.37], [5.28, 5.38, 13.09, 13.37],
   [1.72, 1.85, 11.80, 13.09], [3.57, 3.71, 11.80, 12.34],                              // lavatorios
   [0, 0.10, 11.80, 11.94], [0.82, 1.72, 11.80, 11.94], [1.85, 3.57, 11.80, 11.94],
   [5.38, 8.40, 12.05, 12.19], [5.38, 5.52, 11.94, 12.05],                              // hab 2 | hab 3
-  [5.38, 5.52, 5.16, 11.13], [5.23, 5.38, 5.16, 10.06],
+  [5.38, 5.52, 7.86, 11.13], [5.38, 5.52, 5.16, 7.86, 'x1,z0'], [5.23, 5.38, 5.16, 10.06, 'z0'],
   [1.02, 1.13, 9.02, 9.98], [1.13, 4.31, 9.02, 9.11], [4.22, 4.31, 7.86, 9.02],        // hab principal | hall
-  [4.31, 5.23, 7.86, 8.16], [5.52, 5.81, 7.86, 8.16], [7.83, 8.40, 7.86, 8.16],        // frente hab 2
-  [0, 0.60, 5.16, 5.44], [3.12, 5.23, 5.16, 5.44],                                     // frente hab principal
+  [4.31, 5.23, 7.86, 8.16], [5.52, 5.81, 7.86, 8.16, 'z0'], [7.83, 8.40, 7.86, 8.16, 'z0'], // frente hab 2
+  [0, 0.60, 5.16, 5.44, 'z0'], [3.12, 5.23, 5.16, 5.44, 'z0'],                         // frente hab principal
 ];
 
 // Aberturas en los huecos de los muros. door: dintel arriba. window: antepecho + vidrio + dintel.
+// ext: cara(s) que dan afuera (revoque gris). frame: marco negro fino en puertas. leaf: hoja de vidrio fija.
 const OPENINGS = [
   // Planta baja
-  { lvl: 0, t: 'door',   r: [4.02, 5.04, 5.16, 5.44] },                // puerta de entrada
-  { lvl: 0, t: 'window', r: [0.60, 3.12, 5.16, 5.44], sill: 0.9 },     // ventana living
+  { lvl: 0, t: 'door',   r: [4.02, 5.04, 5.16, 5.44], ext: 'z0', frame: true },                // puerta de entrada
+  { lvl: 0, t: 'window', r: [0.60, 3.12, 5.16, 5.44], sill: 0.9, ext: 'z0' },     // ventana living
   { lvl: 0, t: 'door',   r: [0.92, 3.33, 9.98, 10.06] },               // living ↔ hall (vano corredizo)
   { lvl: 0, t: 'wall',   r: [0.92, 1.35, 12.14, 12.28] },
   { lvl: 0, t: 'door',   r: [1.35, 2.33, 12.14, 12.28] },              // baño PB
   { lvl: 0, t: 'door',   r: [5.38, 5.52, 13.37, 14.19] },              // cocina ↔ garage
-  { lvl: 0, t: 'door',   r: [1.07, 3.24, 17.40, 17.54] },              // puerta-ventana a galería
-  { lvl: 0, t: 'window', r: [5.88, 8.06, 17.40, 17.54], sill: 0.9 },   // ventana garage
-  { lvl: 0, t: 'door',   r: [5.72, 8.21, 7.86, 8.16], head: 2.2 },     // portón garage
+  { lvl: 0, t: 'door',   r: [1.07, 3.24, 17.40, 17.54], ext: 'z1', frame: true, leaf: true },              // puerta-ventana a galería
+  { lvl: 0, t: 'window', r: [5.88, 8.06, 17.40, 17.54], sill: 0.9, ext: 'z1' },   // ventana garage
+  { lvl: 0, t: 'door',   r: [5.72, 8.21, 7.86, 8.16], head: 2.2, ext: 'z0' },     // portón garage
   // Planta alta
-  { lvl: 1, t: 'window', r: [0.60, 3.12, 5.16, 5.44], sill: 0.9 },     // hab principal
+  { lvl: 1, t: 'window', r: [0.60, 3.12, 5.16, 5.44], sill: 0.9, ext: 'z0' },     // hab principal
   { lvl: 1, t: 'door',   r: [0, 1.02, 9.02, 9.11] },                   // hab principal
   { lvl: 1, t: 'door',   r: [0.10, 0.82, 11.80, 11.94] },              // lavatorio 1
   { lvl: 1, t: 'door',   r: [0.10, 0.82, 13.09, 13.37] },              // baño PA 1
@@ -140,11 +142,11 @@ const OPENINGS = [
   { lvl: 1, t: 'door',   r: [4.46, 5.28, 13.09, 13.37] },              // depósito
   { lvl: 1, t: 'door',   r: [5.38, 5.52, 11.13, 11.94] },              // hab 2
   { lvl: 1, t: 'door',   r: [5.38, 5.52, 12.19, 13.00] },              // hab 3
-  { lvl: 1, t: 'window', r: [0.60, 1.52, 15.69, 15.83], sill: 1.5 },   // baño PA 1
-  { lvl: 1, t: 'window', r: [2.05, 2.97, 15.69, 15.83], sill: 1.5 },   // baño PA 2
-  { lvl: 1, t: 'window', r: [3.81, 5.07, 15.69, 15.83], sill: 1.2 },   // depósito
-  { lvl: 1, t: 'window', r: [5.81, 7.83, 15.69, 15.83], sill: 0.9 },   // hab 3
-  { lvl: 1, t: 'window', r: [5.81, 7.83, 7.86, 8.16], sill: 0.9 },     // hab 2
+  { lvl: 1, t: 'window', r: [0.60, 1.52, 15.69, 15.83], sill: 1.5, ext: 'z1' },   // baño PA 1
+  { lvl: 1, t: 'window', r: [2.05, 2.97, 15.69, 15.83], sill: 1.5, ext: 'z1' },   // baño PA 2
+  { lvl: 1, t: 'window', r: [3.81, 5.07, 15.69, 15.83], sill: 1.2, ext: 'z1' },   // depósito
+  { lvl: 1, t: 'window', r: [5.81, 7.83, 15.69, 15.83], sill: 0.9, ext: 'z1' },   // hab 3
+  { lvl: 1, t: 'window', r: [5.81, 7.83, 7.86, 8.16], sill: 0.9, ext: 'z0' },     // hab 2
 ];
 
 // Escalera: compensada 180° (giro alrededor de C) + tramo recto hacia el hall de planta alta
@@ -333,49 +335,141 @@ function canvasTexture(size, draw) {
   t.anisotropy = 8;
   return t;
 }
-const woodTex = canvasTexture(512, (g, s) => {   // tablas de madera clara (1 textura = 2 m)
-  const rows = 14, h = s / rows;
-  for (let i = 0; i < rows; i++) {
-    let x = -Math.random() * s;
-    while (x < s) {
-      const len = s * (0.35 + Math.random() * 0.4), l = 76 + Math.random() * 8;
-      g.fillStyle = `hsl(34, 45%, ${l}%)`;
-      g.fillRect(x, i * h, len, h);
-      g.strokeStyle = 'rgba(120,85,45,.06)';
-      for (let k = 0; k < 5; k++) { const y = i * h + Math.random() * h; g.beginPath(); g.moveTo(x, y); g.lineTo(x + len, y + (Math.random() - .5) * 3); g.stroke(); }
-      g.fillStyle = 'rgba(110,80,45,.35)'; g.fillRect(x, i * h, 1.5, h);
-      x += len;
+// Random con semilla fija: las texturas y la enredadera salen siempre iguales
+function seeded(seed) { return () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
+
+// Pinotea: tablas angostas (≈10 cm) y largas, en sentido frente-fondo, tono cálido anaranjado,
+// veta "catedral" marcada. 1 textura = 2 m. Las tablas corren a lo largo de v.
+const woodTex = canvasTexture(1024, (g, s) => {
+  const rnd = seeded(7), cols = 20, w = s / cols;
+  const wrapLines = (fn) => { for (const dy of [-s, 0, s]) fn(dy); };
+  for (let c = 0; c < cols; c++) {
+    const x0 = c * w;
+    let y = rnd() * s;                               // juntas de punta escalonadas entre tablas
+    const yEnd = y + s;
+    while (y < yEnd) {
+      const len = Math.min(yEnd - y, s * (0.7 + rnd() * 0.6));   // tablas de 1,4 a 2,6 m
+      const hue = 25 + rnd() * 6, sat = 55 + rnd() * 12, lig = 47 + rnd() * 9;
+      g.save();
+      g.beginPath();
+      for (const dy of [-s, 0]) g.rect(x0, y + dy, w, len);
+      g.clip();
+      g.fillStyle = `hsl(${hue}, ${sat}%, ${lig}%)`;
+      g.fillRect(x0, 0, w, s);
+      // veta catedral: arcos anidados alrededor de un eje de la tabla (periódica en v para no cortar)
+      const cx = x0 + w * (0.3 + rnd() * 0.4), period = s / (1 + Math.floor(rnd() * 3)), ph = rnd() * Math.PI * 2;
+      const n = 9 + Math.floor(rnd() * 5);
+      for (let j = 0; j < n; j++) {
+        const d = (j + 0.6) / n * w * 0.9, amp = 0.08 + rnd() * 0.22;
+        g.strokeStyle = `rgba(${110 + rnd() * 30}, ${50 + rnd() * 15}, 15, ${0.12 + rnd() * 0.18})`;
+        g.lineWidth = 1 + rnd() * 1.8;
+        for (const side of [-1, 1]) {
+          g.beginPath();
+          for (let yy = 0; yy <= s; yy += 8) {
+            const k = Math.sin(yy / period * Math.PI * 2 + ph + j * 0.15);
+            const xx = cx + side * d * (1 + amp * k);
+            yy === 0 ? g.moveTo(xx, yy) : g.lineTo(xx, yy);
+          }
+          g.stroke();
+        }
+      }
+      // fibras finas
+      for (let k = 0; k < 40; k++) {
+        const fx = x0 + rnd() * w;
+        g.fillStyle = `rgba(90, 40, 10, ${0.05 + rnd() * 0.08})`;
+        g.fillRect(fx, 0, 0.8, s);
+      }
+      g.restore();
+      // junta de punta
+      g.fillStyle = 'rgba(60, 28, 8, .55)';
+      g.fillRect(x0, y % s, w, 1.5);
+      y += len;
     }
-    g.fillStyle = 'rgba(110,80,45,.35)'; g.fillRect(0, i * h, s, 1.5);
+    g.fillStyle = 'rgba(55, 25, 6, .5)';             // junta entre tablas
+    g.fillRect(x0, 0, 1.5, s);
   }
+});
+
+// Porcelanato de la cocina: placas 60 x 120 (largo frente-fondo), blanco cálido, juntas finas.
+// 1 textura = 2,4 m → 4 x 2 placas.
+const porcelainTex = canvasTexture(1024, (g, s) => {
+  const rnd = seeded(11), tw = s / 4, th = s / 2;
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) {
+    const l = 88 + rnd() * 2.5;
+    g.fillStyle = `hsl(36, 32%, ${l}%)`;
+    g.fillRect(i * tw, j * th, tw, th);
+    for (let k = 0; k < 900; k++) {                  // moteado sutil de la pasta
+      g.fillStyle = `rgba(${rnd() < 0.5 ? '120,105,85' : '255,250,240'}, ${0.04 + rnd() * 0.05})`;
+      g.fillRect(i * tw + rnd() * tw, j * th + rnd() * th, 1 + rnd() * 2, 1 + rnd() * 2);
+    }
+  }
+  g.fillStyle = '#c4baab';                           // juntas de 2 mm
+  for (let i = 0; i < 4; i++) g.fillRect(i * tw, 0, 1.5, s);
+  for (let j = 0; j < 2; j++) g.fillRect(0, j * th, s, 1.5);
+});
+
+// Calcáreo de la galería: baldosa 30 x 30 blanca con dibujo gris (roseta de 8 pétalos, arcos que
+// forman círculos entre baldosas, estrellitas en los cruces y guarda escalonada). 1 textura = 2 x 2 baldosas.
+const tileTex = canvasTexture(512, (g, s) => {
+  const T = s / 2, gray = '#8b8f95', grayDark = '#6f7378';
+  const petal = (len, wid, a) => { g.save(); g.rotate(a); g.beginPath(); g.ellipse(len / 2, 0, len / 2, wid / 2, 0, 0, Math.PI * 2); g.fill(); g.restore(); };
+  const star = (r) => { g.beginPath(); for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4, rr = k % 2 ? r * 0.28 : r; g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } g.closePath(); g.fill(); };
+  for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
+    g.save(); g.translate(i * T, j * T);
+    g.fillStyle = '#ebe8e2'; g.fillRect(0, 0, T, T);
+    g.strokeStyle = gray; g.lineWidth = T * 0.028;
+    // guarda escalonada (cuadrado con escalones en los lados)
+    const a = T * 0.2, b = T * 0.8, st = T * 0.06;
+    g.beginPath();
+    g.moveTo(a + st, a); g.lineTo(b - st, a); g.lineTo(b - st, a + st); g.lineTo(b, a + st); g.lineTo(b, b - st); g.lineTo(b - st, b - st);
+    g.lineTo(b - st, b); g.lineTo(a + st, b); g.lineTo(a + st, b - st); g.lineTo(a, b - st); g.lineTo(a, a + st); g.lineTo(a + st, a + st); g.closePath();
+    g.stroke();
+    // arcos de las esquinas (se completan en círculos con las baldosas vecinas)
+    for (const [cx, cy] of [[0, 0], [T, 0], [0, T], [T, T]]) { g.beginPath(); g.arc(cx, cy, T * 0.3, 0, Math.PI * 2); g.stroke(); }
+    // cuadrifolio alrededor de la roseta
+    g.lineWidth = T * 0.022;
+    for (let k = 0; k < 4; k++) { const an = k * Math.PI / 2; g.beginPath(); g.arc(T / 2 + Math.cos(an) * T * 0.12, T / 2 + Math.sin(an) * T * 0.12, T * 0.12, an - Math.PI / 2, an + Math.PI / 2); g.stroke(); }
+    // roseta central de 8 pétalos
+    g.save(); g.translate(T / 2, T / 2);
+    g.fillStyle = grayDark;
+    for (let k = 0; k < 4; k++) petal(T * 0.2, T * 0.085, k * Math.PI / 2 + Math.PI / 4);
+    g.fillStyle = gray;
+    for (let k = 0; k < 4; k++) petal(T * 0.16, T * 0.07, k * Math.PI / 2);
+    g.fillStyle = '#b7ad9f'; g.beginPath(); g.arc(0, 0, T * 0.045, 0, Math.PI * 2); g.fill();
+    g.restore();
+    // estrellitas en las esquinas
+    g.fillStyle = gray;
+    for (const [cx, cy] of [[0, 0], [T, 0], [0, T], [T, T]]) { g.save(); g.translate(cx, cy); star(T * 0.11); g.restore(); }
+    g.restore();
+  }
+  g.fillStyle = 'rgba(150,145,138,.6)';              // juntas
+  for (let k = 0; k <= 2; k++) { g.fillRect(k * T - 1, 0, 2, s); g.fillRect(0, k * T - 1, s, 2); }
 });
 const grassTex = canvasTexture(256, (g, s) => {
   g.fillStyle = '#6f9a4a'; g.fillRect(0, 0, s, s);
   for (let i = 0; i < 5000; i++) { g.fillStyle = `hsl(${85 + Math.random() * 20}, 40%, ${30 + Math.random() * 20}%)`; g.fillRect(Math.random() * s, Math.random() * s, 1.5, 3); }
 });
-const tileTex = canvasTexture(256, (g, s) => {
-  g.fillStyle = '#c9c2b8'; g.fillRect(0, 0, s, s);
-  g.strokeStyle = '#9f978c'; g.lineWidth = 3;
-  for (let i = 0; i <= 4; i++) { g.beginPath(); g.moveTo(i * s / 4, 0); g.lineTo(i * s / 4, s); g.moveTo(0, i * s / 4); g.lineTo(s, i * s / 4); g.stroke(); }
-});
 
 // Materiales físicos (PBR): mismos colores, con rugosidad/metal para que reflejen el cielo de forma natural
 const std = (color, roughness, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness, metalness: 0, ...extra });
 const M = {
-  wall: std(0xf1ebe1, 0.92),
-  ceiling: std(0xffffff, 0.95),
-  wood: std(0xffffff, 0.7, { map: woodTex }),
+  wall: std(0xf2ebdf, 0.95),                                  // blanco cálido mate (interior)
+  facade: std(0x939699, 0.9),                                 // revoque gris cemento liso (exterior)
+  ceiling: std(0xfaf6ef, 0.95),
+  wood: std(0xffffff, 0.42, { map: woodTex }),                // pinotea satinada (pisos y escalera)
+  porcelain: std(0xffffff, 0.75, { map: porcelainTex }),      // porcelanato claro mate (cocina)
   grass: std(0xffffff, 1.0, { map: grassTex }),
-  tile: std(0xffffff, 0.45, { map: tileTex }),
+  tile: std(0xffffff, 0.55, { map: tileTex }),                // calcáreo (galería)
   concrete: std(0xa9a6a0, 0.85),
   roof: std(0x8d8a85, 0.9),
   outside: std(0x7e9a68, 1.0),
   medianera: std(0xd8cfc2, 0.95),
-  glass: new THREE.MeshPhysicalMaterial({ color: 0xcfe4f2, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.18,
+  glass: new THREE.MeshPhysicalMaterial({ color: 0xf4f8f8, roughness: 0.03, metalness: 0, transparent: true, opacity: 0.12,
     depthWrite: false, side: THREE.DoubleSide, envMapIntensity: 2.0, specularIntensity: 1 }),
-  frame: std(0x55585c, 0.4, { metalness: 0.6 }),
-  stair: std(0xc9a77a, 0.55),
-  rail: std(0x3d3f42, 0.35, { metalness: 0.7 }),
+  frame: std(0x26282b, 0.45, { metalness: 0.5 }),             // carpinterías grafito/negro
+  rail: std(0x1b1c1e, 0.45, { metalness: 0.5 }),              // herrería negra (barandas, reja)
+  leaf: std(0xffffff, 0.8, { side: THREE.DoubleSide }),       // hojas de la enredadera
+  flower: std(0xfbfaf3, 0.7, { side: THREE.DoubleSide }),     // flores de jazmín
   furn: {
     wood: std(0xb08a5e, 0.6),
     counter: std(0xe6e3dd, 0.3),
@@ -392,14 +486,34 @@ const M = {
    la izquierda/derecha queden igual que en el plano al mirar desde el frente.
    ========================================================================== */
 const edgeMat = new THREE.LineBasicMaterial({ color: 0x8f8678, transparent: true, opacity: 0.3 });   // aristas suaves
-const colliders = [];   // cajas sólidas {x0,x1,z0,z1,y0,y1} en coordenadas del plano
+const colliders = [];   // cajas sólidas {x0,x1,z0,z1,y0,y1[,maxFeet]} en coordenadas del plano
 
-function box(x0, x1, z0, z1, y0, y1, mat, solid = true) {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0), mat);
+// Caras de BoxGeometry en orden: +x, −x, +y, −y, +z (frente del plano), −z (fondo del plano)
+const FACE = { x1: 0, x0: 1, z0: 4, z1: 5 };
+// mat: un material, o un array de 6 (uno por cara). ext: caras exteriores ('z0', 'x1,z0', …) que llevan revoque gris.
+function box(x0, x1, z0, z1, y0, y1, mat, solid = true, ext = '') {
+  let m = mat;
+  if (ext) { m = Array(6).fill(mat); for (const f of ext.split(',')) m[FACE[f.trim()]] = M.facade; }
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0), m);
   mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, -(z0 + z1) / 2);
   scene.add(mesh);
   if (mat === M.wall || Object.values(M.furn).includes(mat)) mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry), edgeMat));
   if (solid) colliders.push({ x0, x1, z0, z1, y0, y1 });
+  return mesh;
+}
+// Caja revestida en madera: UV en metros (1 textura = texSize) para que las tablas tengan su tamaño real
+// en cada cara. En las caras verticales las tablas quedan horizontales.
+function woodBox(x0, x1, z0, z1, y0, y1, texSize = 2) {
+  const mesh = box(x0, x1, z0, z1, y0, y1, M.wood, false);
+  const w = x1 - x0, h = y1 - y0, d = z1 - z0, uv = mesh.geometry.attributes.uv;
+  const size = [[d, h, true], [d, h, true], [w, d, false], [w, d, false], [w, h, true], [w, h, true]];
+  for (let f = 0; f < 6; f++) {
+    const [su, sv, swap] = size[f];
+    for (let i = f * 4; i < f * 4 + 4; i++) {
+      const u = uv.getX(i) * su / texSize, v = uv.getY(i) * sv / texSize;
+      swap ? uv.setXY(i, v, u) : uv.setXY(i, u, v);
+    }
+  }
   return mesh;
 }
 function floor(x0, x1, z0, z1, y, mat, texSize = 2) {
@@ -412,26 +526,48 @@ function floor(x0, x1, z0, z1, y, mat, texSize = 2) {
   scene.add(mesh);
 }
 
+// Marco fino negro de una abertura (jambas, dintel, antepecho opcional y parante central opcional)
+function frameOpening([x0, x1, z0, z1], yb, yt, { sill = true, mullion = false } = {}) {
+  const t = 0.03, alongX = (x1 - x0) > (z1 - z0);
+  const zm = (z0 + z1) / 2, xm = (x0 + x1) / 2;
+  // a0..a1 a lo largo de la abertura, c = centro del espesor del muro
+  const fb = (a0, a1, y0, y1) => alongX ? box(a0, a1, zm - 0.025, zm + 0.025, y0, y1, M.frame, false)
+                                        : box(xm - 0.025, xm + 0.025, a0, a1, y0, y1, M.frame, false);
+  const [a0, a1] = alongX ? [x0, x1] : [z0, z1], am = (a0 + a1) / 2;
+  fb(a0, a1, yt - t, yt);
+  if (sill) fb(a0, a1, yb, yb + t);
+  fb(a0, a0 + t, yb, yt); fb(a1 - t, a1, yb, yt);
+  if (mullion) fb(am - t / 2, am + t / 2, yb, yt);
+}
+function glassPane([x0, x1, z0, z1], y0, y1, solid = false) {
+  const alongX = (x1 - x0) > (z1 - z0), zm = (z0 + z1) / 2, xm = (x0 + x1) / 2;
+  if (alongX) box(x0, x1, zm - 0.006, zm + 0.006, y0, y1, M.glass, solid);
+  else box(xm - 0.006, xm + 0.006, z0, z1, y0, y1, M.glass, solid);
+}
+
 function buildWalls() {
   // PB: paredes hasta 2,80 (cubren el canto de la losa); PA: de 2,80 a 5,40
-  for (const [x0, x1, z0, z1] of PB_WALLS) box(x0, x1, z0, z1, 0, PA_Y, M.wall);
-  box(3.33, 3.42, 9.02, 9.98, 0, 1.8, M.wall);   // tabique bajo la escalera: llega justo debajo de los peldaños
-  for (const [x0, x1, z0, z1] of PA_WALLS) box(x0, x1, z0, z1, PA_Y, PA_Y + H_WALL, M.wall);
+  for (const [x0, x1, z0, z1, ext] of PB_WALLS) box(x0, x1, z0, z1, 0, PA_Y, M.wall, true, ext);
+  for (const [x0, x1, z0, z1, ext] of PA_WALLS) box(x0, x1, z0, z1, PA_Y, PA_Y + H_WALL, M.wall, true, ext);
 
   for (const o of OPENINGS) {
     const [x0, x1, z0, z1] = o.r;
     const base = o.lvl * PA_Y, top = o.lvl ? base + H_WALL : PA_Y;
-    if (o.t === 'wall') { box(x0, x1, z0, z1, base, top, M.wall); continue; }
+    if (o.t === 'wall') { box(x0, x1, z0, z1, base, top, M.wall, true, o.ext); continue; }
     const head = base + (o.head ?? (o.t === 'door' ? 2.05 : 2.1));
-    box(x0, x1, z0, z1, head, top, M.wall);                          // dintel
+    box(x0, x1, z0, z1, head, top, M.wall, true, o.ext);                // dintel
     if (o.t === 'window') {
       const sill = base + o.sill;
-      box(x0, x1, z0, z1, base, sill, M.wall);                         // antepecho
-      const alongX = (x1 - x0) > (z1 - z0), zm = (z0 + z1) / 2, xm = (x0 + x1) / 2;
-      if (alongX) box(x0, x1, zm - 0.01, zm + 0.01, sill, head, M.glass, false);
-      else box(xm - 0.01, xm + 0.01, z0, z1, sill, head, M.glass, false);
-      // marco
-      if (alongX) { box(x0, x1, zm - 0.03, zm + 0.03, sill, sill + 0.04, M.frame, false); box(x0, x1, zm - 0.03, zm + 0.03, head - 0.04, head, M.frame, false); box(xm - 0.02, xm + 0.02, zm - 0.03, zm + 0.03, sill, head, M.frame, false); }
+      box(x0, x1, z0, z1, base, sill, M.wall, true, o.ext);             // antepecho
+      glassPane(o.r, sill, head);
+      frameOpening(o.r, sill, head, { mullion: (x1 - x0) > 1.2 });
+    } else if (o.frame) {
+      frameOpening(o.r, base, head, { sill: false });
+      if (o.leaf) {                                                     // puerta-ventana: hoja fija de vidrio en una mitad
+        const xm = (x0 + x1) / 2, leaf = [xm, x1, z0, z1];
+        glassPane(leaf, base, head, true);
+        frameOpening(leaf, base, head);
+      }
     }
   }
 }
@@ -442,19 +578,25 @@ function buildFloorsAndCeilings() {
   floor(-0.28, LOT_W + 0.28, 0, LOT_D, 0, M.grass, 3);
   floor(5.52, 8.40, 0, 8.16, 0.004, M.concrete);          // entrada de autos
   floor(4.02, 5.04, 0, 5.16, 0.004, M.concrete);          // camino a la puerta
-  floor(-0.28, LOT_W + 0.28, GALERIA_Z[0], GALERIA_Z[1], 0.004, M.tile, 1.2);
-  // Pisos de madera clara
-  floor(0, 5.38, 5.16, 17.40, 0.006, M.wood);
+  floor(-0.28, LOT_W + 0.28, GALERIA_Z[0], GALERIA_Z[1], 0.004, M.tile, 0.6);   // calcáreos 30 x 30
+  // Pinotea en living, entrada, hall y baño PB; porcelanato 60 x 120 en la cocina
+  floor(0, 5.38, 5.16, 13.09, 0.006, M.wood);
+  floor(0, 5.38, 13.09, 17.40, 0.006, M.porcelain, 2.4);
   floor(5.52, 8.40, 8.16, 17.40, 0.006, M.concrete);      // garage
   for (const [x0, x1, z0, z1] of PA_FLOORS) floor(x0, x1, z0, z1, PA_Y + 0.004, M.wood);
   floor(-0.28, 8.68, 15.83, 17.54, PA_Y + 0.004, M.roof); // techo sobre cocina/garage
-  // Losa PB/PA (techo blanco de planta baja) y techo de planta alta
+  // Losa PB/PA (techo blanco de planta baja) y techo de planta alta (cantos con revoque gris)
   for (const [x0, x1, z0, z1] of SLAB_RECTS) box(x0, x1, z0, z1, H_WALL, PA_Y, M.ceiling, false);
-  for (const [x0, x1, z0, z1] of PA_ROOF) box(x0, x1, z0, z1, PA_Y + H_WALL, PA_Y + H_WALL + SLAB, M.ceiling, false);
+  const roofMats = [M.facade, M.facade, M.roof, M.ceiling, M.facade, M.facade];
+  for (const [x0, x1, z0, z1] of PA_ROOF) box(x0, x1, z0, z1, PA_Y + H_WALL, PA_Y + H_WALL + SLAB, roofMats, false);
 }
 
 function buildStairs() {
   const S = STAIR;
+  // Escalera "plegada" revestida en madera: cada peldaño es una pieza de madera de (alzada + 10 cm)
+  // de alto, apoyada en la anterior. Debajo queda vacío: sin muros, tabiques ni placard.
+  const D = S.rise + 0.10;
+  const stepBottom = (h) => (h - D < 0.12 ? 0 : h - D);
   // Peldaños compensados: cuñas alrededor del centro C recortadas por la caja de la escalera
   const [bx0, bx1, bz0, bz1] = S.winder;
   const rayToBox = (a) => {
@@ -471,23 +613,53 @@ function buildStairs() {
     for (const c of corners) if (c.a > a0 && c.a < a1) pts.push([c.x, c.z]);
     pts.push(rayToBox(a1));
     const shape = new THREE.Shape(pts.map(([x, z]) => new THREE.Vector2(x, z)));
-    const h = (k + 1) * S.rise;
-    const geo = new THREE.ExtrudeGeometry(shape, { depth: h, bevelEnabled: false });
-    const mesh = new THREE.Mesh(geo, M.stair);
+    const h = (k + 1) * S.rise, b = stepBottom(h);
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: h - b, bevelEnabled: false });
+    // UV en metros → misma escala de tablas que el piso (1 textura = 2 m); en los laterales, tablas horizontales
+    const uv = geo.attributes.uv, sides = geo.groups[1];
+    for (let i = 0; i < uv.count; i++) {
+      const u = uv.getX(i) / 2, v = uv.getY(i) / 2;
+      const side = sides && i >= sides.start && i < sides.start + sides.count;
+      side ? uv.setXY(i, v, u) : uv.setXY(i, u, v);
+    }
+    const mesh = new THREE.Mesh(geo, M.wood);
     mesh.rotation.x = -Math.PI / 2;     // forma en (x, z) → mundo (x, -z), extrusión hacia arriba
+    mesh.position.y = b;
     scene.add(mesh);
   }
-  // Tramo recto: cada peldaño un bloque (sobre el living solo una "losa" escalonada)
+  // Tramo recto
   const [sx0, sx1, sz0, sz1] = S.straight;
+  const stepTop = (x) => (S.nWinder + Math.min(S.nStraight - 1, Math.floor((sx1 - x) / S.tread)) + 1) * S.rise;
   for (let i = 0; i < S.nStraight; i++) {
     const xr = sx1 - i * S.tread, xl = xr - S.tread;
-    const h = (S.nWinder + i + 1) * S.rise;
-    const bottom = xl >= 3.42 ? 0 : h - 0.3;
-    box(xl, xr, sz0, sz1, bottom, h, M.stair, false);
+    const h = (S.nWinder + i + 1) * S.rise, b = stepBottom(h);
+    woodBox(xl, xr, sz0, sz1, b, h);
+    // Debajo de los peldaños bajos no hay altura de paso: se ve vacío, pero desde planta baja no se entra
+    if (b < 1.85) colliders.push({ x0: xl, x1: xr, z0: sz0, z1: sz1, y0: 0, y1: h, maxFeet: 0.1 });
   }
-  // Lateral del tramo recto sobre el living (evita caerse) y baranda en el hall de planta alta
-  box(2.43, 3.42, 9.02, 9.11, 1.9, PA_Y, M.wall);
-  box(2.43, 5.38, 9.98, 10.06, H_WALL, PA_Y + 0.95, M.rail);
+
+  // Baranda metálica negra fina del lado del living: barrotes de cada pedada al canto de la losa
+  const bar = new THREE.BoxGeometry(0.014, 1, 0.014), mtx = new THREE.Matrix4();
+  const living = [];
+  for (let x = sx1 - 0.06; x > sx0 + 0.02; x -= 0.11) {
+    const y0 = stepTop(x);
+    if (y0 < H_WALL - 0.05) living.push([x, y0, H_WALL]);
+  }
+  box(sx0, sx1, 9.085, 9.105, H_WALL - 0.03, H_WALL, M.rail, false);                 // planchuela superior
+  colliders.push({ x0: sx0, x1: sx1, z0: 9.06, z1: 9.11, y0: 1.8, y1: PA_Y + 1 });  // solo frena a quien va por la escalera
+  // Baranda del hall de planta alta (borde del hueco): pasamanos + barrotes finos
+  const hall = [];
+  for (let x = 2.48; x < 5.22; x += 0.11) hall.push([x, PA_Y, PA_Y + 0.92]);
+  box(2.43, 5.24, 10.0, 10.04, PA_Y + 0.92, PA_Y + 0.96, M.rail, false);            // pasamanos
+  box(2.43, 5.24, 10.0, 10.04, PA_Y, PA_Y + 0.03, M.rail, false);                   // planchuela inferior
+  colliders.push({ x0: 2.43, x1: 5.38, z0: 9.98, z1: 10.06, y0: H_WALL, y1: PA_Y + 0.95 });
+  const all = [...living.map(([x, y0, y1]) => [x, 9.095, y0, y1]), ...hall.map(([x, y0, y1]) => [x, 10.02, y0, y1])];
+  const inst = new THREE.InstancedMesh(bar, M.rail, all.length);
+  all.forEach(([x, z, y0, y1], i) => {
+    mtx.makeScale(1, y1 - y0, 1).setPosition(x, (y0 + y1) / 2, -z);
+    inst.setMatrixAt(i, mtx);
+  });
+  scene.add(inst);
 }
 
 function buildFurniture() {
@@ -505,24 +677,79 @@ function buildExterior() {
   box(LOT_W, LOT_W + 0.28, 0, LOT_D, 0, H_WALL, M.medianera);
   box(-0.28, LOT_W + 0.28, LOT_D, LOT_D + 0.28, 0, H_WALL, M.medianera);
   // Galería: losa y columnas
-  box(-0.28, LOT_W + 0.28, GALERIA_Z[0], GALERIA_Z[1], H_WALL, H_WALL + 0.18, M.ceiling, false);
-  for (const [x0, x1] of [[1.96, 2.15], [4.10, 4.30], [6.26, 6.45]]) box(x0, x1, 19.32, 19.52, 0, H_WALL, M.wall);
-  // Reja de frente sobre la L.M (h = 2,00 m) con portón peatonal y vehicular abiertos
-  const gaps = [[4.02, 5.04], [5.62, 8.30]];
-  const segs = [[-0.28, 4.02], [5.04, 5.62], [8.30, LOT_W + 0.28]];
-  for (const [x0, x1] of segs) {
-    box(x0, x1, -0.1, 0.1, 0, 0.35, M.medianera);                 // murete
-    box(x0, x1, -0.03, 0.03, 1.94, 2.0, M.rail, false);            // planchuela superior
-    colliders.push({ x0, x1, z0: -0.1, z1: 0.1, y0: 0, y1: 2 });
+  box(-0.28, LOT_W + 0.28, GALERIA_Z[0], GALERIA_Z[1], H_WALL, H_WALL + 0.18, [M.facade, M.facade, M.roof, M.ceiling, M.facade, M.facade], false);
+  for (const [x0, x1] of [[1.96, 2.15], [4.10, 4.30], [6.26, 6.45]]) box(x0, x1, 19.32, 19.52, 0, H_WALL, M.facade);
+
+  // Reja del frente sobre la L.M (h = 2,00 m): planchuelas negras verticales, con portón peatonal
+  // y portón de autos (cerrados) del mismo diseño
+  const X0 = -0.28, X1 = LOT_W + 0.28, TOP = 2.0;
+  const gates = [[4.02, 5.04], [5.62, 8.30]];
+  const fixed = [[X0, 4.02], [5.04, 5.62], [8.30, X1]];
+  for (const [x0, x1] of fixed) box(x0, x1, -0.1, 0.1, 0, 0.35, M.medianera);         // murete
+  box(X0, X1, -0.035, -0.015, TOP - 0.1, TOP - 0.06, M.rail, false);                  // planchuela horizontal superior
+  box(X0, X1, -0.035, -0.015, 0.5, 0.54, M.rail, false);                              // planchuela horizontal inferior
+  for (const [x0, x1] of gates) {
+    box(x0, x1, -0.03, 0.03, 0.03, 0.08, M.rail, false);                              // bastidor de los portones
+    for (const x of [x0 + 0.03, x1 - 0.03]) box(x - 0.025, x + 0.025, -0.03, 0.03, 0.03, TOP, M.rail, false);
   }
-  const bar = new THREE.BoxGeometry(0.02, 1.6, 0.02);
-  const bars = [];
-  for (const [x0, x1] of segs) for (let x = x0 + 0.06; x < x1; x += 0.12) bars.push(x);
-  const inst = new THREE.InstancedMesh(bar, M.rail, bars.length);
-  const mtx = new THREE.Matrix4();
-  bars.forEach((x, i) => { mtx.makeTranslation(x, 1.15, 0); inst.setMatrixAt(i, mtx); });
+  for (const x of [4.02, 5.04, 5.62, 8.30]) box(x - 0.04, x + 0.04, -0.04, 0.04, 0, TOP + 0.04, M.rail, false);   // postes
+  colliders.push({ x0: X0, x1: X1, z0: -0.1, z1: 0.1, y0: 0, y1: TOP });
+  const bars = [];                                                                    // [x, y0, y1]
+  for (const [x0, x1] of fixed) for (let x = x0 + 0.05; x < x1 - 0.02; x += 0.09) bars.push([x, 0.35, TOP + 0.05]);
+  for (const [x0, x1] of gates) for (let x = x0 + 0.1; x < x1 - 0.06; x += 0.09) bars.push([x, 0.08, TOP + 0.05]);
+  const plate = new THREE.BoxGeometry(0.04, 1, 0.008), mtx = new THREE.Matrix4();
+  const inst = new THREE.InstancedMesh(plate, M.rail, bars.length);
+  bars.forEach(([x, y0, y1], i) => { mtx.makeScale(1, y1 - y0, 1).setPosition(x, (y0 + y1) / 2, 0); inst.setMatrixAt(i, mtx); });
   scene.add(inst);
-  for (const [x0, x1] of gaps) for (const x of [x0, x1]) box(x - 0.05, x + 0.05, -0.05, 0.05, 0, 2.0, M.rail);
+  buildJasmine(X0, X1, TOP);
+}
+
+// Enredadera tipo jazmín sobre la reja: hojas verde oscuro y florcitas blancas en manchones
+// irregulares, más tupida arriba. Generada por código con semilla fija (siempre igual).
+function buildJasmine(X0, X1, TOP) {
+  const rnd = seeded(42), leaves = [], flowers = [];
+  const add = (cx, cy, rx, ry, n) => {
+    for (let i = 0; i < n; i++) {
+      const r = Math.sqrt(rnd()), a = rnd() * Math.PI * 2;
+      const x = cx + Math.cos(a) * r * rx, y = cy + Math.sin(a) * r * ry;
+      if (x < X0 || x > X1 || y < 0.3 || y > TOP + 0.18) continue;
+      const z = (rnd() - 0.5) * 0.14;
+      (rnd() < 0.22 ? flowers : leaves).push([x, y, z]);
+    }
+  };
+  // cordón tupido a lo largo de la parte de arriba (el portón de autos queda más ralo)
+  for (let x = X0; x < X1; x += 0.25) {
+    const onCarGate = x > 5.7 && x < 8.2;
+    add(x, TOP - 0.12 + rnd() * 0.1, 0.35, 0.22, onCarGate ? 40 : 220);
+  }
+  // manchones que bajan por la reja
+  for (let i = 0; i < 26; i++) {
+    let cx = X0 + rnd() * (X1 - X0);
+    if (cx > 5.7 && cx < 8.2 && rnd() < 0.7) cx = X0 + rnd() * (5.62 - X0);
+    const cy = 0.5 + Math.sqrt(rnd()) * 1.3;
+    add(cx, cy, 0.25 + rnd() * 0.45, 0.25 + rnd() * 0.5, 260 + Math.floor(rnd() * 360));
+  }
+  // guías colgantes
+  for (let i = 0; i < 14; i++) {
+    const x = X0 + rnd() * (X1 - X0), len = 0.3 + rnd() * 0.7;
+    for (let y = TOP; y > TOP - len; y -= 0.05) add(x + (rnd() - 0.5) * 0.06, y, 0.06, 0.04, 3);
+  }
+  const place = (geo, mat, list, size, tint) => {
+    const inst = new THREE.InstancedMesh(geo, mat, list.length), q = new THREE.Quaternion(), e = new THREE.Euler();
+    const mtx = new THREE.Matrix4(), p = new THREE.Vector3(), sc = new THREE.Vector3();
+    list.forEach(([x, y, z], i) => {
+      e.set((rnd() - 0.5) * 1.6, (rnd() - 0.5) * 2.4, rnd() * Math.PI * 2); q.setFromEuler(e);
+      const k = size * (0.7 + rnd() * 0.6);
+      mtx.compose(p.set(x, y, -z), q, sc.set(k, k, k));
+      inst.setMatrixAt(i, mtx);
+      inst.setColorAt(i, tint());
+    });
+    scene.add(inst);
+  };
+  const col = new THREE.Color();
+  const leafGeo = new THREE.CircleGeometry(0.5, 6); leafGeo.scale(1, 0.45, 1);
+  place(leafGeo, M.leaf, leaves, 0.045, () => col.setHSL(0.26 + rnd() * 0.06, 0.45 + rnd() * 0.2, 0.17 + rnd() * 0.1));
+  place(new THREE.CircleGeometry(0.5, 5), M.flower, flowers, 0.032, () => col.setHSL(0.13, 0.3, 0.9 + rnd() * 0.1));
 }
 
 buildWalls();
@@ -590,6 +817,7 @@ function resolveCollisions() {
   for (let iter = 0; iter < 3; iter++) {
     for (const c of colliders) {
       if (c.y1 <= lo || c.y0 >= hi) continue;
+      if (c.maxFeet !== undefined && player.feet > c.maxFeet) continue;   // solo aplica desde planta baja
       const nx = Math.max(c.x0, Math.min(player.x, c.x1));
       const nz = Math.max(c.z0, Math.min(player.z, c.z1));
       let dx = player.x - nx, dz = player.z - nz;
