@@ -24,11 +24,20 @@ Referencias: `pisos/`, `cocina/`
 - Baños: ver cada baño.
 
 ## Living + entrada
-Referencias: `living/`
-- Pared principal con biblioteca empotrada de piso a techo en color bordó (vino), con estantes abiertos y módulos cerrados abajo.
+Referencias: `living/` (`living.jpg`, `entrada.png`, `puerta separadoralivingacocina.jpg`)
+- Biblioteca empotrada de piso a techo en color bordó (vino), con estantes abiertos y módulos cerrados abajo.
 - Sillón curvo en tonos terracota/óxido, alfombra con dibujo en rosas y crudos, lámpara colgante de papel plisado.
 - Living y cocina separados por puertas de vidrio repartido (referencia `living/puerta separadoralivingacocina.jpg`): corredizas, marco verde salvia, paños de vidrio divididos y zócalo ciego abajo. Desde el living se tiene que ver la cocina a través del vidrio.
 - Entrada (mud room): pared con boiserie de listones verticales blanco cálido, banco empotrado y alacenas altas lisas, ganchos para colgar.
+
+### Distribución (mirando desde la puerta de entrada)
+Estos muebles no están dibujados en `plano.pdf`; se ubican sin cambiar paredes ni medidas.
+- **Biblioteca bordó**: contra la pared izquierda del living (la medianera), a lo largo de toda la pared, del frente hasta el muro del hall (4,5 m), 40 cm de fondo. Módulos cerrados abajo (60 cm de alto) y estantes abiertos hasta el techo, en 5 columnas.
+- **Tele**: empotrada en la columna del centro de la biblioteca, a la altura de la vista sentado, con estantes arriba.
+- **Sillón curvo**: mira hacia la tele, así que al entrar a la casa se lo ve de espaldas. Va en el centro del living con la mesa ratona y la alfombra entre el sillón y la biblioteca; el colgante de papel queda sobre la mesa ratona. Se deja libre el paso de la entrada hacia la escalera y las puertas de vidrio.
+- **Puertas corredizas de vidrio**: en el vano corredizo que ya existe entre el living y el hall (2,4 m). Del otro lado del hall está la cocina, que se ve a través del vidrio. Dos hojas: la del lado del hall queda fija a la izquierda y la del lado del living corre por delante (tecla E para abrir o cerrar).
+- **Entrada**: sobre la pared derecha al entrar, entre la puerta y la caja de la escalera: banco empotrado con cajones, boiserie con ganchos arriba del banco y alacenas altas hasta el techo.
+- **Plantas**: ficus junto a la ventana del frente, apenas a la izquierda de la puerta de entrada; mata frondosa en el rincón entre la biblioteca y la ventana.
 
 ## Cocina + galería
 Referencias: `cocina/`, `pisos/piso galeria.jpeg`
