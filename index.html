@@ -44,7 +44,7 @@
 </head>
 <body>
 <div id="hud"><div class="room" id="roomName">Jardín delantero</div><div class="floor" id="floorName">Exterior</div></div>
-<div id="help">Clic para entrar · <b>WASD</b>/flechas: caminar · <b>Shift</b>: correr · <b>Mouse</b>: mirar · <b>T</b>: hora del día · <b>E</b>: portón y puerta de vidrio · <b>Esc</b>: salir</div>
+<div id="help">Clic para entrar · <b>WASD</b>/flechas: caminar · <b>Shift</b>: correr · <b>Mouse</b>: mirar · <b>T</b>: hora del día · <b>E</b>: portón y puertas corredizas · <b>Esc</b>: salir</div>
 <div id="crosshair"></div>
 <div id="photo"><span class="dot"></span><span id="photoText">Modo foto</span></div>
 <div id="notice"></div>
@@ -53,7 +53,7 @@
     <h1>Recorrido por la casa</h1>
     <p><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> o flechas para caminar</p>
     <p><kbd>Shift</kbd> para correr · mouse para mirar</p>
-    <p><kbd>E</kbd> cerca del portón del garage o de la puerta de vidrio del living para abrirlos o cerrarlos</p>
+    <p><kbd>E</kbd> cerca del portón del garage, de la puerta de vidrio del living o de las puertas de los baños para abrirlos o cerrarlos</p>
     <p>La escalera está en el living, junto al hall</p>
     <p><kbd>Esc</kbd> para salir</p>
     <div id="timeofday" class="opts">Hora:
@@ -923,6 +923,62 @@ function updateSlider(dt) {
   if (S.open === S.target) refreshShadows();
 }
 
+// Puertas corredizas de los baños: una hoja lisa que corre por delante del muro (en c, del lado elegido) sobre
+// un riel tapado, hacia dir (+1 / −1) a lo largo de `along` ('x' o 'z'). limit: hasta dónde puede llegar la hoja
+// abierta (para no meterse en una pared). Arrancan abiertas; se abren y cierran con E.
+const BATH_DOORS = [];
+function bathSlidingDoor({ along, a0, a1, c, dir, y0, mat, pull, limit = null, open = 1 }) {
+  const w = a1 - a0 + 0.06, t = 0.035, H = 2.08, g = new THREE.Group(), ax = along === 'x';
+  const o = { r: 0.006, uv: 1, parent: g };
+  ax ? rbox(-w / 2, w / 2, -t / 2, t / 2, 0, H, mat, o) : rbox(-t / 2, t / 2, -w / 2, w / 2, 0, H, mat, o);
+  // tirador vertical en las dos caras, cerca del canto que cierra
+  const e = -dir * (w / 2 - 0.07);
+  for (const sgn of [-1, 1]) {
+    const f = sgn * (t / 2 + 0.006);
+    ax ? rbox(e - 0.008, e + 0.008, f - 0.006, f + 0.006, 0.85, 1.2, pull, { r: 0.004, parent: g })
+       : rbox(f - 0.006, f + 0.006, e - 0.008, e + 0.008, 0.85, 1.2, pull, { r: 0.004, parent: g });
+  }
+  scene.add(g);
+  const closed = (a0 + a1) / 2;
+  let opened = dir > 0 ? a1 + w / 2 - 0.03 : a0 - w / 2 + 0.03;
+  if (limit !== null) opened = dir > 0 ? Math.min(opened, limit - w / 2) : Math.max(opened, limit + w / 2);
+  const lo = Math.min(closed, opened) - w / 2, hi = Math.max(closed, opened) + w / 2;
+  ax ? box(lo, hi, c - 0.03, c + 0.03, y0 + H, y0 + H + 0.035, mat, false) : box(c - 0.03, c + 0.03, lo, hi, y0 + H, y0 + H + 0.035, mat, false);   // riel tapado
+  const D = { g, ax, w, c, t, y0, closed, opened, open, target: open, mid: closed, collider: { y0, y1: y0 + H } };
+  colliders.push(D.collider);
+  BATH_DOORS.push(D);
+  placeBathDoor(D);
+  return D;
+}
+function placeBathDoor(D) {
+  const a = D.closed + (D.opened - D.closed) * D.open, C = D.collider;
+  D.g.position.copy(D.ax ? W(a, D.y0 + 0.004, D.c) : W(D.c, D.y0 + 0.004, a));
+  if (D.ax) Object.assign(C, { x0: a - D.w / 2, x1: a + D.w / 2, z0: D.c - D.t / 2, z1: D.c + D.t / 2 });
+  else Object.assign(C, { x0: D.c - D.t / 2, x1: D.c + D.t / 2, z0: a - D.w / 2, z1: a + D.w / 2 });
+}
+function toggleBathDoor() {
+  let best = null, bd = 1.4;
+  for (const D of BATH_DOORS) {
+    if (Math.abs(player.feet - D.y0) > 1) continue;
+    const d = D.ax ? Math.hypot(player.x - D.mid, player.z - D.c) : Math.hypot(player.x - D.c, player.z - D.mid);
+    if (d < bd) { bd = d; best = D; }
+  }
+  if (!best) return null;
+  best.target = best.target > 0 ? 0 : 1;
+  return best;
+}
+let bathDoorShadowFrame = 0;
+function updateBathDoors(dt) {
+  for (const D of BATH_DOORS) {
+    if (D.open === D.target) continue;
+    const step = 0.9 * dt;
+    D.open = Math.abs(D.target - D.open) <= step ? D.target : D.open + Math.sign(D.target - D.open) * step;
+    placeBathDoor(D);
+    if (++bathDoorShadowFrame % 4 === 0) renderer.shadowMap.needsUpdate = true;
+    if (D.open === D.target) refreshShadows();
+  }
+}
+
 function buildWalls() {
   // PB: paredes hasta 2,80 (cubren el canto de la losa); PA: de 2,80 a 5,40
   for (const [x0, x1, z0, z1, ext] of PB_WALLS) box(x0, x1, z0, z1, 0, PA_Y, M.wall, true, ext);
@@ -1587,10 +1643,8 @@ function bathPB() {
   const basket = mesh(new THREE.CylinderGeometry(0.15, 0.13, 0.24, 32, 1, true), F.rattan, scene, 2.3, 0.12, -12.92);
   scaleUV(basket.geometry, 6);
   mesh(new THREE.CircleGeometry(0.13, 32), F.rattan, scene, 2.3, 0.005, -12.92).rotation.x = -Math.PI / 2;
-  // puerta corrediza de nogal oscuro (abierta, del lado de adentro), con uñero de bronce
-  rbox(0.32, 1.39, Z0 + 0.008, Z0 + 0.043, 0.005, 2.03, F.walnutDark, { r: 0.006, uv: 1 });
-  rbox(1.32, 1.36, Z0 + 0.04, Z0 + 0.046, 0.95, 1.12, F.brass, { r: 0.004 });
-  box(0.3, 2.36, Z0 + 0.004, Z0 + 0.05, 2.03, 2.06, F.walnutDark, false);                      // riel tapado
+  // puerta corrediza de nogal oscuro, del lado de adentro: abierta queda delante del inodoro y la medianera
+  bathSlidingDoor({ along: 'x', a0: 1.35, a1: 2.33, c: Z0 + 0.026, dir: -1, y0: 0, mat: F.walnutDark, pull: F.brass });
 }
 
 // Baño principal = Baño PA 2 (1,71 x 2,32, el de la bañera) + su antebaño con el lavatorio (Lavatorio
@@ -2027,6 +2081,13 @@ function buildFurniture() {
   // Baños de planta alta (ver estilos.md → Baños → Distribución)
   bathMain(Y);                                                                            // baño PA 2 (el de la bañera)
   bathSecond(Y);                                                                          // baño PA 1 (el de la ducha)
+  // Todas las puertas de los baños son corredizas (aunque el plano dibuje alguna de abrir): hojas lisas
+  // laqueadas crudo con tirador negro, que corren por delante del muro hacia donde hay pared libre.
+  const PD = { y0: Y, mat: F.millwork, pull: F.black };
+  bathSlidingDoor({ ...PD, along: 'x', a0: 0.10, a1: 0.82, c: 11.778, dir: 1 });                     // hall → antebaño del segundo baño (del lado del hall)
+  bathSlidingDoor({ ...PD, along: 'x', a0: 0.10, a1: 0.82, c: 13.394, dir: 1, limit: 1.514 });                     // antebaño → segundo baño (del lado del baño)
+  bathSlidingDoor({ ...PD, along: 'x', a0: 1.91, a1: 2.64, c: 13.394, dir: 1, limit: 3.364 });      // antebaño → baño principal (del lado del baño)
+  bathSlidingDoor({ ...PD, along: 'z', a0: 12.34, a1: 13.09, c: 3.732, dir: -1 });                  // hall → antebaño del baño principal (del lado del hall)
 }
 
 // Carga los modelos reales que estén en models/ y reemplaza la versión hecha por código
@@ -2525,6 +2586,7 @@ addEventListener('keydown', e => {
   if (e.code !== 'KeyE' || e.repeat || !(controls.isLocked || debug.force)) return;
   if (toggleSlider()) showNotice(SLIDER.target > 0 ? 'Abriendo la puerta corrediza' : 'Cerrando la puerta corrediza');
   else if (toggleGarageDoor()) showNotice(GARAGE.target > 0 ? 'Abriendo el portón' : 'Cerrando el portón');
+  else { const d = toggleBathDoor(); if (d) showNotice(d.target > 0 ? 'Abriendo la puerta del baño' : 'Cerrando la puerta del baño'); }
   else showNotice('Acercate al portón del garage o a la puerta de vidrio del living para abrirlos o cerrarlos');
 });
 addEventListener('keydown', e => {
@@ -2558,6 +2620,7 @@ function loop() {
   update(dt, controls.isLocked || debug.force);
   updateGarageDoor(dt);
   updateSlider(dt);
+  updateBathDoors(dt);
   updateHud();
   if (mirrorsDirty) bakeMirrors();
   if (!renderPhoto(rawDt)) renderNormal();
@@ -2575,7 +2638,7 @@ addEventListener('resize', () => {
 
 // Utilidades para pruebas automáticas (no afectan el uso normal)
 window.__debug = Object.assign(debug, {
-  player, keys, camera, room: () => currentRoom(), photo, garage: GARAGE, toggleGarageDoor, updateGarageDoor, slider: SLIDER, toggleSlider, updateSlider, setQuality, quality: () => quality, setTimeOfDay, timeOfDay: () => timeOfDay,
+  player, keys, camera, room: () => currentRoom(), photo, garage: GARAGE, toggleGarageDoor, updateGarageDoor, slider: SLIDER, toggleSlider, updateSlider, bathDoors: BATH_DOORS, toggleBathDoor, updateBathDoors, setQuality, quality: () => quality, setTimeOfDay, timeOfDay: () => timeOfDay,
   place(x, z, feet = 0, yawDeg = 0) { Object.assign(player, { x, z, feet, vy: 0, eyeY: feet + EYE }); camera.rotation.set(0, yawDeg * Math.PI / 180, 0, 'YXZ'); camera.position.set(x, feet + EYE, -z); },
   simulate(codes, seconds, look) { if (look !== undefined) camera.rotation.set(0, look * Math.PI / 180, 0, 'YXZ'); codes.forEach(c => keys.add(c)); for (let t = 0; t < seconds; t += 1 / 60) update(1 / 60, true); codes.forEach(c => keys.delete(c)); updateHud(); },
 });
