@@ -14,10 +14,10 @@ En cada link: **Download → formato glTF → resolución 1K** (alcanza y pesa p
 | `round_wooden_table_01` | Mesa del comedor (cocina) | https://polyhaven.com/a/round_wooden_table_01 |
 | `dining_chair_02` | 4 sillas del comedor | https://polyhaven.com/a/dining_chair_02 |
 | `bar_chair_round_01` | 2 banquetas de la isla | https://polyhaven.com/a/bar_chair_round_01 |
-| `potted_plant_04` | Planta alta del living (junto a la ventana) y galería | https://polyhaven.com/a/potted_plant_04 |
+| `potted_plant_04` | Suculenta en maceta (galería) | https://polyhaven.com/a/potted_plant_04 |
 | `potted_plant_01` | Planta del rincón del living y galería | https://polyhaven.com/a/potted_plant_01 |
 | `potted_plant_02` | Plantita sobre la mesa ratona | https://polyhaven.com/a/potted_plant_02 |
-| `pachira_aquatica_01` | Planta grande de la galería | https://polyhaven.com/a/pachira_aquatica_01 |
+| `pachira_aquatica_01` | Planta alta del living (junto a la ventana) y planta grande de la galería | https://polyhaven.com/a/pachira_aquatica_01 |
 | `calathea_orbifolia_01` | Planta baja de la galería | https://polyhaven.com/a/calathea_orbifolia_01 |
 
 Alternativas que también reconoce, por si alguno de arriba no aparece: `WoodenTable_01` (mesa), `WoodenChair_01` (sillas).

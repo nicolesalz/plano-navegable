@@ -1193,8 +1193,9 @@ function plant(kind, x, z, { y = 0, h = 1.4, seed = 1, pot = F.potLight } = {}) 
 // 'height' = proporcional, al alto pedido (sillas, plantas). Se asume que el frente del modelo mira a +z.
 const MODEL_ITEMS = [];
 const MODEL_TURN = {};            // giro extra (radianes) para algún modelo que venga mirando para otro lado
-function modelSlot(ids, fallback, { x, z, y = 0, w, d, h, rotY = 0, fit = 'height' }) {
-  MODEL_ITEMS.push({ ids, fallback, x, z, y, w, d, h, rotY, fit });
+// variant: algunos modelos traen varias plantas en fila (…_a, …_b, …); se deja solo la variante pedida.
+function modelSlot(ids, fallback, { x, z, y = 0, w, d, h, rotY = 0, fit = 'height', variant }) {
+  MODEL_ITEMS.push({ ids, fallback, x, z, y, w, d, h, rotY, fit, variant });
 }
 
 function buildFurniture() {
@@ -1212,8 +1213,8 @@ function buildFurniture() {
     { x: LC[0] + 0.12, z: LC[1] - 0.1, y: 0.38, h: 0.3 });
   paperPendant(LC[0], LC[1], 1.72, H_WALL);
   // Plantas del living: ficus junto a la ventana y una mata frondosa en el rincón del fondo
-  modelSlot(['potted_plant_04', 'pachira_aquatica_01'], plant('ficus', 3.58, 5.82, { h: 1.65, seed: 11 }), { x: 3.58, z: 5.82, h: 1.65 });
-  modelSlot(['potted_plant_01', 'calathea_orbifolia_01'], plant('bush', 0.42, 9.55, { h: 0.95, seed: 12, pot: F.pot }), { x: 0.42, z: 9.55, h: 0.95 });
+  modelSlot(['pachira_aquatica_01'], plant('ficus', 3.58, 5.82, { h: 1.65, seed: 11 }), { x: 3.58, z: 5.82, h: 1.65, variant: 'b' });
+  modelSlot(['potted_plant_01', 'calathea_orbifolia_01'], plant('bush', 0.42, 9.55, { h: 0.95, seed: 12, pot: F.pot }), { x: 0.42, z: 9.55, h: 0.95, variant: 'b' });
 
   // Hall: placar y mesada con pileta
   wardrobe([0, 0.83, 10.06, 12.12], 'x1', 0, 2.4);
@@ -1250,10 +1251,10 @@ function buildFurniture() {
   car([5.9, 7.7, 8.8, 13.4]);                                                             // garage
 
   // Galería: plantas grandes en macetas
-  modelSlot(['pachira_aquatica_01', 'potted_plant_04'], plant('ficus', 0.4, 17.95, { h: 1.5, seed: 21, pot: F.pot }), { x: 0.4, z: 17.95, h: 1.5 });
-  modelSlot(['potted_plant_01', 'calathea_orbifolia_01'], plant('bush', 3.75, 17.92, { h: 0.9, seed: 22, pot: F.potDark }), { x: 3.75, z: 17.92, h: 0.9 });
-  modelSlot(['calathea_orbifolia_01', 'potted_plant_01'], plant('bush', 5.25, 19.15, { h: 0.7, seed: 23, pot: F.pot }), { x: 5.25, z: 19.15, h: 0.7 });
-  modelSlot(['potted_plant_04', 'pachira_aquatica_01'], plant('strap', 7.95, 17.95, { h: 1.3, seed: 24, pot: F.potLight }), { x: 7.95, z: 17.95, h: 1.3 });
+  modelSlot(['pachira_aquatica_01'], plant('ficus', 0.4, 17.95, { h: 1.5, seed: 21, pot: F.pot }), { x: 0.4, z: 17.95, h: 1.5, variant: 'd' });
+  modelSlot(['potted_plant_01', 'calathea_orbifolia_01'], plant('bush', 3.75, 17.92, { h: 0.9, seed: 22, pot: F.potDark }), { x: 3.75, z: 17.92, h: 0.9, variant: 'c' });
+  modelSlot(['calathea_orbifolia_01', 'potted_plant_01'], plant('bush', 5.25, 19.15, { h: 0.7, seed: 23, pot: F.pot }), { x: 5.25, z: 19.15, h: 0.7, variant: 'a' });
+  modelSlot(['potted_plant_04'], plant('strap', 7.95, 17.95, { h: 0.75, seed: 24, pot: F.potLight }), { x: 7.95, z: 17.95, h: 0.75 });   // suculenta
 
   // --- Planta alta ---
   wardrobe([4.25, 5.23, 5.44, 7.86], 'x0', Y, 2.4, 'rattan');                             // placar principal (esterilla)
@@ -1284,6 +1285,8 @@ function loadModels() {
   }).catch(() => {});
 }
 function installModel(it, model, id) {
+  if (it.variant) for (const c of [...model.children]) if (/_[a-z]$/.test(c.name) && !c.name.endsWith('_' + it.variant)) model.remove(c);
+  for (const c of model.children) if (it.variant && c.name.endsWith('_' + it.variant)) c.position.x = c.position.z = 0;
   model.rotation.y = it.rotY + (MODEL_TURN[id] ?? 0);
   const g = new THREE.Group(); g.add(model);
   g.updateMatrixWorld(true);
