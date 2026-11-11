@@ -87,24 +87,23 @@ La columna de alacenas, el módulo de estantes abiertos, la isla y el banco del 
 
 ## Dormitorios + escritorio
 Referencias: `habitaciones/`
-- Dormitorio principal: tonos beige y crudo, tipo vestidor; placard de pared completa con puertas de paneles de esterilla (rattan) enmarcados en blanco, detrás de un panel de esterilla que hace de respaldo de la cama; cama tapizada beige con almohadones rosa viejo; mesas de luz redondas de madera clara; alfombra cruda.
+- Dormitorio principal: tonos beige y crudo, tipo vestidor; placard con puertas de paneles de esterilla (rattan) enmarcados en blanco, detrás de un panel de esterilla que hace de respaldo de la cama; cama tapizada beige con almohadones rosa viejo; mesas de luz redondas de madera clara; alfombra cruda.
 - Dormitorio chico: dormitorio, en los mismos tonos beige y crudo que el principal; cama tapizada beige con almohadón rosa viejo, mesa de luz redonda de madera clara con velador, placard de esterilla con marco blanco y alfombra cruda.
 - Escritorio (el cuartito del fondo que en el plano dice "Depósito"): paredes y estanterías verde oliva; escritorio flotante y estantes del mismo verde; silla de madera curva; lámparas colgantes de vidrio opalino; cortina de lino blanca. Referencia `habitaciones/habitacionchicaescritorio.jpg`.
 
 ### Distribución
-El placard de esterilla y el escritorio con estantes verdes no están dibujados en `plano.pdf`; se ubican sin cambiar paredes ni medidas.
+El panel de esterilla, el mueble de la tele y el escritorio con estantes verdes no están dibujados en `plano.pdf`; se ubican sin cambiar paredes ni medidas.
 - **Suite principal**: el dormitorio principal tiene el baño en suite (el de la ducha, Baño PA 1 con su antebaño).
   - Al subir la escalera, la pared que queda de frente (la del dormitorio) sigue un poco más hacia el fondo, y ahí está la **puerta de la suite** (80 cm), corrediza del lado del hall hacia la escalera.
   - Esa pared sigue hasta el antebaño, así que la franja de la izquierda (1,02 m de ancho) queda adentro de la suite como **paso**: une el dormitorio (abertura del rincón) con el antebaño del baño en suite.
   - Entre el paso y el antebaño: **puerta corrediza** que corre embutida dentro del muro (no hay pared libre a los costados).
-- **Dormitorio principal**, tipo vestidor (mirando desde la puerta, que está en el rincón del fondo a la izquierda):
-  - **Placard de esterilla**: pared completa del fondo, desde la puerta hasta el muro de la escalera (3,09 m), 60 cm de fondo, de piso a techo. Seis puertas push (sin tiradores) con marco blanco y tres paños de esterilla cada una.
-  - **Panel de esterilla** delante del placard, separando la cama del vestidor: 2,80 m de ancho (de x = 0,75 a 3,55), 2,10 m de alto, 6 cm de espesor, marco blanco y paños de esterilla en las dos caras (cuatro módulos, dos filas).
-  - **Pasillo del vestidor** entre el panel y el placard: 72 cm (mínimo 70). Se entra por los dos costados del panel: a la izquierda queda un paso de 75 cm contra la medianera (por ahí también se llega desde la puerta del rincón) y a la derecha uno de 67 cm contra el muro de la escalera.
-  - **Cama** (1,70 x 2,00) con la cabecera contra el panel, centrada con él; los pies quedan a 20 cm de la pared de la ventana. Una mesa de luz redonda a cada lado: velador a la izquierda y globo opalino colgante a la derecha, con una plantita.
-  - **Mueble con tele** contra la medianera izquierda, enfrente de la cama hacia el lado de los pies (no entra al pie de la cama: el fondo del cuarto lo ocupan placard, pasillo, panel y cama): mueble bajo de madera clara de 1,30 m x 42 cm, 55 cm de alto, con la tele (55") colgada en la pared arriba.
+- **Dormitorio principal**, tipo vestidor (mirando desde la ventana del frente: a la izquierda la medianera, a la derecha el nicho junto a la caja de la escalera):
+  - **Placard de esterilla**: el que el plano dibuja en el nicho de la derecha (junto a la caja de la escalera), de piso a techo, con puertas push de marco blanco y tres paños de esterilla cada una. En la pared del fondo no hay placard: queda pintada de beige.
+  - **Panel de esterilla** delante del placard, separando la cama del vestidor: 2,50 m de largo (de la ventana hacia el fondo, de z = 5,99 a 8,49), 2,10 m de alto, 6 cm de espesor, marco blanco y paños de esterilla en las dos caras.
+  - **Pasillo del vestidor** entre el panel y el placard: 71 cm (mínimo 70). Se entra por los dos costados del panel: por el lado de la ventana (55 cm) y por el lado del fondo (53 cm, junto al muro de la escalera).
+  - **Cama** (1,70 x 2,00) con la cabecera contra el panel, centrada con él, mirando a la medianera izquierda. Una mesa de luz redonda de 36 cm a cada lado, contra el panel: velador en la del lado de la ventana y globo opalino colgante en la del fondo, con una plantita.
+  - **Mueble con tele** enfrente de la cama, contra la medianera izquierda: mueble bajo de madera clara de 1,30 m x 42 cm, 55 cm de alto, con la tele (55") colgada en la pared arriba. Entre los pies de la cama y el mueble queda 1,06 m.
   - **Alfombra cruda** debajo de los dos tercios de la cama hacia los pies.
-  - El bloque de placard que el plano dibuja en el nicho de la derecha (junto a la caja de la escalera) queda como placard liso color crudo.
   - Paredes en beige suave.
 - **Dormitorio chico** = habitación 3 (2,9 x 3,5, al fondo, ventana al patio). Cama y placard quedan donde los marca el plano.
   - **Cama** de una plaza contra la pared de la puerta, con la cabecera bajo la ventana.

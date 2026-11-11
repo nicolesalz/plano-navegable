@@ -1494,22 +1494,31 @@ function bed([x0, x1, z0, z1], y0, c) {
   return g;
 }
 // Mesa de luz redonda de madera clara
-function nightstand(x, z, y0) {
-  const g = new THREE.Group(); g.position.copy(W(x, y0, z)); scene.add(g);
+function nightstand(x, z, y0, s = 1) {                               // s: escala del diámetro (1 = 44 cm)
+  const g = new THREE.Group(); g.position.copy(W(x, y0, z)); g.scale.set(s, 1, s); scene.add(g);
   mesh(roundedDisc(0.22, 0.03, 0.01), F.veneerLight, g, 0, 0.5, 0);
   mesh(roundedDisc(0.2, 0.02, 0.008), F.veneerLight, g, 0, 0.18, 0);
   for (let k = 0; k < 3; k++) { const a = k * Math.PI * 2 / 3 + 0.3; rod(new THREE.Vector3(Math.cos(a) * 0.16, 0, Math.sin(a) * 0.16), new THREE.Vector3(Math.cos(a) * 0.17, 0.5, Math.sin(a) * 0.17), 0.015, F.veneerLight, g); }
-  colliders.push({ x0: x - 0.2, x1: x + 0.2, z0: z - 0.2, z1: z + 0.2, y0, y1: y0 + 0.55 });
+  colliders.push({ x0: x - 0.2 * s, x1: x + 0.2 * s, z0: z - 0.2 * s, z1: z + 0.2 * s, y0, y1: y0 + 0.55 });
+  return g;
+}
+// Cama con la cabecera hacia +x (contra una pared o panel a la derecha). (cx, cz) = centro; w = ancho, L = largo.
+function bedHeadEast(cx, cz, y0, c, w = 1.7, L = 2.0) {
+  const g = bed([-w / 2, w / 2, -L / 2, L / 2], y0, c);
+  colliders.pop();
+  g.rotation.y = -Math.PI / 2; g.position.set(cx, 0, -cz);
+  colliders.push({ x0: cx - L / 2, x1: cx + L / 2, z0: cz - w / 2, z1: cz + w / 2, y0, y1: y0 + 0.6 });
   return g;
 }
 // Panel de esterilla exento (separa la cama del vestidor): marco blanco y paños de esterilla en las dos caras.
 // rect = [x0, x1, z0, z1] (delgado en z), h = alto desde y0.
 function rattanScreen(rect, y0, h) {
-  const [x0, x1] = rect, n = Math.max(1, Math.round((x1 - x0) / 0.7)), w = (x1 - x0) / n;
+  const alongX = rect[1] - rect[0] > rect[3] - rect[2], faces = alongX ? ['z0', 'z1'] : ['x0', 'x1'];
+  const [a0, a1] = alongX ? [rect[0], rect[1]] : [rect[2], rect[3]], n = Math.max(1, Math.round((a1 - a0) / 0.7)), w = (a1 - a0) / n;
   rbox(...rect, y0, y0 + h, F.white, { r: 0.006, uv: 1, solid: true });
   const ROWS = [[0.10, 1.00], [1.07, h - 0.07]];
-  for (let i = 0; i < n; i++) for (const front of ['z0', 'z1']) for (const [p0, p1] of ROWS) {
-    const r = onFace(rect, front, x0 + i * w + 0.04, x0 + (i + 1) * w - 0.04, 0.002, 0.004);
+  for (let i = 0; i < n; i++) for (const front of faces) for (const [p0, p1] of ROWS) {
+    const r = onFace(rect, front, a0 + i * w + 0.04, a0 + (i + 1) * w - 0.04, 0.002, 0.004);
     rbox(...r, y0 + p0, y0 + p1, F.rattan, { r: 0.002, seg: 1, uv: 0.12 });
   }
 }
@@ -2404,26 +2413,26 @@ function buildFurniture() {
 
   // --- Planta alta ---
   // Dormitorio principal (ver estilos.md → Dormitorios → Distribución): tonos beige y crudo, tipo vestidor.
-  // Placard de esterilla de pared completa en la pared del fondo (z = 9,02), de la puerta (x = 1,13) al
-  // muro de la escalera (x = 4,22), 60 cm de fondo y de piso a techo. Delante, con 72 cm de pasillo, el panel
-  // de esterilla (z = 7,64 a 7,70) separa el placard de la cama; se entra al vestidor por los dos costados
-  // del panel. La cama va con la cabecera contra el panel y la tele, enfrente, contra la medianera izquierda.
+  // El placard es el del plano, en el nicho de la derecha (junto a la escalera, frente en x = 4,25), con puertas de
+  // esterilla. Delante, con 71 cm de pasillo, el panel de esterilla (x = 3,48 a 3,54) separa el placard de la cama;
+  // se entra al vestidor por los dos costados del panel (hacia la ventana y hacia el fondo). La cama va con la
+  // cabecera contra el panel, mirando a la tele, que está enfrente, contra la medianera izquierda.
   const YC = Y + H_WALL - 0.002;
-  wardrobe([1.13, 4.22, 8.42, 9.02], 'z0', Y, H_WALL - 0.002, 'rattan');
-  wardrobe([4.25, 5.23, 5.44, 7.86], 'x0', Y, H_WALL - 0.002, 'white');                  // placar del nicho (el del plano), liso crudo
-  rattanScreen([0.75, 3.55, 7.64, 7.70], Y, 2.10);                                        // panel de esterilla (vestidor detrás)
-  bed([1.30, 3.00, 5.64, 7.64], Y, { base: F.beige, duvet: F.duvet, throw: F.beige, cushion: F.rose, head: 1.15 });
-  rbox(0.80, 3.50, 5.52, 6.95, Y + 0.004, Y + 0.016, F.rugCream, { r: 0.006, uv: 0.15 });  // alfombra cruda
-  nightstand(1.03, 7.36, Y); nightstand(3.27, 7.36, Y);
-  tableLamp(1.03, 7.36, Y + 0.53);
-  opalPendant(3.27, 7.36, Y + 1.12, YC);                                                 // globo colgante sobre la mesa de luz
-  plant('small', 3.22, 7.28, { y: Y + 0.53, h: 0.3, seed: 51, pot: F.creamCeramic });
-  bedroomTV([0, 0.42, 5.60, 6.90], Y);                                                   // mueble con tele, contra la medianera
-  // paredes beige (las que quedan detrás de los placares no se pintan)
-  paintFace('z', 5.443, 0, 5.23, Y, YC, F.beigeWall, [0.60, 3.12, Y + 0.9, Y + 2.1]);    // frente, con la ventana
+  wardrobe([4.25, 5.23, 5.44, 7.86], 'x0', Y, H_WALL - 0.002, 'rattan');                 // placar del nicho (el del plano), esterilla
+  rattanScreen([3.48, 3.54, 5.99, 8.49], Y, 2.10);                                        // panel de esterilla (vestidor detrás)
+  bedHeadEast(2.48, 7.25, Y, { base: F.beige, duvet: F.duvet, throw: F.beige, cushion: F.rose, head: 1.15 });   // cama 2,00 x 1,70
+  rbox(1.00, 2.95, 6.25, 8.25, Y + 0.004, Y + 0.016, F.rugCream, { r: 0.006, uv: 0.15 });  // alfombra cruda
+  nightstand(3.22, 6.19, Y, 0.82); nightstand(3.22, 8.31, Y, 0.82);                      // mesas de luz de 36 cm
+  tableLamp(3.22, 6.19, Y + 0.53);
+  opalPendant(3.22, 8.31, Y + 1.12, YC);                                                 // globo colgante sobre la mesa de luz
+  plant('small', 3.17, 8.36, { y: Y + 0.53, h: 0.3, seed: 51, pot: F.creamCeramic });
+  bedroomTV([0, 0.42, 6.60, 7.90], Y);                                                   // mueble con tele, contra la medianera, frente a la cama
+  // paredes beige (las que quedan detrás del placard no se pintan)
+  paintFace('z', 5.443, 0, 4.25, Y, YC, F.beigeWall, [0.60, 3.12, Y + 0.9, Y + 2.1]);    // frente, con la ventana
   paintFace('x', 0.003, 5.44, 9.02, Y, YC, F.beigeWall);                                   // medianera
   paintFace('z', 9.017, 0, 1.02, Y + 2.05, YC, F.beigeWall);                              // sobre la puerta
-  paintFace('x', 4.217, 7.86, 8.42, Y, YC, F.beigeWall);                                   // muro de la escalera
+  paintFace('z', 9.017, 1.13, 4.22, Y, YC, F.beigeWall);                                   // pared del fondo
+  paintFace('x', 4.217, 7.86, 9.02, Y, YC, F.beigeWall);                                   // muro de la escalera
   paintFace('z', 7.857, 4.31, 5.23, Y, YC, F.beigeWall);
 
   // Habitación 2
