@@ -29,13 +29,19 @@
   #overlay p { margin: 6px 0; }
   #overlay kbd { background: #eee; border: 1px solid #ccc; border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; font-size: 13px; }
   #overlay .go { margin-top: 14px; font-weight: 600; color: #1a6dd6; }
+  .opts { margin-top: 14px; padding-top: 12px; border-top: 1px solid #e3e3e3; font-size: 14px; cursor: default; }
+  .opts button { margin: 0 2px; padding: 4px 10px; border: 1px solid #c8c8c8; border-radius: 6px; background: #f6f6f6; color: #222; font: inherit; cursor: pointer; }
+  .opts button.on { background: #1a6dd6; border-color: #1a6dd6; color: #fff; }
+  .opts .hint { margin-top: 6px; font-size: 12px; color: #777; }
+  #notice { position: fixed; top: 12px; right: 12px; padding: 8px 12px; border-radius: 8px; background: rgba(20, 24, 30, .72); color: #fff; font-size: 13px; pointer-events: none; opacity: 0; transition: opacity .4s; }
   #crosshair { position: fixed; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: rgba(255,255,255,.8); pointer-events: none; }
 </style>
 </head>
 <body>
 <div id="hud"><div class="room" id="roomName">Jardín delantero</div><div class="floor" id="floorName">Exterior</div></div>
-<div id="help">Clic para entrar · <b>WASD</b>/flechas: caminar · <b>Shift</b>: correr · <b>Mouse</b>: mirar · <b>Esc</b>: salir</div>
+<div id="help">Clic para entrar · <b>WASD</b>/flechas: caminar · <b>Shift</b>: correr · <b>Mouse</b>: mirar · <b>T</b>: hora del día · <b>Esc</b>: salir</div>
 <div id="crosshair"></div>
+<div id="notice"></div>
 <div id="overlay">
   <div class="box">
     <h1>Recorrido por la casa</h1>
@@ -43,6 +49,14 @@
     <p><kbd>Shift</kbd> para correr · mouse para mirar</p>
     <p>La escalera está en el living, junto al hall</p>
     <p><kbd>Esc</kbd> para salir</p>
+    <div id="timeofday" class="opts">Hora:
+      <button data-t="manana">Mañana</button><button data-t="mediodia">Mediodía</button><button data-t="tarde">Tarde</button>
+      <div class="hint">También con la tecla <kbd>T</kbd> mientras recorrés.</div>
+    </div>
+    <div id="quality" class="opts">Calidad:
+      <button data-q="baja">Baja</button><button data-q="media">Media</button><button data-q="alta">Alta</button>
+      <div class="hint">Baja apaga la oclusión ambiental; usala si se traba.</div>
+    </div>
     <p class="go">Hacé clic para entrar</p>
   </div>
 </div>
@@ -57,6 +71,11 @@
 <script type="module">
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+import { Sky } from 'three/addons/objects/Sky.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 /* ==========================================================================
    1. MEDIDAS Y DATOS DEL PLANO
@@ -193,20 +212,116 @@ const ROOMS = [
 /* ==========================================================================
    2. ESCENA, CÁMARA Y MATERIALES
    ========================================================================== */
+// Sol real de Buenos Aires. Orientación de la casa: el frente (calle) mira al SE y el costado
+// del garage (derecha del plano) mira al NE. En el mundo 3D: +z = SE, +x = NE, −z = NO, −x = SO.
+const LATITUDE = -34.6;                         // Buenos Aires (hemisferio sur: el sol pasa por el norte)
+const SEASON_DECL = 0;                          // declinación solar: 0 = otoño/primavera, −23,4 = verano, +23,4 = invierno
+const TIMES = {                                 // hora solar de cada momento del día
+  manana:   { label: 'Mañana',   hour: 8 },     // sol del este: frente y costado del garage
+  mediodia: { label: 'Mediodía', hour: 12.5 },  // sol del norte: costado del garage
+  tarde:    { label: 'Tarde',    hour: 16.5 },  // sol del oeste-noroeste: patio y galería
+};
+const NORTH = new THREE.Vector3(1, 0, -1).normalize(), EAST = new THREE.Vector3(1, 0, 1).normalize();
+// Dirección hacia el sol para una hora solar (fórmula astronómica estándar)
+function solarDirection(hour, target = new THREE.Vector3()) {
+  const r = THREE.MathUtils.degToRad, lat = r(LATITUDE), d = r(SEASON_DECL), h = r(15 * (hour - 12));
+  const e = -Math.cos(d) * Math.sin(h);                                                   // componente este
+  const n = Math.sin(d) * Math.cos(lat) - Math.cos(d) * Math.cos(h) * Math.sin(lat);      // componente norte
+  const u = Math.sin(d) * Math.sin(lat) + Math.cos(d) * Math.cos(h) * Math.cos(lat);      // componente arriba
+  return target.copy(EAST).multiplyScalar(e).addScaledVector(NORTH, n).setY(u).normalize();
+}
+const EXPOSURE = 0.6;           // exposición de la "cámara"
+
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.outputColorSpace = THREE.SRGBColorSpace;          // colores de salida en sRGB
+renderer.toneMapping = THREE.ACESFilmicToneMapping;        // tone mapping tipo cámara (fílmico)
+renderer.toneMappingExposure = EXPOSURE;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;          // sombras de borde suave
+renderer.shadowMap.autoUpdate = false;                     // la casa no se mueve: la sombra se calcula una vez
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xbcd7ee);
 const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.05, 200);
 
-scene.add(new THREE.HemisphereLight(0xffffff, 0xcfc4b0, 2.2));
-const sun = new THREE.DirectionalLight(0xfff4e0, 1.3);
-sun.position.set(6, 12, 4);
-scene.add(sun);
+const sunDir = solarDirection(TIMES.manana.hour);   // se actualiza con setTimeOfDay()
+
+// Cielo físico (procedural, sin descargas). Se usa dos veces:
+//  - tal cual, como fondo visible;
+//  - como luz ambiente (environment map) mezclado con una bruma blanca cálida y un "suelo" claro
+//    debajo del horizonte, para que el rebote de luz ilumine techos y caras inferiores y los
+//    interiores no queden teñidos de azul.
+function buildEnvironment() {
+  const envScene = new THREE.Scene();
+  const sky = new Sky();
+  sky.scale.setScalar(100);
+  const u = sky.material.uniforms;
+  u.turbidity.value = 8; u.rayleigh.value = 0.6; u.mieCoefficient.value = 0.004; u.mieDirectionalG.value = 0.8;
+  u.sunPosition.value.copy(sunDir);
+  envScene.add(sky);
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const background = pmrem.fromScene(envScene, 0, 0.1, 200).texture;
+  const haze = new THREE.Mesh(new THREE.SphereGeometry(40, 32, 16),
+    new THREE.MeshBasicMaterial({ color: 0xfff3e2, side: THREE.BackSide, transparent: true, opacity: 0.5, depthWrite: false }));
+  const ground = new THREE.Mesh(new THREE.CircleGeometry(30, 32), new THREE.MeshBasicMaterial({ color: 0xcfc6b6 }));
+  ground.rotation.x = -Math.PI / 2; ground.position.y = -1;
+  envScene.add(haze, ground);
+  const lighting = pmrem.fromScene(envScene, 0, 0.1, 200).texture;
+  pmrem.dispose();
+  return { background, lighting };
+}
+let env = null;
+function applyEnvironment() {
+  if (env) { env.background.dispose(); env.lighting.dispose(); }
+  env = buildEnvironment();
+  scene.environment = env.lighting;
+  scene.background = env.background;
+}
+
+// Sol: luz direccional con sombras. El área de sombra cubre todo el lote.
+const sun = new THREE.DirectionalLight(0xfff1dc, 3.2);
+sun.castShadow = true;
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.03;
+scene.add(sun, sun.target);
+function fitSunShadow(mapSize) {
+  const center = new THREE.Vector3(4.2, 2.7, -20);
+  sun.target.position.copy(center);
+  sun.position.copy(center).addScaledVector(sunDir, 60);
+  sun.updateMatrixWorld(); sun.target.updateMatrixWorld();
+  const cam = sun.shadow.camera;
+  cam.position.copy(sun.position); cam.lookAt(center); cam.updateMatrixWorld();
+  // Esquinas del lote (casa, medianeras, reja) en el espacio de la luz
+  const inv = cam.matrixWorldInverse, p = new THREE.Vector3();
+  const lo = new THREE.Vector3(Infinity, Infinity, Infinity), hi = lo.clone().negate();
+  for (const x of [-0.6, 9.0]) for (const y of [0, 6]) for (const z of [0.5, -40.2]) {
+    p.set(x, y, z).applyMatrix4(inv); lo.min(p); hi.max(p);
+  }
+  Object.assign(cam, { left: lo.x, right: hi.x, bottom: lo.y, top: hi.y, near: Math.max(0.1, -hi.z - 1), far: -lo.z + 1 });
+  cam.updateProjectionMatrix();
+  sun.shadow.mapSize.set(mapSize, mapSize);
+  if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
+  renderer.shadowMap.needsUpdate = true;
+}
+
+// Cambia la hora del día: mueve el sol, regenera cielo y luz ambiente y recalcula la sombra
+const SUN_LOW = new THREE.Color(0xffc890), SUN_HIGH = new THREE.Color(0xfff6ec);
+let timeOfDay = null;
+function setTimeOfDay(name) {
+  if (!TIMES[name]) return;
+  timeOfDay = name;
+  solarDirection(TIMES[name].hour, sunDir);
+  const elev = THREE.MathUtils.radToDeg(Math.asin(sunDir.y));
+  const t = THREE.MathUtils.clamp((elev - 10) / 45, 0, 1);       // 0 = sol bajo (cálido), 1 = alto (blanco)
+  sun.color.copy(SUN_LOW).lerp(SUN_HIGH, t);
+  sun.intensity = 2.6 + 0.8 * t;
+  applyEnvironment();
+  fitSunShadow(sun.shadow.mapSize.x);
+  try { localStorage.setItem('hora', name); } catch (e) {}
+  document.querySelectorAll('#timeofday button').forEach(b => b.classList.toggle('on', b.dataset.t === name));
+}
 
 function canvasTexture(size, draw) {
   const c = document.createElement('canvas');
@@ -244,27 +359,30 @@ const tileTex = canvasTexture(256, (g, s) => {
   for (let i = 0; i <= 4; i++) { g.beginPath(); g.moveTo(i * s / 4, 0); g.lineTo(i * s / 4, s); g.moveTo(0, i * s / 4); g.lineTo(s, i * s / 4); g.stroke(); }
 });
 
+// Materiales físicos (PBR): mismos colores, con rugosidad/metal para que reflejen el cielo de forma natural
+const std = (color, roughness, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness, metalness: 0, ...extra });
 const M = {
-  wall: new THREE.MeshLambertMaterial({ color: 0xf1ebe1 }),
-  ceiling: new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0x9a9a9a }),   // techo blanco aunque no le dé el sol
-  wood: new THREE.MeshLambertMaterial({ map: woodTex }),
-  grass: new THREE.MeshLambertMaterial({ map: grassTex }),
-  tile: new THREE.MeshLambertMaterial({ map: tileTex }),
-  concrete: new THREE.MeshLambertMaterial({ color: 0xa9a6a0 }),
-  roof: new THREE.MeshLambertMaterial({ color: 0x8d8a85 }),
-  outside: new THREE.MeshLambertMaterial({ color: 0x7e9a68 }),
-  medianera: new THREE.MeshLambertMaterial({ color: 0xd8cfc2 }),
-  glass: new THREE.MeshLambertMaterial({ color: 0x9cc8e8, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide }),
-  frame: new THREE.MeshLambertMaterial({ color: 0x55585c }),
-  stair: new THREE.MeshLambertMaterial({ color: 0xc9a77a }),
-  rail: new THREE.MeshLambertMaterial({ color: 0x3d3f42 }),
+  wall: std(0xf1ebe1, 0.92),
+  ceiling: std(0xffffff, 0.95),
+  wood: std(0xffffff, 0.7, { map: woodTex }),
+  grass: std(0xffffff, 1.0, { map: grassTex }),
+  tile: std(0xffffff, 0.45, { map: tileTex }),
+  concrete: std(0xa9a6a0, 0.85),
+  roof: std(0x8d8a85, 0.9),
+  outside: std(0x7e9a68, 1.0),
+  medianera: std(0xd8cfc2, 0.95),
+  glass: new THREE.MeshPhysicalMaterial({ color: 0xcfe4f2, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.18,
+    depthWrite: false, side: THREE.DoubleSide, envMapIntensity: 2.0, specularIntensity: 1 }),
+  frame: std(0x55585c, 0.4, { metalness: 0.6 }),
+  stair: std(0xc9a77a, 0.55),
+  rail: std(0x3d3f42, 0.35, { metalness: 0.7 }),
   furn: {
-    wood: new THREE.MeshLambertMaterial({ color: 0xb08a5e }),
-    counter: new THREE.MeshLambertMaterial({ color: 0xe6e3dd }),
-    sofa: new THREE.MeshLambertMaterial({ color: 0x7b8a9a }),
-    bed: new THREE.MeshLambertMaterial({ color: 0xe9e4f2 }),
-    car: new THREE.MeshLambertMaterial({ color: 0x5b6f86 }),
-    white: new THREE.MeshLambertMaterial({ color: 0xffffff }),
+    wood: std(0xb08a5e, 0.6),
+    counter: std(0xe6e3dd, 0.3),
+    sofa: std(0x7b8a9a, 1.0),
+    bed: std(0xe9e4f2, 0.95),
+    car: std(0x5b6f86, 0.25, { metalness: 0.5 }),
+    white: std(0xffffff, 0.2),
   },
 };
 
@@ -273,7 +391,7 @@ const M = {
    El plano usa z hacia el fondo; en Three.js el mundo usa -z para que
    la izquierda/derecha queden igual que en el plano al mirar desde el frente.
    ========================================================================== */
-const edgeMat = new THREE.LineBasicMaterial({ color: 0x8f8678, transparent: true, opacity: 0.45 });   // aristas suaves
+const edgeMat = new THREE.LineBasicMaterial({ color: 0x8f8678, transparent: true, opacity: 0.3 });   // aristas suaves
 const colliders = [];   // cajas sólidas {x0,x1,z0,z1,y0,y1} en coordenadas del plano
 
 function box(x0, x1, z0, z1, y0, y1, mat, solid = true) {
@@ -413,6 +531,13 @@ buildStairs();
 buildFurniture();
 buildExterior();
 
+// Todo proyecta y recibe sombra, salvo el vidrio (deja pasar el sol) y las aristas
+scene.traverse(o => {
+  if (!o.isMesh) return;
+  o.receiveShadow = true;
+  o.castShadow = o.material !== M.glass && o.material !== M.outside;
+});
+
 /* ==========================================================================
    4. ALTURA DEL PISO (planta baja, planta alta y escalera)
    ========================================================================== */
@@ -536,12 +661,86 @@ function updateHud() {
    7. BUCLE PRINCIPAL
    ========================================================================== */
 const debug = { force: false };
+
+// Calidad gráfica. Las sombras del sol se calculan una sola vez (la casa es estática), así que
+// lo que más pesa es la oclusión ambiental (AO) y la resolución; por eso es lo que se ajusta.
+const QUALITY = {
+  baja:  { ao: false, shadow: 2048, pixelRatio: 1 },
+  media: { ao: true, aoSamples: 8, shadow: 2048, pixelRatio: 1.25 },
+  alta:  { ao: true, aoSamples: 16, shadow: 4096, pixelRatio: 2 },
+};
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 }));
+composer.addPass(new RenderPass(scene, camera));
+const gtao = new GTAOPass(scene, camera, 1, 1);
+gtao.updateGtaoMaterial({ radius: 0.8, distanceExponent: 1.5, thickness: 1.5, scale: 1.0, distanceFallOff: 1.0 });
+gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 16 });
+gtao.blendIntensity = 1.0;
+composer.addPass(gtao);
+composer.addPass(new OutputPass());          // tone mapping + conversión a sRGB al final
+
+let quality = null, userChoseQuality = false;
+function setQuality(name, byUser = false) {
+  if (!QUALITY[name]) return;
+  const q = QUALITY[name];
+  quality = name;
+  if (byUser) { userChoseQuality = true; try { localStorage.setItem('calidad', name); } catch (e) {} }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, q.pixelRatio));
+  if (q.ao) gtao.updateGtaoMaterial({ samples: q.aoSamples });
+  composer.setPixelRatio(renderer.getPixelRatio());
+  composer.setSize(window.innerWidth, window.innerHeight);
+  if (sun.shadow.mapSize.x !== q.shadow || !sun.shadow.map) fitSunShadow(q.shadow);
+  document.querySelectorAll('#quality button').forEach(b => b.classList.toggle('on', b.dataset.q === name));
+}
+(function initQuality() {
+  let q = new URLSearchParams(location.search).get('calidad');
+  if (QUALITY[q]) userChoseQuality = true;
+  else { try { q = localStorage.getItem('calidad'); } catch (e) { q = null; } if (QUALITY[q]) userChoseQuality = true; else q = 'media'; }
+  setQuality(q);
+})();
+document.querySelectorAll('#quality button').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); setQuality(b.dataset.q, true); }));
+document.getElementById('quality').addEventListener('click', e => e.stopPropagation());
+
+// Hora del día: botones del cartel, tecla T (pasa a la siguiente) y ?hora= en la dirección
+(function initTimeOfDay() {
+  let t = new URLSearchParams(location.search).get('hora');
+  if (!TIMES[t]) { try { t = localStorage.getItem('hora'); } catch (e) { t = null; } }
+  setTimeOfDay(TIMES[t] ? t : 'manana');
+})();
+document.querySelectorAll('#timeofday button').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); setTimeOfDay(b.dataset.t); }));
+document.getElementById('timeofday').addEventListener('click', e => e.stopPropagation());
+function showNotice(text) {
+  const n = document.getElementById('notice');
+  n.textContent = text; n.style.opacity = 1;
+  clearTimeout(showNotice.timer); showNotice.timer = setTimeout(() => { n.style.opacity = 0; }, 2500);
+}
+addEventListener('keydown', e => {
+  if (e.code !== 'KeyT' || e.repeat) return;
+  const names = Object.keys(TIMES), next = names[(names.indexOf(timeOfDay) + 1) % names.length];
+  setTimeOfDay(next);
+  const h = TIMES[next].hour;
+  showNotice(`${TIMES[next].label} (${Math.floor(h)}:${String(Math.round(h % 1 * 60)).padStart(2, '0')})`);
+});
+
+// Si la compu no da abasto (menos de ~30 cuadros por segundo), baja la calidad sola una vez por nivel
+const perf = { time: 0, frames: 0 };
+function watchPerformance(dt) {
+  if (userChoseQuality || quality === 'baja' || !controls.isLocked) { perf.time = perf.frames = 0; return; }
+  perf.time += dt; perf.frames++;
+  if (perf.time < 4) return;
+  if (perf.frames / perf.time < 30) {
+    setQuality(quality === 'alta' ? 'media' : 'baja');
+    showNotice(`Calidad ajustada a "${quality}" para que ande más fluido`);
+  }
+  perf.time = perf.frames = 0;
+}
+
 const clock = new THREE.Clock();
 function loop() {
-  const dt = Math.min(clock.getDelta(), 0.05);
+  const rawDt = clock.getDelta(), dt = Math.min(rawDt, 0.05);
   update(dt, controls.isLocked || debug.force);
   updateHud();
-  renderer.render(scene, camera);
+  if (QUALITY[quality].ao) composer.render(); else renderer.render(scene, camera);
+  watchPerformance(rawDt);
   requestAnimationFrame(loop);
 }
 loop();
@@ -550,11 +749,12 @@ addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
 });
 
 // Utilidades para pruebas automáticas (no afectan el uso normal)
 window.__debug = Object.assign(debug, {
-  player, keys, camera, room: () => currentRoom(),
+  player, keys, camera, room: () => currentRoom(), setQuality, quality: () => quality, setTimeOfDay, timeOfDay: () => timeOfDay,
   place(x, z, feet = 0, yawDeg = 0) { Object.assign(player, { x, z, feet, vy: 0, eyeY: feet + EYE }); camera.rotation.set(0, yawDeg * Math.PI / 180, 0, 'YXZ'); camera.position.set(x, feet + EYE, -z); },
   simulate(codes, seconds, look) { if (look !== undefined) camera.rotation.set(0, look * Math.PI / 180, 0, 'YXZ'); codes.forEach(c => keys.add(c)); for (let t = 0; t < seconds; t += 1 / 60) update(1 / 60, true); codes.forEach(c => keys.delete(c)); updateHud(); },
 });
