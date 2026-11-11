@@ -57,7 +57,7 @@ La columna de alacenas, el módulo de estantes abiertos y la isla no están dibu
   - **Módulo de estantes abiertos** (50 cm de ancho): sobre la mesada, desde la mesada hasta el techo, en madera miel, con platos, tazas y libros de cocina.
   - **Columna de alacenas** (1,27 m de ancho, de piso a techo, 62 cm de fondo) en el rincón del fondo, donde el plano marca la heladera: dos módulos con alacenas arriba; el **horno grafito** empotrado a la altura de la mano en el módulo junto a los estantes. Llega hasta el muro del fondo, al lado de la puerta-ventana a la galería.
 - **Isla** (1,04 x 1,30 m) en el centro, frente a la mesada de la pared (pasillo de 90 cm): bacha con grifería del lado de la mesada, banquetas del lado del comedor, estantes abiertos en el costado que mira a la galería, colgante lineal negro arriba.
-- **Comedor diario**: mesa redonda con cuatro sillas contra el muro del fondo, a la derecha de la puerta-ventana; la ventana fija de 1,50 x 1,50 m (antepecho a 80 cm, dintel a 2,30 m) está centrada sobre la mesa y da a la galería.
+- **Comedor diario**: mesa redonda con cuatro sillas contra el muro del fondo, a la derecha de la puerta-ventana; la ventana fija de 1,50 x 1,50 m (dintel a 2,05 m, alineado arriba con la puerta-ventana corrediza a la galería; antepecho a 55 cm) está centrada sobre la mesa y da a la galería.
 
 ## Dormitorios
 Referencias: `habitaciones/`
