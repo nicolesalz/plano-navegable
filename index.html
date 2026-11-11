@@ -44,7 +44,7 @@
 </head>
 <body>
 <div id="hud"><div class="room" id="roomName">Jardín delantero</div><div class="floor" id="floorName">Exterior</div></div>
-<div id="help">Clic para entrar · <b>WASD</b>/flechas: caminar · <b>Shift</b>: correr · <b>Mouse</b>: mirar · <b>T</b>: hora del día · <b>E</b>: portón y puerta de vidrio · <b>Esc</b>: salir</div>
+<div id="help">Clic para entrar · <b>WASD</b>/flechas: caminar · <b>Shift</b>: correr · <b>Mouse</b>: mirar · <b>T</b>: hora del día · <b>E</b>: portón y puertas corredizas · <b>Esc</b>: salir</div>
 <div id="crosshair"></div>
 <div id="photo"><span class="dot"></span><span id="photoText">Modo foto</span></div>
 <div id="notice"></div>
@@ -53,7 +53,7 @@
     <h1>Recorrido por la casa</h1>
     <p><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> o flechas para caminar</p>
     <p><kbd>Shift</kbd> para correr · mouse para mirar</p>
-    <p><kbd>E</kbd> cerca del portón del garage o de la puerta de vidrio del living para abrirlos o cerrarlos</p>
+    <p><kbd>E</kbd> cerca del portón del garage, de la puerta de vidrio del living o de las puertas de los baños para abrirlos o cerrarlos</p>
     <p>La escalera está en el living, junto al hall</p>
     <p><kbd>Esc</kbd> para salir</p>
     <div id="timeofday" class="opts">Hora:
@@ -195,10 +195,10 @@ const ROOMS = [
   { n: 'Patio trasero', lvl: 0, r: [-1, 9, 19.52, 99] },
   { n: 'Jardín delantero', lvl: 0, r: [-1, 9, -99, 8.16] },
   { n: 'Habitación principal', lvl: 1, r: [0, 5.23, 5.44, 9.02] },
-  { n: 'Lavatorio Baño PA 1', lvl: 1, r: [0.10, 1.72, 11.94, 13.09] },
-  { n: 'Lavatorio Baño PA 2', lvl: 1, r: [1.85, 3.57, 11.94, 13.09] },
-  { n: 'Baño PA 1', lvl: 1, r: [0, 1.52, 13.37, 15.69] },
-  { n: 'Baño PA 2', lvl: 1, r: [1.66, 3.37, 13.37, 15.69] },
+  { n: 'Lavatorio del segundo baño', lvl: 1, r: [0, 1.72, 11.94, 13.09] },
+  { n: 'Lavatorio del baño principal', lvl: 1, r: [1.85, 3.57, 11.94, 13.09] },
+  { n: 'Segundo baño', lvl: 1, r: [0, 1.52, 13.37, 15.69] },          // baño PA 1 (ducha)
+  { n: 'Baño principal', lvl: 1, r: [1.66, 3.37, 13.37, 15.69] },     // baño PA 2 (bañera)
   { n: 'Escritorio', lvl: 1, r: [3.51, 5.38, 13.37, 15.69] },
   { n: 'Hall planta alta', lvl: 1, r: [0, 5.38, 9.02, 13.37] },
   { n: 'Habitación 2', lvl: 1, r: [5.52, 8.40, 8.16, 12.05] },
@@ -324,6 +324,7 @@ function setTimeOfDay(name) {
   applyEnvironment();
   fitSunShadow(sun.shadow.mapSize.x);
   photoLightingChanged();
+  mirrorsDirty = true;                                         // los espejos vuelven a sacar su reflejo
   try { localStorage.setItem('hora', name); } catch (e) {}
   document.querySelectorAll('#timeofday button').forEach(b => b.classList.toggle('on', b.dataset.t === name));
 }
@@ -605,6 +606,70 @@ M.wood.normalMap = NRM.wood; M.wood.normalScale = v2(0.7);
 M.porcelain.normalMap = NRM.porcelain; M.porcelain.normalScale = v2(0.8);
 M.tile.normalMap = NRM.tile; M.tile.normalScale = v2(0.8);
 
+// ---- Revestimientos de los baños (ver estilos.md → Baños) ----
+// Cada uno se dibuja dos veces con la misma función: en color y como mapa de alturas (junta hundida),
+// del que sale el relieve. hm = true → modo alturas (junta negra, pieza gris clara).
+function tileSet(size, draw, strength = 3) {
+  const map = canvasTexture(size, (g, s) => draw(g, s, false));
+  const h = document.createElement('canvas'); h.width = h.height = size;
+  draw(h.getContext('2d'), size, true);
+  return { map, normal: normalFrom(h, strength) };
+}
+// Azulejos rectangulares verticales en hilada recta (cols x rows por textura), esmalte con brillo y leve
+// variación de tono entre piezas y dentro de cada pieza (como hechos a mano)
+function stackTiles({ cols, rows, seed, hsl, spread = [4, 6, 6], grout }) {
+  return tileSet(512, (g, s, hm) => {
+    const rnd = seeded(seed), tw = s / cols, th = s / rows, j = 1.4;
+    g.fillStyle = hm ? '#000' : grout; g.fillRect(0, 0, s, s);
+    for (let i = 0; i < cols; i++) for (let k = 0; k < rows; k++) {
+      const x = i * tw + j, y = k * th + j, w = tw - 2 * j, hh = th - 2 * j;
+      if (hm) { g.fillStyle = '#9a9a9a'; g.fillRect(x, y, w, hh); g.fillStyle = '#c8c8c8'; g.fillRect(x + 2, y + 2, w - 4, hh - 4); continue; }
+      const H = hsl[0] + (rnd() - 0.5) * spread[0], S = hsl[1] + (rnd() - 0.5) * spread[1], L = hsl[2] + (rnd() - 0.5) * spread[2];
+      g.save(); g.beginPath(); g.rect(x, y, w, hh); g.clip();
+      const grd = g.createLinearGradient(x, y, x, y + hh);
+      grd.addColorStop(0, `hsl(${H}, ${S}%, ${L + 1.5}%)`); grd.addColorStop(1, `hsl(${H}, ${S}%, ${L - 1.5}%)`);
+      g.fillStyle = grd; g.fillRect(x, y, w, hh);
+      for (let n = 0; n < 7; n++) {                                   // charcos de esmalte
+        g.fillStyle = `hsla(${H}, ${S}%, ${L + (rnd() - 0.5) * 9}%, .28)`;
+        g.beginPath(); g.ellipse(x + rnd() * w, y + rnd() * hh, w * (0.2 + rnd() * 0.4), hh * (0.04 + rnd() * 0.12), 0, 0, Math.PI * 2); g.fill();
+      }
+      g.restore();
+    }
+  });
+}
+// Baño PB: azulejo terracota 7,5 x 30 cm con brillo (1 textura = 60 cm → 8 x 2 piezas)
+const TERRACOTTA_TILE = stackTiles({ cols: 8, rows: 2, seed: 61, hsl: [13, 52, 44], spread: [5, 10, 8], grout: '#d9c3ad' });
+// Segundo baño: azulejo blanco 6 x 30 cm (1 textura = 60 cm → 10 x 2 piezas)
+const WHITE_TILE = stackTiles({ cols: 10, rows: 2, seed: 62, hsl: [40, 25, 93], spread: [4, 6, 2], grout: '#e2ddd3' });
+// Baño principal: azulejo cuadrado de 18 cm con un semicírculo verde salvia apoyado en una junta vertical;
+// con el de al lado forma el círculo entero y las filas quedan trabadas (1 textura = 72 cm → 4 x 4 piezas)
+const SEMICIRCLE_TILE = tileSet(512, (g, s, hm) => {
+  const rnd = seeded(63), T = s / 4, j = 1.2;
+  g.fillStyle = hm ? '#000' : '#d8d1c3'; g.fillRect(0, 0, s, s);
+  for (let i = 0; i < 4; i++) for (let k = 0; k < 4; k++) {
+    const x = i * T, y = k * T, right = (i + k) % 2 === 1;
+    g.save(); g.beginPath(); g.rect(x + j, y + j, T - 2 * j, T - 2 * j); g.clip();
+    g.fillStyle = hm ? '#c8c8c8' : `hsl(42, 26%, ${88 + rnd() * 2.5}%)`; g.fillRect(x, y, T, T);   // fondo crudo
+    g.fillStyle = hm ? '#bdbdbd' : `hsl(${96 + rnd() * 6}, ${11 + rnd() * 3}%, ${right ? 55 : 51 + rnd() * 2}%)`;
+    g.beginPath();
+    if (right) g.arc(x + T, y + T / 2, T * 0.47, Math.PI / 2, Math.PI * 1.5);
+    else g.arc(x, y + T / 2, T * 0.47, -Math.PI / 2, Math.PI / 2);
+    g.closePath(); g.fill();
+    g.restore();
+  }
+});
+// Segundo baño: mosaico blanco y negro tipo tejido (basketweave): rectángulos blancos de 2,5 x 5 cm que
+// giran alrededor de un cuadradito negro (1 textura = 30 cm → 4 x 4 módulos de 7,5 cm)
+const BASKETWEAVE_TILE = tileSet(512, (g, s, hm) => {
+  const rnd = seeded(64), U = s / 12, j = 1.1;
+  const PIECES = [[0, 0, 2, 1, 0], [2, 0, 1, 2, 0], [0, 1, 1, 2, 0], [1, 2, 2, 1, 0], [1, 1, 1, 1, 1]];   // [x, y, ancho, alto, negro]
+  g.fillStyle = hm ? '#000' : '#8f8b84'; g.fillRect(0, 0, s, s);
+  for (let a = 0; a < 4; a++) for (let b = 0; b < 4; b++) for (const [px, py, pw, ph, black] of PIECES) {
+    g.fillStyle = hm ? '#c8c8c8' : black ? `hsl(30, 3%, ${11 + rnd() * 3}%)` : `hsl(40, 18%, ${92 + rnd() * 3}%)`;
+    g.fillRect((a * 3 + px) * U + j, (b * 3 + py) * U + j, pw * U - 2 * j, ph * U - 2 * j);
+  }
+}, 2.5);
+
 const fabric = (color, extra = {}) => std(color, 0.95, { normalMap: NRM.fabric, normalScale: v2(0.9), ...extra });
 const F = {
   veneer: std(0xffffff, 0.55, { map: veneerTex, normalMap: NRM.veneer, normalScale: v2(0.5) }),        // madera miel
@@ -644,6 +709,21 @@ const F = {
   walnut: std(0x86624c, 0.45, { map: veneerTex, normalMap: NRM.veneer, normalScale: v2(0.4) }),       // silla de madera curva
   rugCream: fabric(0xe2d8c6),                                                                           // alfombra cruda
   curtain: std(0xf6f2ea, 1, { side: THREE.DoubleSide, transparent: true, opacity: 0.82, normalMap: NRM.fabric, normalScale: v2(0.5) }),   // lino blanco
+  // Baños
+  bordoPaint: std(0x6b2b2e, 0.9),                                                                       // paredes y techo bordó (baño PB)
+  crudoPaint: std(0xebe3d4, 0.95),                                                                      // paredes crudo (baño principal)
+  whitePaint: std(0xf6f3ed, 0.95),                                                                      // paredes blancas (segundo baño)
+  terracottaTile: std(0xffffff, 0.14, { map: TERRACOTTA_TILE.map, normalMap: TERRACOTTA_TILE.normal, normalScale: v2(0.9) }),
+  whiteTile: std(0xffffff, 0.18, { map: WHITE_TILE.map, normalMap: WHITE_TILE.normal, normalScale: v2(0.8) }),
+  semicircleTile: std(0xffffff, 0.35, { map: SEMICIRCLE_TILE.map, normalMap: SEMICIRCLE_TILE.normal, normalScale: v2(0.8) }),
+  basketweave: std(0xffffff, 0.4, { map: BASKETWEAVE_TILE.map, normalMap: BASKETWEAVE_TILE.normal, normalScale: v2(0.7) }),
+  bathFloor: std(0xe6dccb, 0.7, { map: porcelainTex, normalMap: NRM.porcelain, normalScale: v2(0.6) }),   // porcelanato beige (baño principal)
+  walnutDark: std(0x7a4c36, 0.5, { map: veneerTex, normalMap: NRM.veneer, normalScale: v2(0.4) }),    // nogal oscuro
+  sageCeramic: std(0x8e9d86, 0.35, { side: THREE.DoubleSide }),                                         // bacha de apoyo verde salvia
+  bronze: std(0xb08a58, 0.3, { metalness: 1 }),                                                        // grifería bronce cepillado
+  brass: std(0xc29a5c, 0.25, { metalness: 1 }),
+  mirror: std(0xd4d8d8, 0.05, { metalness: 1, envMapIntensity: 0.7 }),
+  paper: std(0xfbfaf6, 0.9),
 };
 // Pantallas de lámpara: dejan pasar la luz (brillan desde adentro) y no tapan la luz que tienen adentro
 const glow = (color, emissive, k, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.9, emissive, emissiveIntensity: k, side: THREE.DoubleSide, ...extra });
@@ -841,6 +921,62 @@ function updateSlider(dt) {
   placeSlider();
   if (++sliderShadowFrame % 4 === 0) renderer.shadowMap.needsUpdate = true;
   if (S.open === S.target) refreshShadows();
+}
+
+// Puertas corredizas de los baños: una hoja lisa que corre por delante del muro (en c, del lado elegido) sobre
+// un riel tapado, hacia dir (+1 / −1) a lo largo de `along` ('x' o 'z'). limit: hasta dónde puede llegar la hoja
+// abierta (para no meterse en una pared). Arrancan abiertas; se abren y cierran con E.
+const BATH_DOORS = [];
+function bathSlidingDoor({ along, a0, a1, c, dir, y0, mat, pull, limit = null, open = 1 }) {
+  const w = a1 - a0 + 0.06, t = 0.035, H = 2.08, g = new THREE.Group(), ax = along === 'x';
+  const o = { r: 0.006, uv: 1, parent: g };
+  ax ? rbox(-w / 2, w / 2, -t / 2, t / 2, 0, H, mat, o) : rbox(-t / 2, t / 2, -w / 2, w / 2, 0, H, mat, o);
+  // tirador vertical en las dos caras, cerca del canto que cierra
+  const e = -dir * (w / 2 - 0.07);
+  for (const sgn of [-1, 1]) {
+    const f = sgn * (t / 2 + 0.006);
+    ax ? rbox(e - 0.008, e + 0.008, f - 0.006, f + 0.006, 0.85, 1.2, pull, { r: 0.004, parent: g })
+       : rbox(f - 0.006, f + 0.006, e - 0.008, e + 0.008, 0.85, 1.2, pull, { r: 0.004, parent: g });
+  }
+  scene.add(g);
+  const closed = (a0 + a1) / 2;
+  let opened = dir > 0 ? a1 + w / 2 - 0.03 : a0 - w / 2 + 0.03;
+  if (limit !== null) opened = dir > 0 ? Math.min(opened, limit - w / 2) : Math.max(opened, limit + w / 2);
+  const lo = Math.min(closed, opened) - w / 2, hi = Math.max(closed, opened) + w / 2;
+  ax ? box(lo, hi, c - 0.03, c + 0.03, y0 + H, y0 + H + 0.035, mat, false) : box(c - 0.03, c + 0.03, lo, hi, y0 + H, y0 + H + 0.035, mat, false);   // riel tapado
+  const D = { g, ax, w, c, t, y0, closed, opened, open, target: open, mid: closed, collider: { y0, y1: y0 + H } };
+  colliders.push(D.collider);
+  BATH_DOORS.push(D);
+  placeBathDoor(D);
+  return D;
+}
+function placeBathDoor(D) {
+  const a = D.closed + (D.opened - D.closed) * D.open, C = D.collider;
+  D.g.position.copy(D.ax ? W(a, D.y0 + 0.004, D.c) : W(D.c, D.y0 + 0.004, a));
+  if (D.ax) Object.assign(C, { x0: a - D.w / 2, x1: a + D.w / 2, z0: D.c - D.t / 2, z1: D.c + D.t / 2 });
+  else Object.assign(C, { x0: D.c - D.t / 2, x1: D.c + D.t / 2, z0: a - D.w / 2, z1: a + D.w / 2 });
+}
+function toggleBathDoor() {
+  let best = null, bd = 1.4;
+  for (const D of BATH_DOORS) {
+    if (Math.abs(player.feet - D.y0) > 1) continue;
+    const d = D.ax ? Math.hypot(player.x - D.mid, player.z - D.c) : Math.hypot(player.x - D.c, player.z - D.mid);
+    if (d < bd) { bd = d; best = D; }
+  }
+  if (!best) return null;
+  best.target = best.target > 0 ? 0 : 1;
+  return best;
+}
+let bathDoorShadowFrame = 0;
+function updateBathDoors(dt) {
+  for (const D of BATH_DOORS) {
+    if (D.open === D.target) continue;
+    const step = 0.9 * dt;
+    D.open = Math.abs(D.target - D.open) <= step ? D.target : D.open + Math.sign(D.target - D.open) * step;
+    placeBathDoor(D);
+    if (++bathDoorShadowFrame % 4 === 0) renderer.shadowMap.needsUpdate = true;
+    if (D.open === D.target) refreshShadows();
+  }
 }
 
 function buildWalls() {
@@ -1234,10 +1370,12 @@ function nightstand(x, z, y0) {
 // Pintura de una pared de un ambiente: lámina finita apenas delante de la cara del muro, con un hueco
 // opcional (puerta o ventana). axis 'x' = pared en x = c que va de z = a0 a a1; 'z' = pared en z = c, de x = a0 a a1.
 // hole = [a0, a1, y0, y1] del vano. Las alturas son absolutas.
-function paintFace(axis, c, a0, a1, y0, y1, mat, hole = null) {
+// uv: tamaño en metros de una repetición de la textura (azulejos), continua entre las piezas del hueco.
+function paintFace(axis, c, a0, a1, y0, y1, mat, hole = null, uv = 0) {
   const piece = (b0, b1, h0, h1) => {
     if (b1 - b0 < 1e-3 || h1 - h0 < 1e-3) return;
     const m = axis === 'x' ? box(c - 0.002, c + 0.002, b0, b1, h0, h1, mat, false) : box(b0, b1, c - 0.002, c + 0.002, h0, h1, mat, false);
+    if (uv) metricUV(m.geometry, uv, m.position);
     noShadow(m);
   };
   if (!hole) return piece(a0, a1, y0, y1);
@@ -1313,14 +1451,297 @@ function studyCorner(Y) {
   noShadow(mesh(new THREE.SphereGeometry(0.09, 28, 14), SHADE.opal, scene, XW + 0.12, y1 + 0.46, -15.42));
 }
 
-function toilet(x0, z0, z1) {                         // tanque contra la pared x0, taza hacia +x
-  const zm = (z0 + z1) / 2;
-  rbox(x0, x0 + 0.18, zm - 0.18, zm + 0.18, 0.38, 0.78, F.ceramic, { r: 0.03 });
-  const pts = [[0.0, 0], [0.11, 0], [0.12, 0.18], [0.16, 0.30], [0.185, 0.38], [0.18, 0.40], [0.0, 0.40]].map(([a, b]) => new THREE.Vector2(a, b));
-  const bowl = mesh(new THREE.LatheGeometry(pts, 32), F.ceramic, scene, x0 + 0.42, 0, -zm); bowl.scale.set(1.35, 1, 1);
-  const lid = mesh(roundedDisc(0.19, 0.025, 0.01), F.ceramic, scene, x0 + 0.42, 0.40, -zm); lid.scale.set(1.35, 1, 1);
-  colliders.push({ x0, x1: x0 + 0.7, z0, z1, y0: 0, y1: 0.78 });
+// ---- Baños (ver estilos.md → Baños → Distribución) ----
+// Rectángulo de esquinas redondeadas en el plano (x, z), para extruir hacia arriba
+function roundedRect(x0, z0, x1, z1, r) {
+  const s = new THREE.Shape();
+  s.moveTo(x0 + r, z0); s.lineTo(x1 - r, z0); s.quadraticCurveTo(x1, z0, x1, z0 + r);
+  s.lineTo(x1, z1 - r); s.quadraticCurveTo(x1, z1, x1 - r, z1);
+  s.lineTo(x0 + r, z1); s.quadraticCurveTo(x0, z1, x0, z1 - r);
+  s.lineTo(x0, z0 + r); s.quadraticCurveTo(x0, z0, x0 + r, z0);
+  return s;
 }
+// Pieza hueca (bañera, bacha rectangular, mesada con bacha integrada): borde extruido de y0 a y1 con un hueco
+// [ix0, ix1, iz0, iz1] y un fondo de espesor `bottom`. UV en metros (1 textura = 1 m).
+function hollowBox(x0, x1, z0, z1, y0, y1, mat, { inner, bottom = 0.015, r = 0.02, ri = 0.03 } = {}) {
+  const [ix0, ix1, iz0, iz1] = inner;
+  const extrude = (shape, h, y) => {
+    const m = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: h, bevelEnabled: false, curveSegments: 8 }), mat);
+    m.rotation.x = -Math.PI / 2; m.position.y = y; scene.add(m); return m;
+  };
+  const s = roundedRect(x0, z0, x1, z1, r);
+  s.holes.push(roundedRect(ix0, iz0, ix1, iz1, ri));
+  extrude(s, y1 - y0, y0);
+  if (bottom) extrude(roundedRect(ix0, iz0, ix1, iz1, ri), bottom, y0);
+  colliders.push({ x0, x1, z0, z1, y0, y1 });
+}
+// Pie de loza (inodoro y bidet): se angosta hacia abajo, alargado en el sentido de la taza
+function ceramicFoot(g, x, k = 1.45) {
+  const pts = [[0, 0], [0.115, 0], [0.108, 0.04], [0.1, 0.18], [0.125, 0.3], [0, 0.3]].map(([a, b]) => new THREE.Vector2(a, b));
+  mesh(new THREE.LatheGeometry(pts, 32), F.ceramic, g, x, 0, 0).scale.set(k, 1, 1);
+}
+// Inodoro largo de pie con mochila apoyada, como inspiracion/banos/inodoro.jpeg: 69 cm de largo, taza de
+// 37,5 cm de ancho, mochila de 43 cm, 77 cm de alto y asiento a 38,5 cm. La mochila va contra la pared en
+// x = xw y la taza mira hacia dir (+1 → hacia +x, −1 → hacia −x). Blanco, sin marcas.
+function toilet(xw, z, y0, dir = 1) {
+  const g = new THREE.Group(); g.position.copy(W(xw, y0, z)); g.rotation.y = dir > 0 ? 0 : Math.PI; scene.add(g);
+  const o = (r) => ({ r, parent: g });
+  ceramicFoot(g, 0.42);
+  rbox(0.14, 0.34, -0.11, 0.11, 0.2, 0.37, F.ceramic, o(0.05));                              // cuello hacia la mochila
+  const bowl = [[0, 0.2], [0.12, 0.2], [0.155, 0.27], [0.178, 0.33], [0.188, 0.372], [0.16, 0.374], [0.11, 0.3], [0, 0.28]].map(([a, b]) => new THREE.Vector2(a, b));
+  mesh(new THREE.LatheGeometry(bowl, 40), F.ceramic, g, 0.465, 0, 0).scale.set(1.2, 1, 1);  // taza: 45 x 37,5 cm
+  mesh(roundedDisc(0.186, 0.03, 0.012), F.ceramic, g, 0.47, 0.372, 0).scale.set(1.2, 1, 1); // tapa (bajada)
+  rbox(0.005, 0.19, -0.215, 0.215, 0.385, 0.745, F.ceramic, o(0.025));                      // mochila
+  rbox(0, 0.197, -0.22, 0.22, 0.745, 0.77, F.ceramic, o(0.012));                             // tapa de la mochila
+  mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.008, 20), F.steel, g, 0.1, 0.773, 0);     // pulsador
+  const [x0, x1] = dir > 0 ? [xw, xw + 0.69] : [xw - 0.69, xw];
+  colliders.push({ x0, x1, z0: z - 0.22, z1: z + 0.22, y0, y1: y0 + 0.77 });
+}
+// Bidet de pie de la misma línea (55 x 36 cm, 40 cm de alto), con monocomando sobre el borde de atrás
+function bidet(xw, z, y0, dir = 1, metal = F.steel) {
+  const g = new THREE.Group(); g.position.copy(W(xw, y0, z)); g.rotation.y = dir > 0 ? 0 : Math.PI; scene.add(g);
+  ceramicFoot(g, 0.33, 1.3);
+  rbox(0.02, 0.2, -0.17, 0.17, 0.24, 0.4, F.ceramic, { r: 0.04, parent: g });               // respaldo
+  const bowl = [[0, 0.2], [0.12, 0.2], [0.16, 0.28], [0.18, 0.36], [0.185, 0.4], [0.16, 0.402], [0.12, 0.33], [0, 0.31]].map(([a, b]) => new THREE.Vector2(a, b));
+  mesh(new THREE.LatheGeometry(bowl, 40), F.ceramic, g, 0.35, 0, 0).scale.set(1.12, 1, 1);
+  mesh(new THREE.CylinderGeometry(0.018, 0.022, 0.12, 16), metal, g, 0.09, 0.46, 0);        // monocomando
+  rod(new THREE.Vector3(0.09, 0.5, 0), new THREE.Vector3(0.2, 0.49, 0), 0.008, metal, g);
+  rod(new THREE.Vector3(0.09, 0.525, 0), new THREE.Vector3(0.04, 0.54, 0), 0.006, metal, g);
+  const [x0, x1] = dir > 0 ? [xw, xw + 0.55] : [xw - 0.55, xw];
+  colliders.push({ x0, x1, z0: z - 0.18, z1: z + 0.18, y0, y1: y0 + 0.42 });
+}
+// Grifería de pared: roseta y pico que sale de la pared en (x, y, z) hacia (dx, dz), largo L; manija de palanca
+// en una roseta aparte, `hz` más al costado (o arriba, si hz = 0)
+function wallSpout(x, y, z, dx, dz, L, mat, hz = 0) {
+  rod(W(x, y, z), W(x + dx * 0.012, y, z + dz * 0.012), 0.028, mat, scene, 24);
+  rod(W(x, y, z), W(x + dx * L, y, z + dz * L), 0.011, mat, scene, 14);
+  mesh(new THREE.SphereGeometry(0.011, 12, 8), mat, scene, x + dx * L, y, -(z + dz * L));
+  const sx = hz ? -dz * hz : 0, sz = hz ? dx * hz : 0, hy = hz ? y : y + 0.12;   // costado: perpendicular a (dx, dz)
+  wallKnob(x + sx, hy, z + sz, dx, dz, mat, true);
+}
+// Llave / mezclador de pared: roseta y perilla (o palanca)
+function wallKnob(x, y, z, dx, dz, mat, lever = false) {
+  rod(W(x, y, z), W(x + dx * 0.01, y, z + dz * 0.01), 0.026, mat, scene, 24);
+  rod(W(x, y, z), W(x + dx * 0.045, y, z + dz * 0.045), 0.011, mat, scene, 12);
+  if (lever) rod(W(x + dx * 0.045, y, z + dz * 0.045), W(x + dx * 0.05, y + 0.07, z + dz * 0.05), 0.005, mat, scene, 8);
+  else rod(W(x + dx * 0.03, y, z + dz * 0.03), W(x + dx * 0.05, y, z + dz * 0.05), 0.02, mat, scene, 16);
+}
+// Ducha de lluvia: brazo que sale de la pared en (x, y, z) hacia (dx, dz), largo L, y flor redonda chata
+function rainShower(x, y, z, dx, dz, L, R, mat) {
+  const ex = x + dx * L, ez = z + dz * L;
+  rod(W(x, y, z), W(x + dx * 0.012, y, z + dz * 0.012), 0.03, mat, scene, 20);
+  rod(W(x, y, z), W(ex, y, ez), 0.011, mat, scene, 12);
+  rod(W(ex, y + 0.011, ez), W(ex, y - 0.07, ez), 0.011, mat, scene, 12);
+  mesh(new THREE.CylinderGeometry(R, R * 0.96, 0.014, 40), mat, scene, ex, y - 0.075, -ez);
+}
+// Portarrollos: brazo desde la pared (normal (dx, dz)) y el rollo con el eje paralelo a la pared
+function paperHolder(x, y, z, dx, dz, mat) {
+  const ax = -dz, az = dx;                                                   // dirección a lo largo de la pared
+  rod(W(x, y, z), W(x + dx * 0.075, y, z + dz * 0.075), 0.007, mat, scene, 8);
+  rod(W(x + dx * 0.075, y, z + dz * 0.075), W(x + dx * 0.075 + ax * 0.13, y, z + dz * 0.075 + az * 0.13), 0.006, mat, scene, 8);
+  const cx = x + dx * 0.075 + ax * 0.065, cz = z + dz * 0.075 + az * 0.065;
+  rod(W(cx - ax * 0.05, y, cz - az * 0.05), W(cx + ax * 0.05, y, cz + az * 0.05), 0.055, F.paper, scene, 24);
+}
+// Toallero de barra con toalla doblada encima, a lo largo de la pared o frente (normal (dx, dz))
+function towelBar(x0, x1, z0, z1, y, dx, dz, mat, towel = [0.3, 0.32]) {
+  const off = 0.045;
+  const a = W(x0 + dx * off, y, z0 + dz * off), b = W(x1 + dx * off, y, z1 + dz * off);
+  rod(a, b, 0.007, mat, scene, 10);
+  for (const [x, z] of [[x0, z0], [x1, z1]]) rod(W(x, y, z), W(x + dx * off, y, z + dz * off), 0.007, mat, scene, 8);
+  const [w, h] = towel, mx = (x0 + x1) / 2 + dx * off, mz = (z0 + z1) / 2 + dz * off, alongX = Math.abs(x1 - x0) > Math.abs(z1 - z0);
+  for (const s of [-1, 1]) {                                                  // dos paños a cada lado de la barra
+    const ox = dx * s * 0.011, oz = dz * s * 0.011;
+    const r = alongX ? [mx - w / 2, mx + w / 2, mz + oz - 0.006, mz + oz + 0.006] : [mx + ox - 0.006, mx + ox + 0.006, mz - w / 2, mz + w / 2];
+    rbox(...r, y - (s > 0 ? h : h * 0.8), y + 0.008, F.beige, { r: 0.005, uv: 0.15 });
+  }
+}
+// Espejo de pared: (x, z) = centro sobre la cara de la pared, (nx, nz) = normal hacia el ambiente.
+// shape 'rect' (con marco opcional) o 'pill' (ovalado alargado con marco de madera, como el del baño principal)
+// El reflejo es el propio baño: una cámara cúbica lo fotografía una vez desde delante del espejo
+// (bakeMirrors, al arrancar y al cambiar la hora) y esa foto es el entorno que refleja el espejo.
+const MIRRORS = [];
+let mirrorsDirty = true;
+function mirrorMaterial(x, y, z, nx, nz) {
+  const mat = F.mirror.clone(), rt = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType });
+  const cam = new THREE.CubeCamera(0.05, 12, rt);
+  cam.position.copy(W(x + nx * 0.7, y, z + nz * 0.7)); scene.add(cam);
+  MIRRORS.push({ mat, cam, rt, meshes: [] });
+  return MIRRORS[MIRRORS.length - 1];
+}
+function bakeMirrors() {
+  mirrorsDirty = false;
+  for (const m of MIRRORS) m.meshes.forEach(o => { o.visible = false; });
+  for (const m of MIRRORS) {
+    m.cam.update(renderer, scene);
+    m.rt.texture.needsPMREMUpdate = true;
+    m.mat.envMap = m.rt.texture; m.mat.envMapIntensity = 1; m.mat.needsUpdate = true;
+  }
+  for (const m of MIRRORS) m.meshes.forEach(o => { o.visible = true; });
+}
+function wallMirror(x, z, nx, nz, w, y0, y1, { frame = null, t = 0.025, shape = 'rect' } = {}) {
+  const g = new THREE.Group(); g.position.copy(W(x, 0, z)); g.rotation.y = faceAngle(nx, nz); scene.add(g);
+  const h = y1 - y0, ym = (y0 + y1) / 2, mir = mirrorMaterial(x, ym, z, nx, nz);
+  if (shape === 'pill') {
+    const pill = (pw, ph) => { const r = pw / 2, s = new THREE.Shape(); s.absarc(0, ph / 2 - r, r, 0, Math.PI, false); s.absarc(0, -ph / 2 + r, r, Math.PI, Math.PI * 2, false); s.closePath(); return s; };
+    const outer = pill(w, h); outer.holes.push(pill(w - 2 * t, h - 2 * t));
+    const fr = mesh(new THREE.ExtrudeGeometry(outer, { depth: 0.022, bevelEnabled: true, bevelThickness: 0.005, bevelSize: 0.005, bevelSegments: 2, curveSegments: 24 }), frame, g, 0, ym, 0.005);
+    scaleUV(fr.geometry, 1);
+    mir.meshes.push(mesh(new THREE.ShapeGeometry(pill(w - 2 * t + 0.01, h - 2 * t + 0.01), 24), mir.mat, g, 0, ym, 0.012));
+    return g;
+  }
+  const d = frame ? 0.012 : 0.006;
+  mir.meshes.push(mesh(new THREE.PlaneGeometry(frame ? w - 2 * t : w, frame ? h - 2 * t : h), mir.mat, g, 0, ym, d + 0.001));
+  mesh(new THREE.BoxGeometry(w - 0.01, h - 0.01, d), F.seam, g, 0, ym, d / 2);              // canto oscuro
+  if (frame) for (const [a0, a1, b0, b1] of [[-w / 2, w / 2, y1 - t, y1], [-w / 2, w / 2, y0, y0 + t], [-w / 2, -w / 2 + t, y0, y1], [w / 2 - t, w / 2, y0, y1]])
+    rbox(a0, a1, -0.025, 0, b0, b1, frame, { r: 0.006, parent: g, uv: 1 });
+  return g;
+}
+// Plafón de vidrio opalino al techo, con su luz (alcance corto para no iluminar los ambientes de al lado)
+function ceilingLight(x, z, ceiling, intensity = 4) {
+  noShadow(mesh(new THREE.CylinderGeometry(0.15, 0.13, 0.06, 40), SHADE.opal, scene, x, ceiling - 0.03, -z));
+  lampLight(x, ceiling - 0.15, z, intensity, 0xffe0bc, 3.5);
+}
+// Aplique de globo opalino sobre la pared (normal (dx, dz)), con brazo corto
+function globeSconce(x, y, z, dx, dz, mat) {
+  rod(W(x, y, z), W(x + dx * 0.012, y, z + dz * 0.012), 0.03, mat, scene, 20);
+  rod(W(x, y, z), W(x + dx * 0.05, y, z + dz * 0.05), 0.01, mat, scene, 10);
+  noShadow(mesh(new THREE.SphereGeometry(0.07, 28, 16), SHADE.opal, scene, x + dx * 0.115, y, -(z + dz * 0.115)));
+}
+
+// Baño PB (toilette, 2,49 x 0,81): paredes y techo bordó, pared del fondo de azulejos terracota verticales con
+// brillo, inodoro blanco contra la medianera, vanitory flotante de nogal oscuro contra la pared derecha
+// (donde el plano marca el lavatorio) y puerta corrediza de nogal oscuro.
+function bathPB() {
+  const Z0 = 12.28, Z1 = 13.09, X1 = 2.49, TOP = H_WALL - 0.002;
+  paintFace('z', Z1 - 0.003, 0, X1, 0, TOP, F.terracottaTile, null, 0.6);                       // pared del fondo: azulejos
+  paintFace('x', 0.003, Z0, Z1, 0, TOP, F.bordoPaint);                                           // medianera
+  paintFace('x', X1 - 0.003, Z0, Z1, 0, TOP, F.bordoPaint);                                      // pared del lavatorio
+  paintFace('z', Z0 + 0.003, 0, X1, 0, TOP, F.bordoPaint, [1.35, 2.33, 0, 2.05]);                // pared de la puerta
+  noShadow(box(0, X1, Z0, Z1, TOP - 0.002, TOP, F.bordoPaint, false));                           // techo bordó
+  toilet(0.006, 12.685, 0, 1);
+  // mueble alto de nogal oscuro sobre el inodoro: dos puertas con perillas de bronce
+  const C = [0, 0.3, 12.34, 13.08];
+  rbox(...C, 1.62, 2.4, F.walnutDark, { r: 0.006, uv: 1 });
+  doorSeams(C, 'x1', 1.62, 2.4, 0.37);
+  for (const z of [12.66, 12.76]) rbox(0.3, 0.318, z - 0.009, z + 0.009, 1.66, 1.678, F.brass, { r: 0.008 });
+  // vanitory flotante de nogal oscuro con bacha de apoyo rectangular blanca y grifería de pared de bronce
+  const V = [2.06, X1 - 0.004, 12.31, 13.08];
+  rbox(...V, 0.44, 0.8, F.walnutDark, { r: 0.008, uv: 1 });
+  doorSeams(V, 'x0', 0.44, 0.8, 0.38);
+  rbox(V[0] - 0.01, V[1], V[2], V[3], 0.8, 0.825, F.walnutDark, { r: 0.006, uv: 1 });         // tapa
+  colliders.push({ x0: V[0] - 0.01, x1: V[1], z0: V[2], z1: V[3], y0: 0, y1: 0.83 });
+  hollowBox(2.1, 2.44, 12.47, 12.93, 0.825, 0.955, F.ceramic, { inner: [2.115, 2.425, 12.485, 12.915], r: 0.02, ri: 0.012 });
+  mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.003, 20), F.steel, scene, 2.27, 0.842, -12.70);   // desagüe
+  wallSpout(X1 - 0.004, 1.03, 12.70, -1, 0, 0.2, F.brass, 0.16);
+  wallMirror(X1 - 0.004, 12.65, -1, 0, 0.5, 1.15, 1.95, { frame: F.walnutDark, t: 0.03 });
+  // dos globos opalinos sobre los azulejos, al costado del espejo (como la referencia baño.jpg)
+  for (const y of [1.45, 1.72]) globeSconce(2.19, y, Z1 - 0.005, 0, -1, F.brass);
+  lampLight(2.19, 1.6, 12.9, 3, 0xffd6a0, 3);
+  vase(2.27, 13.0, 0.825, 0.17, 0.05, F.pot);
+  paperHolder(0.86, 0.68, Z1 - 0.005, 0, -1, F.brass);
+  // canasto de fibra bajo el vanitory
+  const basket = mesh(new THREE.CylinderGeometry(0.15, 0.13, 0.24, 32, 1, true), F.rattan, scene, 2.3, 0.12, -12.92);
+  scaleUV(basket.geometry, 6);
+  mesh(new THREE.CircleGeometry(0.13, 32), F.rattan, scene, 2.3, 0.005, -12.92).rotation.x = -Math.PI / 2;
+  // puerta corrediza de nogal oscuro, del lado de adentro: abierta queda delante del inodoro y la medianera
+  bathSlidingDoor({ along: 'x', a0: 1.35, a1: 2.33, c: Z0 + 0.026, dir: -1, y0: 0, mat: F.walnutDark, pull: F.brass });
+}
+
+// Baño principal = Baño PA 2 (1,71 x 2,32, el de la bañera) + su antebaño con el lavatorio (Lavatorio
+// Baño PA 2). Pared de la bañera/ducha de azulejos de semicírculos verde salvia y crudo, resto crudo,
+// grifería negra, vanitory chico de nogal con bacha de apoyo verde y espejo ovalado con marco de madera.
+function bathMain(Y) {
+  const TOP = Y + H_WALL - 0.002, BK = F.black;
+  // revestimientos y pintura
+  paintFace('z', 15.687, 1.66, 3.37, Y, TOP, F.semicircleTile, [2.05, 2.97, Y + 1.5, Y + 2.1], 0.72);
+  paintFace('x', 1.663, 13.37, 15.69, Y, TOP, F.crudoPaint);
+  paintFace('x', 3.367, 13.37, 15.69, Y, TOP, F.crudoPaint);
+  paintFace('z', 13.373, 1.66, 3.37, Y, TOP, F.crudoPaint, [1.91, 2.64, Y, Y + 2.05]);
+  paintFace('x', 1.853, 11.94, 13.09, Y, TOP, F.crudoPaint);                                     // antebaño
+  paintFace('x', 3.567, 11.94, 13.09, Y, TOP, F.crudoPaint, [12.34, 13.09, Y, Y + 2.05]);
+  paintFace('z', 11.943, 1.85, 3.57, Y, TOP, F.crudoPaint);
+  paintFace('z', 13.087, 1.85, 3.57, Y, TOP, F.crudoPaint, [1.91, 2.64, Y, Y + 2.05]);
+  for (const r of [[1.66, 3.37, 13.37, 15.69], [1.91, 2.64, 13.09, 13.37], [1.85, 3.57, 11.94, 13.09]]) floor(...r, Y + 0.007, F.bathFloor, 1.8);
+  // bañera de 1,70 x 0,73 de pared a pared contra el fondo, con ducha de lluvia y mampara de vidrio fija
+  hollowBox(1.666, 3.364, 14.955, 15.683, Y, Y + 0.55, F.ceramic, { inner: [1.73, 3.3, 15.03, 15.62], bottom: 0.14, r: 0.015, ri: 0.16 });
+  mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.003, 20), F.steel, scene, 1.86, Y + 0.142, -15.32);   // desagüe
+  rainShower(3.17, Y + 2.2, 15.685, 0, -1, 0.36, 0.11, BK);
+  for (const x of [2.92, 3.07, 3.22]) wallKnob(x, Y + 1.12, 15.685, 0, -1, BK);                  // tres llaves negras
+  wallSpout(3.07, Y + 0.72, 15.685, 0, -1, 0.17, BK, 0);
+  box(2.5, 3.355, 14.97, 14.982, Y + 0.55, Y + 2.0, M.glass, false);                              // mampara
+  box(3.345, 3.365, 14.96, 14.99, Y + 0.55, Y + 2.0, BK, false);                                  // perfil negro
+  // inodoro y bidet contra la pared izquierda, como en el plano
+  // (el bidet queda 15 cm más adentro que en el plano para dejar 52 cm de paso entre él y la esquina de la puerta)
+  toilet(1.666, 14.46, Y, 1);
+  bidet(1.666, 13.86, Y, 1, BK);
+  paperHolder(1.666, Y + 0.68, 14.70, 1, 0, BK);
+  towelBar(3.364, 3.364, 14.05, 14.55, Y + 1.25, -1, 0, BK, [0.34, 0.5]);
+  ceilingLight(2.55, 14.25, TOP, 4);
+  // antebaño: vanitory chico de nogal flotante (80 cm), tapa blanca, bacha de apoyo verde salvia y grifería
+  // negra de pared, espejo ovalado con marco de madera y toallero en el frente del mueble
+  const V = [2.0, 2.8, 11.946, 12.4];
+  rbox(...V, Y + 0.46, Y + 0.82, F.walnut, { r: 0.008, uv: 1 });
+  doorSeams(V, 'z1', Y + 0.46, Y + 0.82, 0.4);
+  rbox(V[0] - 0.01, V[1] + 0.01, V[2], V[3] + 0.02, Y + 0.82, Y + 0.845, F.white, { r: 0.006 });
+  colliders.push({ x0: V[0], x1: V[1], z0: V[2], z1: V[3] + 0.02, y0: Y, y1: Y + 0.85 });
+  const basin = [[0, 0], [0.15, 0], [0.19, 0.02], [0.2, 0.14], [0.188, 0.14], [0.178, 0.03], [0.14, 0.022], [0, 0.022]].map(([a, b]) => new THREE.Vector2(a, b));
+  mesh(new THREE.LatheGeometry(basin, 48), F.sageCeramic, scene, 2.4, Y + 0.845, -12.19);
+  wallSpout(2.4, Y + 1.07, 11.946, 0, 1, 0.21, BK, 0);
+  towelBar(2.1, 2.7, V[3], V[3], Y + 0.72, 0, 1, BK, [0.3, 0.28]);
+  wallMirror(2.4, 11.946, 0, 1, 0.46, Y + 1.22, Y + 2.12, { frame: F.veneer, shape: 'pill' });
+  plant('small', 2.66, 12.2, { y: Y + 0.845, h: 0.28, seed: 71, pot: F.creamCeramic });
+  ceilingLight(2.71, 12.6, TOP, 3);
+}
+
+// Segundo baño = Baño PA 1 (1,52 x 2,32, el de la ducha) + su antebaño con el lavatorio (Lavatorio Baño PA 1).
+// Paredes blancas, piso de mosaico blanco y negro tipo tejido, vanitory flotante de nogal oscuro con mesada de
+// mármol claro con bacha integrada, dos griferías de pared de bronce y espejo grande.
+function bathSecond(Y) {
+  const TOP = Y + H_WALL - 0.002, BZ = F.bronze;
+  for (const r of [[0, 1.52, 13.37, 15.69], [0.1, 0.82, 13.09, 13.37], [0, 1.72, 11.94, 13.09]]) floor(...r, Y + 0.007, F.basketweave, 0.3);
+  // baño: ducha al fondo (donde el plano marca el plato), revestida en azulejo blanco
+  paintFace('z', 15.687, 0, 1.52, Y, TOP, F.whiteTile, [0.6, 1.52, Y + 1.5, Y + 2.1], 0.6);
+  paintFace('x', 1.517, 14.84, 15.69, Y, TOP, F.whiteTile, null, 0.6);
+  paintFace('x', 1.517, 13.37, 14.84, Y, TOP, F.whitePaint);
+  paintFace('x', 0.003, 13.37, 15.69, Y, TOP, F.whitePaint);
+  paintFace('z', 13.373, 0, 1.52, Y, TOP, F.whitePaint, [0.1, 0.82, Y, Y + 2.05]);
+  rbox(0.62, 1.514, 14.84, 15.683, Y, Y + 0.03, F.ceramic, { r: 0.008 });                         // plato de ducha
+  rbox(1.0, 1.4, 15.56, 15.6, Y + 0.03, Y + 0.032, F.steel, { r: 0.002, seg: 1 });                // rejilla lineal
+  rainShower(1.517, Y + 2.15, 15.3, -1, 0, 0.36, 0.1, BZ);
+  wallKnob(1.517, Y + 1.1, 15.3, -1, 0, BZ, true);
+  box(1.0, 1.514, 14.842, 14.854, Y + 0.03, Y + 2.0, M.glass, false);                            // mampara fija (walk-in)
+  colliders.push({ x0: 1.0, x1: 1.52, z0: 14.83, z1: 14.86, y0: Y, y1: Y + 2.0 });
+  toilet(1.514, 14.43, Y, -1);
+  bidet(1.514, 13.72, Y, -1, BZ);
+  paperHolder(1.517, Y + 0.68, 14.08, -1, 0, BZ);
+  towelBar(0.003, 0.003, 13.9, 14.5, Y + 1.25, 1, 0, BZ, [0.36, 0.5]);
+  ceilingLight(0.62, 14.2, TOP, 4);
+  // antebaño: vanitory contra la pared derecha (x = 1,72), en todo el largo (1,13 m)
+  paintFace('x', 0.003, 11.94, 13.09, Y, TOP, F.whitePaint);
+  paintFace('x', 1.717, 11.94, 13.09, Y, TOP, F.whitePaint);
+  paintFace('z', 11.943, 0, 1.72, Y, TOP, F.whitePaint, [0.1, 0.82, Y, Y + 2.05]);
+  paintFace('z', 13.087, 0, 1.72, Y, TOP, F.whitePaint, [0.1, 0.82, Y, Y + 2.05]);
+  const XW = 1.714, Z0 = 11.95, Z1 = 13.08;
+  rbox(1.3, XW, Z0 + 0.04, Z1 - 0.04, Y + 0.2, Y + 0.225, F.walnutDark, { r: 0.004, uv: 1 });     // estante abierto abajo
+  for (const z of [Z0 + 0.06, Z1 - 0.06]) rbox(1.32, XW, z - 0.006, z + 0.006, Y + 0.225, Y + 0.33, F.black, { r: 0.002 });
+  rbox(1.25, XW, Z0, Z1, Y + 0.33, Y + 0.71, F.walnutDark, { r: 0.006, uv: 1 });                 // cajonera de nogal
+  doorSeams([1.25, XW, Z0, Z1], 'x0', Y + 0.33, Y + 0.71, 0.4);
+  rbox(1.255, XW, Z0, Z1, Y + 0.71, Y + 0.72, F.black, { r: 0.002, seg: 1 });                   // buña negra bajo la mesada
+  rbox(1.2, XW, Z0, Z1, Y + 0.72, Y + 0.76, F.stone, { r: 0.006, uv: 1 });                       // mesada de mármol claro
+  hollowBox(1.2, XW, Z0, Z1, Y + 0.76, Y + 0.86, F.stone, { inner: [1.31, 1.62, 12.05, 12.98], bottom: 0, r: 0.006, ri: 0.02 });
+  colliders.push({ x0: 1.2, x1: XW, z0: Z0, z1: Z1, y0: Y, y1: Y + 0.86 });
+  mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.003, 20), BZ, scene, 1.47, Y + 0.762, -12.52);  // desagüe
+  for (const z of [12.24, 12.8]) wallSpout(XW, Y + 1.0, z, -1, 0, 0.19, BZ, -0.11);
+  paintFace('x', 1.712, Z0, Z1, Y + 0.86, Y + 1.24, F.whiteTile, null, 0.6);                    // zócalo de azulejo blanco
+  wallMirror(1.71, 12.515, -1, 0, 1.08, Y + 1.27, Y + 2.02);                                     // espejo grande sin marco
+  rbox(1.64, 1.69, 12.14, 12.89, Y + 2.12, Y + 2.145, F.black, { r: 0.006 });                     // aplique lineal negro
+  rbox(1.69, XW, 12.49, 12.54, Y + 2.1, Y + 2.165, F.black, { r: 0.004 });
+  noShadow(rbox(1.645, 1.685, 12.15, 12.88, Y + 2.117, Y + 2.121, SHADE.diffuser, { r: 0.001, seg: 1 }));
+  lampLight(1.6, Y + 2.0, 12.515, 3, 0xffe2bf, 3);
+  vase(1.27, 13.02, Y + 0.86, 0.22, 0.045, F.pot);
+  rbox(1.24, 1.28, 11.97, 12.01, Y + 0.86, Y + 0.97, F.vaseOlive, { r: 0.006 });                  // frasquito
+}
+
 // Auto simplificado (blanco, sin logos), con el frente hacia la calle (z0)
 function car([x0, x1, z0, z1]) {
   rbox(x0 + 0.02, x1 - 0.02, z0, z1, 0.2, 0.8, F.carBody, { r: 0.17 });
@@ -1419,13 +1840,13 @@ function kitchenIsland() {
 
 // ---- Lámparas: la pantalla brilla (deja pasar la luz) y adentro hay una luz real con sombras ----
 const LAMPS = [];
-function lampLight(x, y, z, intensity, color = 0xffd6a0) {
-  const l = new THREE.PointLight(color, intensity, 5, 2);           // alcance 5 m
+function lampLight(x, y, z, intensity, color = 0xffd6a0, range = 5) {
+  const l = new THREE.PointLight(color, intensity, range, 2);       // alcance 5 m (menos en los baños)
   l.position.copy(W(x, y, z));
   l.castShadow = true;
   l.shadow.mapSize.set(512, 512);
   l.shadow.bias = -0.004; l.shadow.normalBias = 0.02; l.shadow.radius = 3;
-  l.shadow.camera.near = 0.05; l.shadow.camera.far = 5;
+  l.shadow.camera.near = 0.05; l.shadow.camera.far = range;
   l.shadow.autoUpdate = false;                       // la casa es estática: la sombra se calcula una vez
   l.shadow.needsUpdate = true;
   scene.add(l); LAMPS.push(l);
@@ -1597,7 +2018,7 @@ function buildFurniture() {
     modelSlot(['dining_chair_02', 'WoodenChair_01'], chair(cx, cz, dx, dz), { x: cx, z: cz, h: 0.85, rotY: faceAngle(dx, dz) });
   }
 
-  toilet(0.03, 12.32, 12.75);                                                             // baño PB
+  bathPB();                                                                               // baño PB (toilette)
   car([5.9, 7.7, 8.8, 13.4]);                                                             // garage
 
   // Galería: plantas grandes en macetas
@@ -1657,6 +2078,17 @@ function buildFurniture() {
   paintFace('x', 5.377, 13.37, 15.69, Y, YC, F.oliveWall);                                 // pared derecha
   paintFace('z', 13.373, 3.51, 5.38, Y, YC, F.oliveWall, [4.46, 5.28, Y, Y + 2.05]);       // frente, con la puerta
   paintFace('z', 15.687, 3.51, 5.38, Y, YC, F.oliveWall, [3.81, 5.07, Y + 1.2, Y + 2.1]);  // fondo, con la ventana
+
+  // Baños de planta alta (ver estilos.md → Baños → Distribución)
+  bathMain(Y);                                                                            // baño PA 2 (el de la bañera)
+  bathSecond(Y);                                                                          // baño PA 1 (el de la ducha)
+  // Todas las puertas de los baños son corredizas (aunque el plano dibuje alguna de abrir): hojas lisas
+  // laqueadas crudo con tirador negro, que corren por delante del muro hacia donde hay pared libre.
+  const PD = { y0: Y, mat: F.millwork, pull: F.black };
+  bathSlidingDoor({ ...PD, along: 'x', a0: 0.10, a1: 0.82, c: 11.778, dir: 1 });                     // hall → antebaño del segundo baño (del lado del hall)
+  bathSlidingDoor({ ...PD, along: 'x', a0: 0.10, a1: 0.82, c: 13.394, dir: 1, limit: 1.514 });                     // antebaño → segundo baño (del lado del baño)
+  bathSlidingDoor({ ...PD, along: 'x', a0: 1.91, a1: 2.64, c: 13.066, dir: 1 });                    // antebaño → baño principal (del lado del antebaño: del lado del baño chocaría con el bidet)
+  bathSlidingDoor({ ...PD, along: 'z', a0: 12.34, a1: 13.09, c: 3.732, dir: -1 });                  // hall → antebaño del baño principal (del lado del hall)
 }
 
 // Carga los modelos reales que estén en models/ y reemplaza la versión hecha por código
@@ -2155,7 +2587,11 @@ addEventListener('keydown', e => {
   if (e.code !== 'KeyE' || e.repeat || !(controls.isLocked || debug.force)) return;
   if (toggleSlider()) showNotice(SLIDER.target > 0 ? 'Abriendo la puerta corrediza' : 'Cerrando la puerta corrediza');
   else if (toggleGarageDoor()) showNotice(GARAGE.target > 0 ? 'Abriendo el portón' : 'Cerrando el portón');
-  else showNotice('Acercate al portón del garage o a la puerta de vidrio del living para abrirlos o cerrarlos');
+  else {
+    const d = toggleBathDoor();
+    if (d) showNotice(d.target > 0 ? 'Abriendo la puerta del baño' : 'Cerrando la puerta del baño');
+    else showNotice('Acercate al portón del garage, a la puerta de vidrio del living o a una puerta de baño para abrirlos o cerrarlos');
+  }
 });
 addEventListener('keydown', e => {
   if (e.code !== 'KeyT' || e.repeat) return;
@@ -2188,7 +2624,9 @@ function loop() {
   update(dt, controls.isLocked || debug.force);
   updateGarageDoor(dt);
   updateSlider(dt);
+  updateBathDoors(dt);
   updateHud();
+  if (mirrorsDirty) bakeMirrors();
   if (!renderPhoto(rawDt)) renderNormal();
   watchPerformance(rawDt);
   requestAnimationFrame(loop);
@@ -2204,7 +2642,7 @@ addEventListener('resize', () => {
 
 // Utilidades para pruebas automáticas (no afectan el uso normal)
 window.__debug = Object.assign(debug, {
-  player, keys, camera, room: () => currentRoom(), photo, garage: GARAGE, toggleGarageDoor, updateGarageDoor, slider: SLIDER, toggleSlider, updateSlider, setQuality, quality: () => quality, setTimeOfDay, timeOfDay: () => timeOfDay,
+  player, keys, camera, room: () => currentRoom(), photo, garage: GARAGE, toggleGarageDoor, updateGarageDoor, slider: SLIDER, toggleSlider, updateSlider, bathDoors: BATH_DOORS, toggleBathDoor, updateBathDoors, setQuality, quality: () => quality, setTimeOfDay, timeOfDay: () => timeOfDay,
   place(x, z, feet = 0, yawDeg = 0) { Object.assign(player, { x, z, feet, vy: 0, eyeY: feet + EYE }); camera.rotation.set(0, yawDeg * Math.PI / 180, 0, 'YXZ'); camera.position.set(x, feet + EYE, -z); },
   simulate(codes, seconds, look) { if (look !== undefined) camera.rotation.set(0, look * Math.PI / 180, 0, 'YXZ'); codes.forEach(c => keys.add(c)); for (let t = 0; t < seconds; t += 1 / 60) update(1 / 60, true); codes.forEach(c => keys.delete(c)); updateHud(); },
 });

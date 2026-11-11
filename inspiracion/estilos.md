@@ -94,6 +94,29 @@ Referencias: `banos/`
 - Segundo baño (planta alta): vanitory flotante de nogal oscuro con mesada de mármol claro, dos griferías bronce de pared; espejo grande; paredes blancas; piso de mosaico blanco y negro tipo tejido (basketweave).
 - Inodoros: blancos, de pie (referencia `inodoro.jpeg`).
 
+### Distribución
+Los artefactos van donde los marca `plano.pdf`; los muebles, revestimientos y luces se ubican sin cambiar paredes ni medidas.
+- **Baño PB** (toilette de 2,49 x 0,81; referencias `baño.jpg`, `baño2.jpg`, `baño3.jpg`):
+  - **Pared del fondo** (la que se ve al entrar) entera de azulejos terracota verticales 7,5 x 30 con brillo; las otras tres paredes y el techo pintados bordó. Piso: sigue la pinotea del hall.
+  - **Inodoro** de pie contra la medianera, con un **mueble alto de nogal oscuro** arriba (dos puertas, perillas de bronce).
+  - **Vanitory flotante de nogal oscuro** contra la pared derecha (donde el plano marca el lavatorio), con bacha de apoyo rectangular blanca, grifería de pared de bronce, espejo con marco de nogal, dos apliques de globo opalino sobre los azulejos y un canasto de fibra abajo.
+  - **Puerta corrediza** de nogal oscuro con tirador de bronce, del lado de adentro (en el plano es corrediza).
+- **Baño principal** = Baño PA 2 (1,71 x 2,32, el de la bañera) + su antebaño (Lavatorio Baño PA 2):
+  - **Bañera** de 1,70 x 0,73 de pared a pared, donde la marca el plano. La pared de atrás (con la ventana) es la "pared de ducha": azulejos cuadrados de 18 cm con semicírculos verde salvia y crudo, de piso a techo. Ducha de lluvia negra, tres llaves negras y mampara fija de vidrio con perfil negro.
+  - **Inodoro y bidet** blancos de pie contra la pared izquierda, como en el plano (el bidet, 15 cm más adentro para dejar paso libre junto a la puerta). Portarrollos y toallero negros.
+  - **Antebaño**: vanitory chico (80 cm) de nogal, flotante, con tapa blanca y bacha de apoyo verde salvia, grifería negra de pared, espejo ovalado alargado con marco de madera y toallero negro con toalla beige en el frente del mueble.
+  - Paredes crudo; piso de porcelanato beige.
+- **Segundo baño** = Baño PA 1 (1,52 x 2,32, el de la ducha) + su antebaño (Lavatorio Baño PA 1):
+  - **Ducha** al fondo, donde el plano marca el plato: plato blanco, azulejo blanco 6 x 30 en la pared del fondo y la lateral, ducha de lluvia y llave de bronce, mampara fija (entrada libre del lado izquierdo).
+  - **Inodoro y bidet** blancos de pie contra la pared derecha, como en el plano; portarrollos y toallero de bronce.
+  - **Antebaño**: vanitory flotante de nogal oscuro contra la pared derecha, en todo el largo (1,13 m), con estante abierto abajo y mesada gruesa de mármol claro con bacha integrada; dos griferías de pared de bronce, zócalo de azulejo blanco, espejo grande sin marco y aplique lineal negro arriba.
+  - Paredes blancas; piso de mosaico blanco y negro tipo tejido (basketweave) en el baño y el antebaño.
+- **Puertas**: todas las puertas de los baños son corredizas, aunque el plano dibuje alguna de abrir. Corren por delante del muro, hacia el lado donde hay pared libre, y se abren y cierran con E. Las de planta alta son lisas, laqueadas crudo, con tirador negro:
+  - Hall → antebaño del segundo baño: del lado del hall, abre hacia la derecha.
+  - Antebaño → segundo baño: del lado del baño, abre hacia la derecha.
+  - Antebaño → baño principal: del lado del antebaño (del lado del baño chocaría con el bidet), abre hacia la derecha.
+  - Hall → antebaño del baño principal: del lado del hall, abre hacia el frente; abierta asoma unos 20 cm más allá del muro, porque ese tramo de pared es más corto que la hoja.
+
 ## Exterior
 Referencias: `exterior/`, `base/frente de la casa reja.jpeg`
 - Jardín delantero: césped con borduras de plantas (gramíneas altas, hortensias rosas y blancas, flores en tonos rosa y bordó).
