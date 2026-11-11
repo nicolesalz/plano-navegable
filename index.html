@@ -34,13 +34,19 @@
   .opts button.on { background: #1a6dd6; border-color: #1a6dd6; color: #fff; }
   .opts .hint { margin-top: 6px; font-size: 12px; color: #777; }
   #notice { position: fixed; top: 12px; right: 12px; padding: 8px 12px; border-radius: 8px; background: rgba(20, 24, 30, .72); color: #fff; font-size: 13px; pointer-events: none; opacity: 0; transition: opacity .4s; }
+  #photo { position: fixed; bottom: 12px; right: 12px; display: flex; align-items: center; gap: 7px; padding: 6px 11px; border-radius: 999px; background: rgba(20, 24, 30, .6); color: #fff; font-size: 12px; pointer-events: none; opacity: 0; transition: opacity .3s; }
+  #photo.show { opacity: 1; }
+  #photo .dot { width: 7px; height: 7px; border-radius: 50%; background: #ffcc4d; animation: pulse 1s ease-in-out infinite alternate; }
+  #photo.done .dot { background: #6fd38a; animation: none; }
+  @keyframes pulse { from { opacity: .35; } to { opacity: 1; } }
   #crosshair { position: fixed; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: rgba(255,255,255,.8); pointer-events: none; }
 </style>
 </head>
 <body>
 <div id="hud"><div class="room" id="roomName">Jardín delantero</div><div class="floor" id="floorName">Exterior</div></div>
-<div id="help">Clic para entrar · <b>WASD</b>/flechas: caminar · <b>Shift</b>: correr · <b>Mouse</b>: mirar · <b>T</b>: hora del día · <b>Esc</b>: salir</div>
+<div id="help">Clic para entrar · <b>WASD</b>/flechas: caminar · <b>Shift</b>: correr · <b>Mouse</b>: mirar · <b>T</b>: hora del día · <b>P</b>: modo foto · <b>Esc</b>: salir</div>
 <div id="crosshair"></div>
+<div id="photo"><span class="dot"></span><span id="photoText">Modo foto</span></div>
 <div id="notice"></div>
 <div id="overlay">
   <div class="box">
@@ -64,7 +70,10 @@
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+  "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+  "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.8/build/index.module.js",
+  "three-gpu-pathtracer": "https://cdn.jsdelivr.net/npm/three-gpu-pathtracer@0.0.23/build/index.module.js"
 } }
 </script>
 
@@ -264,19 +273,27 @@ function buildEnvironment() {
   u.sunPosition.value.copy(sunDir);
   envScene.add(sky);
   const pmrem = new THREE.PMREMGenerator(renderer);
+  // Para el modo foto (path tracing) hacen falta copias "cúbicas" comunes del mismo cielo
+  const cube = () => {
+    const rt = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType });
+    new THREE.CubeCamera(0.1, 200, rt).update(renderer, envScene);
+    return rt;
+  };
   const background = pmrem.fromScene(envScene, 0, 0.1, 200).texture;
+  const backgroundCube = cube();
   const haze = new THREE.Mesh(new THREE.SphereGeometry(40, 32, 16),
     new THREE.MeshBasicMaterial({ color: 0xfff3e2, side: THREE.BackSide, transparent: true, opacity: 0.5, depthWrite: false }));
   const ground = new THREE.Mesh(new THREE.CircleGeometry(30, 32), new THREE.MeshBasicMaterial({ color: 0xcfc6b6 }));
   ground.rotation.x = -Math.PI / 2; ground.position.y = -1;
   envScene.add(haze, ground);
   const lighting = pmrem.fromScene(envScene, 0, 0.1, 200).texture;
+  const lightingCube = cube();
   pmrem.dispose();
-  return { background, lighting };
+  return { background, lighting, backgroundCube, lightingCube };
 }
 let env = null;
 function applyEnvironment() {
-  if (env) { env.background.dispose(); env.lighting.dispose(); }
+  if (env) { env.background.dispose(); env.lighting.dispose(); env.backgroundCube.dispose(); env.lightingCube.dispose(); }
   env = buildEnvironment();
   scene.environment = env.lighting;
   scene.background = env.background;
@@ -321,6 +338,7 @@ function setTimeOfDay(name) {
   sun.intensity = 2.6 + 0.8 * t;
   applyEnvironment();
   fitSunShadow(sun.shadow.mapSize.x);
+  photoLightingChanged();
   try { localStorage.setItem('hora', name); } catch (e) {}
   document.querySelectorAll('#timeofday button').forEach(b => b.classList.toggle('on', b.dataset.t === name));
 }
@@ -928,6 +946,180 @@ function setQuality(name, byUser = false) {
 document.querySelectorAll('#quality button').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); setQuality(b.dataset.q, true); }));
 document.getElementById('quality').addEventListener('click', e => e.stopPropagation());
 
+/* ==========================================================================
+   8. MODO FOTO (path tracing progresivo con three-gpu-pathtracer)
+   Mientras se camina se ve el render normal. Al quedarse quieto un momento, la
+   imagen se va refinando sola con path tracing; al moverse vuelve al normal.
+   Tecla P: activar/desactivar. Si el navegador no lo soporta, se ignora.
+   ========================================================================== */
+const PHOTO = { stillDelay: 1.5, maxSamples: 600 };
+const photo = {
+  enabled: true, failed: false, ready: false, loading: null,
+  pt: null, ptScene: null, ptSun: null,
+  still: 0, active: false, lastPos: new THREE.Vector3(), lastQuat: new THREE.Quaternion(),
+  el: document.getElementById('photo'), text: document.getElementById('photoText'),
+};
+try { photo.enabled = localStorage.getItem('modoFoto') !== 'no'; } catch (e) {}
+if (new URLSearchParams(location.search).get('foto') === 'no') photo.enabled = false;
+
+// Requisitos mínimos: WebGL2 con render a texturas de punto flotante
+function photoSupported() {
+  return renderer.capabilities.isWebGL2 && renderer.extensions.has('EXT_color_buffer_float');
+}
+
+// El path tracer no entiende InstancedMesh: cada grupo de instancias (reja, barrotes, jazmín) se
+// "despliega" en una sola geometría común. Los colores por instancia pasan a colores de vértice.
+function expandInstanced(o, materialFor) {
+  const g = o.geometry, n = o.count, pos = g.attributes.position, nor = g.attributes.normal, uv = g.attributes.uv;
+  const vc = pos.count, idx = g.index, ic = idx ? idx.count : vc;
+  const P = new Float32Array(n * vc * 3), N = new Float32Array(n * vc * 3), U = new Float32Array(n * vc * 2);
+  const C = o.instanceColor ? new Float32Array(n * vc * 3) : null, I = new Uint32Array(n * ic);
+  const m = new THREE.Matrix4(), nm = new THREE.Matrix3(), v = new THREE.Vector3(), col = new THREE.Color();
+  for (let i = 0; i < n; i++) {
+    o.getMatrixAt(i, m); m.premultiply(o.matrixWorld); nm.getNormalMatrix(m);
+    if (C) o.getColorAt(i, col);
+    for (let j = 0; j < vc; j++) {
+      const k = i * vc + j;
+      v.fromBufferAttribute(pos, j).applyMatrix4(m); P.set([v.x, v.y, v.z], k * 3);
+      v.fromBufferAttribute(nor, j).applyNormalMatrix(nm); N.set([v.x, v.y, v.z], k * 3);
+      if (uv) U.set([uv.getX(j), uv.getY(j)], k * 2);
+      if (C) C.set([col.r, col.g, col.b], k * 3);
+    }
+    for (let k = 0; k < ic; k++) I[i * ic + k] = i * vc + (idx ? idx.getX(k) : k);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(P, 3));
+  geo.setAttribute('normal', new THREE.BufferAttribute(N, 3));
+  geo.setAttribute('uv', new THREE.BufferAttribute(U, 2));
+  if (C) geo.setAttribute('color', new THREE.BufferAttribute(C, 3));
+  geo.setIndex(new THREE.BufferAttribute(I, 1));
+  return new THREE.Mesh(geo, materialFor(o.material, !!C));
+}
+
+// Copia de la escena solo para el path tracer: mismas geometrías y materiales (no se tocan),
+// con las instancias desplegadas, un sol equivalente y el cielo en formato cúbico.
+function buildPathTracingScene() {
+  scene.updateMatrixWorld(true);
+  const pts = new THREE.Scene(), vcMats = new Map();
+  const materialFor = (mat, vertexColors) => {
+    if (!vertexColors) return mat;
+    if (!vcMats.has(mat)) { const c = mat.clone(); c.vertexColors = true; vcMats.set(mat, c); }
+    return vcMats.get(mat);
+  };
+  const add = (m, matrix) => { if (matrix) m.matrix.copy(matrix); m.matrixAutoUpdate = false; pts.add(m); };
+  scene.traverseVisible(o => {
+    if (!o.isMesh) return;                                  // las aristas (líneas) no se trazan
+    if (o.isInstancedMesh) { add(expandInstanced(o, materialFor)); return; }
+    if (!Array.isArray(o.material)) { add(new THREE.Mesh(o.geometry, o.material), o.matrixWorld); return; }
+    // Muros con cara exterior gris (un material por cara): el path tracer no asigna bien los materiales
+    // de estas mallas, así que cada cara va como una malla aparte (misma geometría, mismo material)
+    const g = o.geometry;
+    for (const grp of g.groups) {
+      const part = g.clone();
+      part.clearGroups();
+      const idx = new Uint32Array(grp.count);
+      for (let i = 0; i < grp.count; i++) idx[i] = g.index ? g.index.getX(grp.start + i) : grp.start + i;
+      part.setIndex(new THREE.BufferAttribute(idx, 1));
+      add(new THREE.Mesh(part, o.material[grp.materialIndex]), o.matrixWorld);
+    }
+  });
+  photo.ptSun = new THREE.DirectionalLight();
+  pts.add(photo.ptSun, photo.ptSun.target);
+  syncPhotoLighting(pts);
+  return pts;
+}
+function syncPhotoLighting(pts) {
+  const s = photo.ptSun;
+  s.color.copy(sun.color); s.intensity = sun.intensity;
+  s.position.copy(sun.position); s.target.position.copy(sun.target.position);
+  s.updateMatrixWorld(); s.target.updateMatrixWorld();
+  pts.environment = env.lightingCube.texture;
+  pts.background = env.backgroundCube.texture;
+}
+// Al cambiar la hora del día, el modo foto toma el nuevo sol y el nuevo cielo
+function photoLightingChanged() {
+  if (!photo.ready) return;
+  try {
+    syncPhotoLighting(photo.ptScene);
+    photo.pt.updateEnvironment();
+    photo.pt.updateLights();
+  } catch (e) { photoFail(e); }
+}
+
+function photoFail(err) {
+  console.warn('Modo foto no disponible:', err);
+  photo.failed = true; photo.active = false; photo.ready = false;
+  showPhotoIndicator(null);
+}
+
+// Carga la librería y prepara la escena (una sola vez, la primera vez que hace falta)
+function preparePhoto() {
+  if (photo.loading) return;
+  if (!photoSupported()) { photoFail(new Error('WebGL2 / EXT_color_buffer_float no soportado')); return; }
+  showPhotoIndicator('Modo foto · preparando…');
+  // three 0.160 todavía no tiene la rotación de fondo/entorno que lee el path tracer: sin rotación
+  for (const k of ['backgroundRotation', 'environmentRotation']) {
+    if (!(k in scene)) Object.defineProperty(THREE.Scene.prototype, k, { value: new THREE.Euler(), configurable: true });
+  }
+  photo.loading = import('three-gpu-pathtracer').then(({ WebGLPathTracer }) => new Promise(done => {
+    // un respiro para que se dibuje el indicador antes del cálculo pesado
+    setTimeout(() => {
+      try {
+        const pt = new WebGLPathTracer(renderer);
+        pt.tiles.set(3, 3);              // cada cuadro calcula una parte de la imagen: no traba la compu
+        pt.bounces = 6;
+        pt.filterGlossyFactor = 0.5;     // menos "luciérnagas" en superficies brillantes
+        pt.minSamples = 3;
+        pt.renderDelay = 0;
+        pt.fadeDuration = 700;           // fundido suave desde la vista normal
+        pt.rasterizeSceneCallback = () => renderNormal();
+        photo.ptScene = buildPathTracingScene();
+        pt.setScene(photo.ptScene, camera);
+        photo.pt = pt; photo.ready = true;
+      } catch (e) { photoFail(e); }
+      done();
+    }, 30);
+  })).catch(photoFail);
+}
+
+function showPhotoIndicator(text, done = false) {
+  photo.el.classList.toggle('show', !!text);
+  photo.el.classList.toggle('done', done);
+  if (text) photo.text.textContent = text;
+}
+
+// Se llama en cada cuadro. Devuelve true si este cuadro lo dibujó el modo foto.
+function renderPhoto(dt) {
+  const moved = camera.position.distanceToSquared(photo.lastPos) > 1e-8 || 1 - Math.abs(camera.quaternion.dot(photo.lastQuat)) > 1e-9;
+  photo.lastPos.copy(camera.position); photo.lastQuat.copy(camera.quaternion);
+  if (!photo.enabled || photo.failed || moved || !(controls.isLocked || debug.force)) {
+    photo.still = 0;
+    if (photo.active || photo.el.classList.contains('show')) { photo.active = false; showPhotoIndicator(null); }
+    return false;
+  }
+  photo.still += dt;
+  if (photo.still < PHOTO.stillDelay) return false;
+  if (!photo.ready) { preparePhoto(); return false; }
+  const pt = photo.pt;
+  try {
+    if (!photo.active) { photo.active = true; pt.pausePathTracing = false; pt.updateCamera(); }
+    if (pt.samples >= PHOTO.maxSamples) pt.pausePathTracing = true;   // listo: deja de calcular
+    pt.renderSample();
+  } catch (e) { photoFail(e); return false; }
+  const s = Math.floor(pt.samples);
+  if (s >= PHOTO.maxSamples) showPhotoIndicator('Modo foto · listo', true);
+  else showPhotoIndicator(`Modo foto · refinando ${Math.round(s / PHOTO.maxSamples * 100)}%`);
+  return true;
+}
+
+addEventListener('keydown', e => {
+  if (e.code !== 'KeyP' || e.repeat) return;
+  if (photo.failed) { showNotice('El modo foto no está disponible en este navegador'); return; }
+  photo.enabled = !photo.enabled;
+  try { localStorage.setItem('modoFoto', photo.enabled ? 'si' : 'no'); } catch (err) {}
+  showNotice(photo.enabled ? 'Modo foto activado: quedate sin moverte unos segundos y la imagen se refina' : 'Modo foto desactivado');
+});
+
 // Hora del día: botones del cartel, tecla T (pasa a la siguiente) y ?hora= en la dirección
 (function initTimeOfDay() {
   let t = new URLSearchParams(location.search).get('hora');
@@ -952,7 +1144,8 @@ addEventListener('keydown', e => {
 // Si la compu no da abasto (menos de ~30 cuadros por segundo), baja la calidad sola una vez por nivel
 const perf = { time: 0, frames: 0 };
 function watchPerformance(dt) {
-  if (userChoseQuality || quality === 'baja' || !controls.isLocked) { perf.time = perf.frames = 0; return; }
+  // (con el modo foto activo los cuadros son más lentos a propósito: no cuentan)
+  if (userChoseQuality || quality === 'baja' || !controls.isLocked || photo.active) { perf.time = perf.frames = 0; return; }
   perf.time += dt; perf.frames++;
   if (perf.time < 4) return;
   if (perf.frames / perf.time < 30) {
@@ -962,12 +1155,15 @@ function watchPerformance(dt) {
   perf.time = perf.frames = 0;
 }
 
+function renderNormal() {
+  if (QUALITY[quality].ao) composer.render(); else renderer.render(scene, camera);
+}
 const clock = new THREE.Clock();
 function loop() {
   const rawDt = clock.getDelta(), dt = Math.min(rawDt, 0.05);
   update(dt, controls.isLocked || debug.force);
   updateHud();
-  if (QUALITY[quality].ao) composer.render(); else renderer.render(scene, camera);
+  if (!renderPhoto(rawDt)) renderNormal();
   watchPerformance(rawDt);
   requestAnimationFrame(loop);
 }
@@ -982,7 +1178,7 @@ addEventListener('resize', () => {
 
 // Utilidades para pruebas automáticas (no afectan el uso normal)
 window.__debug = Object.assign(debug, {
-  player, keys, camera, room: () => currentRoom(), setQuality, quality: () => quality, setTimeOfDay, timeOfDay: () => timeOfDay,
+  player, keys, camera, room: () => currentRoom(), photo, setQuality, quality: () => quality, setTimeOfDay, timeOfDay: () => timeOfDay,
   place(x, z, feet = 0, yawDeg = 0) { Object.assign(player, { x, z, feet, vy: 0, eyeY: feet + EYE }); camera.rotation.set(0, yawDeg * Math.PI / 180, 0, 'YXZ'); camera.position.set(x, feet + EYE, -z); },
   simulate(codes, seconds, look) { if (look !== undefined) camera.rotation.set(0, look * Math.PI / 180, 0, 'YXZ'); codes.forEach(c => keys.add(c)); for (let t = 0; t < seconds; t += 1 / 60) update(1 / 60, true); codes.forEach(c => keys.delete(c)); updateHud(); },
 });
