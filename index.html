@@ -44,7 +44,7 @@
 </head>
 <body>
 <div id="hud"><div class="room" id="roomName">Jardín delantero</div><div class="floor" id="floorName">Exterior</div></div>
-<div id="help">Clic para entrar · <b>WASD</b>/flechas: caminar · <b>Shift</b>: correr · <b>Mouse</b>: mirar · <b>T</b>: hora del día · <b>E</b>: portón · <b>Esc</b>: salir</div>
+<div id="help">Clic para entrar · <b>WASD</b>/flechas: caminar · <b>Shift</b>: correr · <b>Mouse</b>: mirar · <b>T</b>: hora del día · <b>E</b>: portón y puerta de vidrio · <b>Esc</b>: salir</div>
 <div id="crosshair"></div>
 <div id="photo"><span class="dot"></span><span id="photoText">Modo foto</span></div>
 <div id="notice"></div>
@@ -53,7 +53,7 @@
     <h1>Recorrido por la casa</h1>
     <p><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> o flechas para caminar</p>
     <p><kbd>Shift</kbd> para correr · mouse para mirar</p>
-    <p><kbd>E</kbd> cerca del portón del garage para abrirlo o cerrarlo</p>
+    <p><kbd>E</kbd> cerca del portón del garage o de la puerta de vidrio del living para abrirlos o cerrarlos</p>
     <p>La escalera está en el living, junto al hall</p>
     <p><kbd>Esc</kbd> para salir</p>
     <div id="timeofday" class="opts">Hora:
@@ -137,7 +137,7 @@ const OPENINGS = [
   // Planta baja
   { lvl: 0, t: 'door',   r: [4.02, 5.04, 5.16, 5.44], ext: 'z0', frame: true },                // puerta de entrada
   { lvl: 0, t: 'window', r: [0.60, 3.12, 5.16, 5.44], sill: 0.9, ext: 'z0' },     // ventana living
-  { lvl: 0, t: 'door',   r: [0.92, 3.33, 9.98, 10.06] },               // living ↔ hall (vano corredizo)
+  { lvl: 0, t: 'door',   r: [0.92, 3.33, 9.98, 10.06], slider: true }, // living ↔ hall/cocina: corredizas de vidrio repartido
   { lvl: 0, t: 'wall',   r: [0.92, 1.35, 12.14, 12.28] },
   { lvl: 0, t: 'door',   r: [1.35, 2.33, 12.14, 12.28] },              // baño PB
   { lvl: 0, t: 'door',   r: [5.38, 5.52, 13.37, 14.19] },              // cocina ↔ garage
@@ -625,6 +625,12 @@ const F = {
   leaf: std(0xffffff, 0.55, { side: THREE.DoubleSide, normalMap: NRM.veneer, normalScale: v2(0.25) }),
   stem: std(0x5c6b38, 0.8),
   carBody: std(0xf3f3f1, 0.18, { metalness: 0.1 }), carGlass: std(0x1d2226, 0.08, { metalness: 0.3 }), tire: std(0x1b1b1c, 0.9),
+  bordo: std(0x5e2129, 0.55, { normalMap: NRM.veneer, normalScale: v2(0.06) }),                       // biblioteca bordó (laqueado satinado)
+  sageFrame: std(0xa2b29c, 0.45),                                                                       // marcos verde salvia (puertas living/cocina)
+  millwork: std(0xece5d8, 0.6),                                                                         // boiserie, banco y alacenas de la entrada
+  screen: std(0x08090a, 0.12, { metalness: 0.2 }),                                                      // pantalla de la tele
+  book: std(0xffffff, 0.8, { normalMap: NRM.fabric, normalScale: v2(0.3) }),                            // libros (color por instancia)
+  vaseOlive: std(0x8a8a3c, 0.25), creamCeramic: std(0xefe8db, 0.3),                                         // jarrones
 };
 // Pantallas de lámpara: dejan pasar la luz (brillan desde adentro) y no tapan la luz que tienen adentro
 const glow = (color, emissive, k, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.9, emissive, emissiveIntensity: k, side: THREE.DoubleSide, ...extra });
@@ -772,6 +778,58 @@ function updateGarageDoor(dt) {
   if (++garageShadowFrame % 4 === 0 || G.open === G.target) renderer.shadowMap.needsUpdate = true;
 }
 
+// Puertas corredizas living ↔ hall/cocina: vidrio repartido con marco verde salvia y zócalo ciego abajo.
+// Dos hojas dentro del espesor del muro: la del lado del hall queda fija a la izquierda y la del lado del
+// living corre por delante de ella (abierta, quedan superpuestas). Se abren y cierran con E.
+const SLIDER = { speed: 0.8, open: 0, target: 0, leaf: null, collider: null };
+function glassLeaf(w, h) {
+  const g = new THREE.Group(), f = 0.045, m = 0.028, t = 0.03, P = 0.62, R = 1.02;   // P: zócalo ciego, R: travesaño
+  const o = { r: 0.006, seg: 1, parent: g };
+  rbox(-w / 2, -w / 2 + f, -t / 2, t / 2, 0, h, F.sageFrame, o);                      // parantes
+  rbox(w / 2 - f, w / 2, -t / 2, t / 2, 0, h, F.sageFrame, o);
+  rbox(-w / 2 + f, w / 2 - f, -t / 2, t / 2, h - f, h, F.sageFrame, o);               // cabezal
+  rbox(-w / 2 + f, w / 2 - f, -t / 2, t / 2, 0, P, F.sageFrame, o);                   // zócalo ciego
+  for (const s of [-1, 1]) rbox(-w / 2 + f + 0.03, w / 2 - f - 0.03, s * t / 2 - 0.004, s * t / 2 + 0.004, 0.09, P - 0.06, F.sageFrame, o);   // moldura del panel
+  rbox(-w / 2 + f, w / 2 - f, -t / 2, t / 2, R, R + m, F.sageFrame, o);               // travesaño
+  rbox(-m / 2, m / 2, -t / 2, t / 2, P, h - f, F.sageFrame, o);                       // parante central
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(w - 2 * f, h - f - P, 0.008), M.glass);
+  glass.position.y = (P + h - f) / 2; g.add(glass);
+  return g;
+}
+function slidingDoors([x0, x1, z0, z1], yb, yt) {
+  const S = SLIDER, w = (x1 - x0) / 2 + 0.03, top = yt - 0.035;
+  rbox(x0, x1, z0, z1, top, yt, F.sageFrame, { r: 0.004 });                           // riel superior
+  const fixed = glassLeaf(w, top - yb - 0.008);                                       // hoja fija (lado hall)
+  fixed.position.set(x0 + w / 2, yb + 0.004, -(z1 - 0.02)); scene.add(fixed);
+  colliders.push({ x0, x1: x0 + w, z0: z1 - 0.04, z1, y0: yb, y1: top });
+  S.leaf = glassLeaf(w, top - yb - 0.008); scene.add(S.leaf);                        // hoja corrediza (lado living)
+  Object.assign(S, { w, yb: yb + 0.004, zc: z0 + 0.02, xClosed: x1 - w / 2, xOpen: x0 + w / 2 + 0.06, xm: (x0 + x1) / 2, zm: (z0 + z1) / 2 });
+  S.collider = { x0: 0, x1: 0, z0, z1: z0 + 0.04, y0: yb, y1: top };
+  colliders.push(S.collider);
+  placeSlider();
+}
+function placeSlider() {
+  const S = SLIDER, x = S.xClosed + (S.xOpen - S.xClosed) * S.open;
+  S.leaf.position.set(x, S.yb, -S.zc);
+  S.collider.x0 = x - S.w / 2; S.collider.x1 = x + S.w / 2;
+}
+function toggleSlider() {
+  const S = SLIDER;
+  if (!(player.feet < 1 && Math.abs(player.x - S.xm) < 2.0 && Math.abs(player.z - S.zm) < 1.8)) return false;
+  S.target = S.target > 0 ? 0 : 1;
+  return true;
+}
+let sliderShadowFrame = 0;
+function updateSlider(dt) {
+  const S = SLIDER;
+  if (S.open === S.target) return;
+  const step = S.speed * dt;
+  S.open = Math.abs(S.target - S.open) <= step ? S.target : S.open + Math.sign(S.target - S.open) * step;
+  placeSlider();
+  if (++sliderShadowFrame % 4 === 0) renderer.shadowMap.needsUpdate = true;
+  if (S.open === S.target) refreshShadows();
+}
+
 function buildWalls() {
   // PB: paredes hasta 2,80 (cubren el canto de la losa); PA: de 2,80 a 5,40
   for (const [x0, x1, z0, z1, ext] of PB_WALLS) box(x0, x1, z0, z1, 0, PA_Y, M.wall, true, ext);
@@ -791,6 +849,8 @@ function buildWalls() {
     } else if (o.garage) {
       frameOpening(o.r, base, head, { sill: false });
       garageDoor(o.r, base, head);
+    } else if (o.slider) {
+      slidingDoors(o.r, base, head);
     } else if (o.frame) {
       frameOpening(o.r, base, head, { sill: false });
       if (o.leaf) {                                                     // puerta-ventana: hoja fija de vidrio en una mitad
@@ -983,21 +1043,108 @@ function wardrobe(rect, front, y0, h, style = 'wood') {
 }
 
 // Sillón curvo del living (terracota): base, almohadón de asiento y respaldo envolvente
-function curvedSofa(cx, cz, a0, a1) {
+// (cx, cz) = centro del arco (donde va la mesa ratona); el asiento mira hacia ese centro. k escala los radios.
+function curvedSofa(cx, cz, a0, a1, k = 1) {
   const g = new THREE.Group(); scene.add(g);
-  sectorMesh(cx, cz, 0.95, 1.80, a0, a1, 0.09, 0.40, F.sofa, 0.04, g);       // base
-  sectorMesh(cx, cz, 0.97, 1.58, a0 + 0.02, a1 - 0.02, 0.38, 0.50, F.sofa, 0.045, g);  // almohadón
-  sectorMesh(cx, cz, 1.52, 1.82, a0, a1, 0.09, 0.80, F.sofa, 0.07, g);       // respaldo
-  for (const t of [0.04, 0.5, 0.96]) for (const r of [1.05, 1.70]) {         // patitas de madera
+  sectorMesh(cx, cz, 0.95 * k, 1.80 * k, a0, a1, 0.09, 0.40, F.sofa, 0.04, g);       // base
+  sectorMesh(cx, cz, 0.97 * k, 1.58 * k, a0 + 0.02, a1 - 0.02, 0.38, 0.50, F.sofa, 0.045, g);  // almohadón
+  sectorMesh(cx, cz, 1.52 * k, 1.82 * k, a0, a1, 0.09, 0.80, F.sofa, 0.07, g);       // respaldo
+  for (const t of [0.04, 0.5, 0.96]) for (const r of [1.05 * k, 1.70 * k]) {         // patitas de madera
     const a = a0 + (a1 - a0) * t, p = W(cx + Math.cos(a) * r, 0, cz + Math.sin(a) * r);
     rod(p, p.clone().setY(0.1), 0.02, F.veneer, g);
   }
   // colisión: varias cajas chicas a lo largo del arco
-  for (let i = 0; i < 8; i++) {
-    const a = a0 + (a1 - a0) * (i + 0.5) / 8, rm = 1.38, x = cx + Math.cos(a) * rm, z = cz + Math.sin(a) * rm;
-    colliders.push({ x0: x - 0.4, x1: x + 0.4, z0: z - 0.4, z1: z + 0.4, y0: 0, y1: 0.8 });
+  const n = 10, rm = 1.38 * k, hw = 0.36 * k;
+  for (let i = 0; i < n; i++) {
+    const a = a0 + (a1 - a0) * (i + 0.5) / n, x = cx + Math.cos(a) * rm, z = cz + Math.sin(a) * rm;
+    colliders.push({ x0: x - hw, x1: x + hw, z0: z - hw, z1: z + hw, y0: 0, y1: 0.8 });
   }
   return g;
+}
+
+// Jarrón / jarra de cerámica (sólido de revolución): cuerpo panzón y cuello angosto
+function vase(x, z, y, h, r, mat) {
+  const prof = [[0, 0], [r * 0.6, 0], [r * 0.95, h * 0.25], [r, h * 0.42], [r * 0.7, h * 0.7], [r * 0.38, h * 0.85], [r * 0.45, h], [r * 0.38, h], [0, h * 0.8]];
+  return mesh(new THREE.LatheGeometry(prof.map(([a, b]) => new THREE.Vector2(a, b)), 28), mat, scene, x, y, -z);
+}
+// Libros parados en un estante: [z0, z1, y] = tramo y altura del estante; el lomo mira a +x (al living)
+const BOOK_COLORS = [0xe9dfcc, 0xc9805e, 0xb6524a, 0xd9b7a5, 0x6f7448, 0x2f3b4a, 0xd8a64a, 0xf3efe6, 0x8c3b3b, 0xa9b4a0];
+function shelfBooks(rows, front) {
+  const rnd = seeded(77), list = [];
+  for (const [z0, z1, y] of rows) {
+    for (let z = z0; z < z1;) {
+      const tk = 0.02 + rnd() * 0.025, h = 0.17 + rnd() * 0.11, d = 0.14 + rnd() * 0.07;
+      if (z + tk > z1) break;
+      list.push([front - 0.02 - d / 2, y + h / 2, z + tk / 2, d, h, tk]);
+      z += tk + 0.002;
+    }
+  }
+  const inst = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), F.book, list.length), mtx = new THREE.Matrix4(), col = new THREE.Color();
+  const q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3();
+  list.forEach(([x, y, z, d, h, tk], i) => {
+    inst.setMatrixAt(i, mtx.compose(p.set(x, y, -z), q, s.set(d, h, tk)));
+    inst.setColorAt(i, col.setHex(BOOK_COLORS[Math.floor(rnd() * BOOK_COLORS.length)]));
+  });
+  scene.add(inst);
+}
+
+// Biblioteca bordó de piso a techo contra la pared izquierda del living (x = 0, mirando desde la entrada):
+// módulos cerrados abajo, estantes abiertos arriba y la tele empotrada en el módulo del centro.
+function bookcase() {
+  const D = 0.38, DB = 0.42, Z0 = 5.44, Z1 = 9.98, YB = 0.62, TOP = H_WALL, t = 0.025;
+  const COLS = [5.44, 6.20, 6.96, 8.46, 9.22, 9.98];                // columnas: 2 + centro (tele) + 2
+  // módulos cerrados abajo (push, sin tiradores), con zócalo retirado
+  rbox(0, DB - 0.05, Z0, Z1, 0, 0.08, F.plinth, { r: 0.004 });
+  rbox(0, DB, Z0, Z1, 0.08, YB, F.bordo, { r: 0.006 });
+  for (const z of [6.20, 6.96, 7.71, 8.46, 9.22]) box(DB - 0.002, DB + 0.0012, z - 0.0015, z + 0.0015, 0.084, YB - 0.004, F.seam, false);
+  // estantería abierta: fondo, divisiones verticales, techo y estantes
+  rbox(0, 0.02, Z0, Z1, YB, TOP, F.bordo, { r: 0.002, seg: 1 });
+  for (const z of COLS) rbox(0, D, Math.max(Z0, z - t / 2), Math.min(Z1, z + t / 2), YB, TOP, F.bordo, { r: 0.004 });
+  rbox(0, D, Z0, Z1, TOP - 0.03, TOP, F.bordo, { r: 0.004 });
+  const SHELVES = [[1.08, 1.56, 2.08], [1.30, 1.85], [1.85, 2.22], [1.30, 1.85], [1.25, 1.75, 2.18]];
+  SHELVES.forEach((ys, c) => { for (const y of ys) rbox(0.02, D, COLS[c] + t / 2, COLS[c + 1] - t / 2, y - 0.025, y, F.bordo, { r: 0.004 }); });
+  // tele empotrada en el centro: marco negro fino y pantalla
+  const [tz0, tz1, ty0, ty1] = [7.10, 8.32, 0.93, 1.62];
+  rbox(0.02, 0.055, tz0, tz1, ty0, ty1, F.black, { r: 0.004 });
+  box(0.054, 0.0555, tz0 + 0.008, tz1 - 0.008, ty0 + 0.008, ty1 - 0.008, F.screen, false);
+  colliders.push({ x0: 0, x1: DB, z0: Z0, z1: Z1, y0: 0, y1: TOP });
+  // objetos: libros, jarrones, un cuadrito, una planta chica y un velador
+  shelfBooks([[5.47, 5.93, 1.56], [6.23, 6.66, YB], [8.49, 8.88, 1.85], [9.52, 9.95, 1.75], [6.99, 7.42, 2.22], [8.05, 8.43, 2.22]], D);
+  vase(0.19, 5.84, 1.08, 0.30, 0.09, F.vaseOlive);
+  vase(0.19, 8.85, YB, 0.24, 0.08, F.creamCeramic);
+  vase(0.17, 9.60, 2.18, 0.16, 0.06, F.pot);
+  vase(0.17, 7.90, 1.85, 0.20, 0.07, F.creamCeramic);
+  rbox(0.05, 0.075, 8.62, 9.02, 1.30, 1.62, F.veneerLight, { r: 0.004 });          // cuadrito apoyado
+  rbox(0.074, 0.077, 8.65, 8.99, 1.33, 1.59, F.rose, { r: 0.001, seg: 1 });
+  plant('small', 0.19, 6.58, { y: 1.30, h: 0.32, seed: 41, pot: F.potLight });
+  tableLamp(0.2, 9.6, YB);
+}
+
+// Entrada (mud room) contra la pared derecha al entrar (x = 5,24), entre la puerta y la caja de la escalera:
+// banco empotrado con cajones, boiserie de listones verticales, ganchos y alacenas altas lisas.
+function mudroom() {
+  const X1 = 5.24, Z0 = 5.80, Z1 = 7.86, SEAT = 0.46, UP = 2.0;
+  // banco
+  rbox(X1 - 0.37, X1, Z0, Z1, 0, 0.08, F.plinth, { r: 0.004 });
+  rbox(X1 - 0.42, X1, Z0, Z1, 0.08, SEAT - 0.035, F.millwork, { r: 0.006 });
+  doorSeams([X1 - 0.42, X1, Z0, Z1], 'x0', 0.08, SEAT - 0.035, 0.52);
+  rbox(X1 - 0.44, X1, Z0, Z1, SEAT - 0.035, SEAT, F.millwork, { r: 0.008 });
+  colliders.push({ x0: X1 - 0.44, x1: X1, z0: Z0, z1: Z1, y0: 0, y1: SEAT });
+  // boiserie: panel de fondo + listones verticales redondeados (una sola malla instanciada)
+  rbox(X1 - 0.012, X1, Z0, Z1, SEAT, UP, F.millwork, { r: 0.002, seg: 1 });
+  const pitch = 0.04, n = Math.floor((Z1 - Z0) / pitch);
+  const slats = new THREE.InstancedMesh(new RoundedBoxGeometry(0.016, UP - SEAT, 0.03, 2, 0.007), F.millwork, n), mtx = new THREE.Matrix4();
+  for (let i = 0; i < n; i++) slats.setMatrixAt(i, mtx.makeTranslation(X1 - 0.02, (SEAT + UP) / 2, -(Z0 + pitch / 2 + i * pitch)));
+  scene.add(slats);
+  // ganchos negros finos
+  for (let i = 0; i < 5; i++) {
+    const z = Z0 + 0.3 + i * (Z1 - Z0 - 0.6) / 4;
+    rod(W(X1 - 0.028, 1.62, z), W(X1 - 0.085, 1.62, z), 0.006, F.black, scene, 6);
+    rod(W(X1 - 0.085, 1.615, z), W(X1 - 0.085, 1.67, z), 0.006, F.black, scene, 6);
+  }
+  // alacenas altas lisas hasta el techo
+  rbox(X1 - 0.36, X1, Z0, Z1, UP, H_WALL - 0.002, F.millwork, { r: 0.006 });
+  doorSeams([X1 - 0.36, X1, Z0, Z1], 'x0', UP, H_WALL - 0.002, 0.52);
 }
 function roundTable(x, z, R, H, mat = F.veneer, parent = scene) {
   const g = new THREE.Group(); g.position.copy(W(x, 0, z)); parent.add(g);
@@ -1201,20 +1348,25 @@ function modelSlot(ids, fallback, { x, z, y = 0, w, d, h, rotY = 0, fit = 'heigh
 function buildFurniture() {
   const Y = PA_Y;
   // --- Planta baja ---
-  // Living: sillón curvo terracota envolviendo la mesa ratona, alfombra y colgante de papel plisado
-  const LC = [2.05, 7.05];
-  curvedSofa(LC[0], LC[1], Math.PI - 0.88, Math.PI + 0.88);
-  const rug = rbox(LC[0] - 0.95, LC[0] + 1.05, LC[1] - 1.2, LC[1] + 1.2, 0.006, 0.018, F.rug, { r: 0.006 });
+  // Living: biblioteca bordó con la tele contra la pared izquierda (x = 0). El sillón curvo terracota mira
+  // a la tele, así que al entrar por la puerta se lo ve de espaldas. Alfombra y colgante de papel plisado.
+  bookcase();
+  const LC = [1.70, 7.60];                                       // centro del arco del sillón = mesa ratona
+  curvedSofa(LC[0], LC[1], -0.78, 0.78, 0.86);                   // respaldo hacia la entrada, deja libre el paso bajo la escalera
+  const RW = 2.3, RD = 2.4;
+  const rug = rbox(LC[0] - 1.15, LC[0] + 1.15, LC[1] - 1.2, LC[1] + 1.2, 0.006, 0.018, F.rug, { r: 0.006 });
   { const uv = rug.geometry.attributes.uv, p = rug.geometry.attributes.position;          // la alfombra lleva el dibujo entero
-    for (let i = 0; i < uv.count; i++) uv.setXY(i, p.getX(i) / 2 + 0.5, p.getZ(i) / 2.4 + 0.5); }
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, p.getX(i) / RW + 0.5, p.getZ(i) / RD + 0.5); }
   modelSlot(['coffee_table_round_01'], roundTable(LC[0], LC[1], 0.42, 0.38),
     { x: LC[0], z: LC[1], w: 0.84, d: 0.84, h: 0.38, fit: 'stretch' });
   modelSlot(['potted_plant_02'], plant('small', LC[0] + 0.12, LC[1] - 0.1, { y: 0.38, h: 0.3, seed: 5, pot: F.potDark }),
     { x: LC[0] + 0.12, z: LC[1] - 0.1, y: 0.38, h: 0.3 });
   paperPendant(LC[0], LC[1], 1.72, H_WALL);
-  // Plantas del living: ficus junto a la ventana y una mata frondosa en el rincón del fondo
+  // Plantas del living: ficus junto a la ventana y una mata frondosa entre la biblioteca y la ventana
   modelSlot(['pachira_aquatica_01'], plant('ficus', 3.58, 5.82, { h: 1.65, seed: 11 }), { x: 3.58, z: 5.82, h: 1.65, variant: 'b' });
-  modelSlot(['potted_plant_01', 'calathea_orbifolia_01'], plant('bush', 0.42, 9.55, { h: 0.95, seed: 12, pot: F.pot }), { x: 0.42, z: 9.55, h: 0.95, variant: 'b' });
+  modelSlot(['potted_plant_01', 'calathea_orbifolia_01'], plant('bush', 0.78, 5.80, { h: 0.95, seed: 12, pot: F.pot }), { x: 0.78, z: 5.80, h: 0.95, variant: 'b' });
+  // Entrada: banco, boiserie, ganchos y alacenas sobre la pared derecha
+  mudroom();
 
   // Hall: placar y mesada con pileta
   wardrobe([0, 0.83, 10.06, 12.12], 'x1', 0, 2.4);
@@ -1764,8 +1916,9 @@ function showNotice(text) {
 }
 addEventListener('keydown', e => {
   if (e.code !== 'KeyE' || e.repeat || !(controls.isLocked || debug.force)) return;
-  if (toggleGarageDoor()) showNotice(GARAGE.target > 0 ? 'Abriendo el portón' : 'Cerrando el portón');
-  else showNotice('Acercate al portón del garage para abrirlo o cerrarlo');
+  if (toggleSlider()) showNotice(SLIDER.target > 0 ? 'Abriendo la puerta corrediza' : 'Cerrando la puerta corrediza');
+  else if (toggleGarageDoor()) showNotice(GARAGE.target > 0 ? 'Abriendo el portón' : 'Cerrando el portón');
+  else showNotice('Acercate al portón del garage o a la puerta de vidrio del living para abrirlos o cerrarlos');
 });
 addEventListener('keydown', e => {
   if (e.code !== 'KeyT' || e.repeat) return;
@@ -1797,6 +1950,7 @@ function loop() {
   const rawDt = clock.getDelta(), dt = Math.min(rawDt, 0.05);
   update(dt, controls.isLocked || debug.force);
   updateGarageDoor(dt);
+  updateSlider(dt);
   updateHud();
   if (!renderPhoto(rawDt)) renderNormal();
   watchPerformance(rawDt);
@@ -1813,7 +1967,7 @@ addEventListener('resize', () => {
 
 // Utilidades para pruebas automáticas (no afectan el uso normal)
 window.__debug = Object.assign(debug, {
-  player, keys, camera, room: () => currentRoom(), photo, garage: GARAGE, toggleGarageDoor, updateGarageDoor, setQuality, quality: () => quality, setTimeOfDay, timeOfDay: () => timeOfDay,
+  player, keys, camera, room: () => currentRoom(), photo, garage: GARAGE, toggleGarageDoor, updateGarageDoor, slider: SLIDER, toggleSlider, updateSlider, setQuality, quality: () => quality, setTimeOfDay, timeOfDay: () => timeOfDay,
   place(x, z, feet = 0, yawDeg = 0) { Object.assign(player, { x, z, feet, vy: 0, eyeY: feet + EYE }); camera.rotation.set(0, yawDeg * Math.PI / 180, 0, 'YXZ'); camera.position.set(x, feet + EYE, -z); },
   simulate(codes, seconds, look) { if (look !== undefined) camera.rotation.set(0, look * Math.PI / 180, 0, 'YXZ'); codes.forEach(c => keys.add(c)); for (let t = 0; t < seconds; t += 1 / 60) update(1 / 60, true); codes.forEach(c => keys.delete(c)); updateHud(); },
 });
