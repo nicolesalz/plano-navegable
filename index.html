@@ -105,7 +105,7 @@ const LOT_D = GALERIA_Z[1] + 20.1;   // patio trasero de 20,1 detrás de la gale
 // Muros [x0, x1, z0, z1, caras exteriores] medidos a escala desde plano.pdf.
 // Caras exteriores (revoque pintado crema): 'z0' = hacia el frente, 'z1' = hacia el fondo, 'x0' = izquierda, 'x1' = derecha.
 const PB_WALLS = [
-  [0, 1.07, 17.37, 17.57, 'z1'], [3.24, 5.88, 17.40, 17.54, 'z1'], [8.06, 8.40, 17.40, 17.54, 'z1'], // fondo (a galería)
+  [0, 1.07, 17.37, 17.57, 'z1'], [3.24, 3.515, 17.40, 17.54, 'z1'], [5.015, 5.88, 17.40, 17.54, 'z1'], [8.06, 8.40, 17.40, 17.54, 'z1'], // fondo (a galería)
   [5.38, 5.52, 14.19, 17.40], [5.38, 5.52, 7.86, 13.37], [5.38, 5.52, 5.16, 7.86, 'x1,z0'],          // cocina/hall | garage
   [0, 2.66, 13.09, 13.37], [2.49, 2.63, 12.14, 13.09],                              // baño PB
   [0, 0.92, 12.14, 12.28], [2.33, 2.49, 12.14, 12.26],
@@ -133,6 +133,7 @@ const PA_WALLS = [
 
 // Aberturas en los huecos de los muros. door: dintel arriba. window: antepecho + vidrio + dintel.
 // ext: cara(s) que dan afuera (revoque crema). frame: marco blanco fino en puertas. leaf: hoja de vidrio fija.
+// fixed: ventana de paño fijo (un solo vidrio, no se abre).
 const OPENINGS = [
   // Planta baja
   { lvl: 0, t: 'door',   r: [4.02, 5.04, 5.16, 5.44], ext: 'z0', frame: true },                // puerta de entrada
@@ -142,6 +143,7 @@ const OPENINGS = [
   { lvl: 0, t: 'door',   r: [1.35, 2.33, 12.14, 12.28] },              // baño PB
   { lvl: 0, t: 'door',   r: [5.38, 5.52, 13.37, 14.19] },              // cocina ↔ garage
   { lvl: 0, t: 'door',   r: [1.07, 3.24, 17.40, 17.54], ext: 'z1', frame: true, leaf: true },              // puerta-ventana a galería
+  { lvl: 0, t: 'window', r: [3.515, 5.015, 17.40, 17.54], sill: 0.8, head: 2.3, ext: 'z1', fixed: true }, // paño fijo 1,50 x 1,50 centrado sobre la mesa del comedor diario
   { lvl: 0, t: 'window', r: [5.88, 8.06, 17.40, 17.54], sill: 0.9, ext: 'z1' },   // ventana garage
   { lvl: 0, t: 'door',   r: [5.72, 8.21, 7.86, 8.16], head: 2.2, ext: 'z0', garage: true },     // portón garage (seccional blanco, cerrado)
   // Planta alta
@@ -615,6 +617,10 @@ const F = {
   seam: std(0x2a1d12, 0.9),
   white: std(0xf4f2ec, 0.4),
   ceramic: std(0xffffff, 0.1),                                                                          // loza blanca
+  steelIn: std(0xa9adb1, 0.35, { metalness: 1 }),                                                       // interior de la bacha
+  graphite: std(0x2c2e30, 0.35, { metalness: 0.4 }),                                                    // horno grafito
+  ovenGlass: std(0x0b0c0d, 0.06, { metalness: 0.3 }),
+  ring: std(0x6b6e70, 0.5),                                                                             // marcas del anafe
   rattan: std(0xffffff, 0.8, { map: rattanTex, normalMap: NRM.rattan, normalScale: v2(1) }),
   sofa: fabric(0xb0603d),                                     // terracota/óxido
   beige: fabric(0xcbb89c), duvet: fabric(0xeee8dc), pillow: fabric(0xf6f3ee),
@@ -845,7 +851,7 @@ function buildWalls() {
       const sill = base + o.sill;
       box(x0, x1, z0, z1, base, sill, M.wall, true, o.ext);             // antepecho
       glassPane(o.r, sill, head);
-      frameOpening(o.r, sill, head, { mullion: (x1 - x0) > 1.2 });
+      frameOpening(o.r, sill, head, { mullion: !o.fixed && (x1 - x0) > 1.2 });   // paño fijo: un solo vidrio, sin parante
     } else if (o.garage) {
       frameOpening(o.r, base, head, { sill: false });
       garageDoor(o.r, base, head);
@@ -1225,6 +1231,92 @@ function car([x0, x1, z0, z1]) {
   colliders.push({ x0, x1, z0, z1, y0: 0, y1: 1.45 });
 }
 
+// ---- Cocina ----
+// Buña fina sobre el frente (x = xf) de un mueble contra la pared izquierda: vertical en z o horizontal en y
+const seamZ = (xf, z, y0, y1) => box(xf - 0.0012, xf + 0.0012, z - 0.0015, z + 0.0015, y0, y1, F.seam, false);
+const seamY = (xf, z0, z1, y) => box(xf - 0.0012, xf + 0.0012, z0, z1, y - 0.0015, y + 0.0015, F.seam, false);
+const knob = (xf, z, y) => rbox(xf, xf + 0.022, z - 0.011, z + 0.011, y - 0.011, y + 0.011, F.steel, { r: 0.009 });   // perilla chica
+
+// Módulo de estantes abiertos en madera miel, sobre la mesada y hasta el techo (pared izquierda, z 15,60 → 16,10)
+function kitchenShelves() {
+  const Z0 = 15.60, Z1 = 16.10, D = 0.62, YB = 0.9, t = 0.025;
+  const o = { r: 0.004, uv: 1 };
+  rbox(0, 0.02, Z0, Z1, YB, H_WALL, F.veneer, o);                       // fondo
+  rbox(0, D, Z0, Z0 + t, YB, H_WALL, F.veneer, o);                      // costado (el otro es la columna)
+  rbox(0, D, Z0 + t, Z1, H_WALL - 0.03, H_WALL, F.veneer, o);           // techo
+  for (const y of [1.42, 1.86, 2.24]) rbox(0.02, D - 0.02, Z0 + t, Z1, y - 0.025, y, F.veneer, o);
+  // platos, tazas, libros de cocina y un frasco
+  for (let i = 0; i < 4; i++) mesh(new THREE.CylinderGeometry(0.115, 0.09, 0.018, 32), F.creamCeramic, scene, 0.3, 1.42 + 0.009 + i * 0.019, -15.82);
+  for (const z of [15.74, 15.93]) mesh(new THREE.CylinderGeometry(0.042, 0.036, 0.09, 24), F.creamCeramic, scene, 0.34, 1.86 + 0.045, -z);
+  shelfBooks([[15.64, 15.96, 2.24]], D - 0.04);
+  vase(0.28, 15.88, YB, 0.22, 0.07, F.vaseOlive);
+}
+
+// Columna de alacenas de piso a techo (pared izquierda, z 16,10 → 17,37): dos módulos de 63 cm en madera miel,
+// veta vertical y perillas chicas; horno grafito empotrado a la altura de la mano en el módulo junto a los estantes.
+function tallColumn() {
+  const Z0 = 16.10, Z1 = 17.37, ZM = (Z0 + Z1) / 2, D = 0.62, YT = 2.05;
+  rbox(0, D - 0.06, Z0, Z1, 0, 0.1, F.plinth, { r: 0.004 });
+  rbox(0, D, Z0, Z1, 0.1, H_WALL, F.veneer, { r: 0.006, uv: 1 });
+  seamZ(D, ZM, 0.1, H_WALL);
+  seamY(D, Z0, Z1, YT);                                                  // alacenas de arriba
+  // horno: frente grafito, vidrio oscuro, manija y una franja de controles
+  const [o0, o1, oy0, oy1] = [Z0 + 0.03, ZM - 0.03, 0.86, 1.46];
+  seamY(D, Z0, ZM, oy0 - 0.005); seamY(D, Z0, ZM, oy1 + 0.005);
+  rbox(D - 0.006, D + 0.014, o0, o1, oy0, oy1, F.graphite, { r: 0.006 });
+  rbox(D + 0.012, D + 0.017, o0 + 0.05, o1 - 0.05, oy0 + 0.07, oy1 - 0.15, F.ovenGlass, { r: 0.004, seg: 1 });
+  rbox(D + 0.012, D + 0.016, o0 + 0.2, o1 - 0.2, oy1 - 0.08, oy1 - 0.05, F.ovenGlass, { r: 0.002, seg: 1 });
+  rod(W(D + 0.045, oy1 - 0.11, o0 + 0.06), W(D + 0.045, oy1 - 0.11, o1 - 0.06), 0.008, F.steel, scene, 12);
+  for (const z of [o0 + 0.06, o1 - 0.06]) rod(W(D + 0.014, oy1 - 0.11, z), W(D + 0.045, oy1 - 0.11, z), 0.006, F.steel, scene, 8);
+  // perillas junto a la buña central
+  knob(D, ZM - 0.05, 0.75); knob(D, ZM - 0.05, 1.58);
+  knob(D, ZM + 0.05, 1.05); knob(D, ZM + 0.05, YT + 0.1);
+  colliders.push({ x0: 0, x1: D, z0: Z0, z1: Z1, y0: 0, y1: H_WALL });
+}
+
+// Isla: base verde muy oscuro con frentes lisos, costado (hacia la galería) de estantes abiertos en madera,
+// mesada de piedra clara y bacha de acero bajo mesada con grifería de acero (del lado de los bancos).
+function kitchenIsland() {
+  const X0 = 1.56, X1 = 2.60, XB = 2.33, Z0 = 14.3, Z1 = 15.6, ZS = 15.26, TOP = 0.9, T = 0.03;
+  const [sx0, sx1, sz0, sz1] = [1.72, 2.12, 14.55, 15.08], scz = (sz0 + sz1) / 2;   // hueco de la bacha
+  const st = { r: 0.01, uv: 1 };
+  // mesada en cuatro piezas alrededor del hueco (las de los extremos se solapan para no marcar junta)
+  rbox(X0, sx0, Z0, Z1, TOP - T, TOP, F.stone, st);
+  rbox(sx1, X1, Z0, Z1, TOP - T, TOP, F.stone, st);
+  rbox(sx0 - 0.02, sx1 + 0.02, Z0, sz0, TOP - T, TOP, F.stone, st);
+  rbox(sx0 - 0.02, sx1 + 0.02, sz1, Z1, TOP - T, TOP, F.stone, st);
+  // bacha: fondo y paredes de acero, desagüe
+  const BOT = 0.68;
+  rbox(sx0, sx1, sz0, sz1, BOT, BOT + 0.01, F.steelIn, { r: 0.004, seg: 1 });
+  box(sx0, sx0 + 0.006, sz0, sz1, BOT, TOP - 0.025, F.steelIn, false);
+  box(sx1 - 0.006, sx1, sz0, sz1, BOT, TOP - 0.025, F.steelIn, false);
+  box(sx0, sx1, sz0, sz0 + 0.006, BOT, TOP - 0.025, F.steelIn, false);
+  box(sx0, sx1, sz1 - 0.006, sz1, BOT, TOP - 0.025, F.steelIn, false);
+  const drain = mesh(new THREE.CircleGeometry(0.035, 24), F.steel, scene, (sx0 + sx1) / 2, BOT + 0.0105, -scz); drain.rotation.x = -Math.PI / 2;
+  const hole = mesh(new THREE.RingGeometry(0.012, 0.03, 24), F.black, scene, (sx0 + sx1) / 2, BOT + 0.011, -scz); hole.rotation.x = -Math.PI / 2;
+  // grifería de acero: caño alto en arco, detrás de la bacha, con monocomando al costado
+  const fx = 2.24, R = 0.11, fy = 1.25;
+  mesh(new THREE.CylinderGeometry(0.026, 0.028, 0.012, 24), F.steel, scene, fx, TOP + 0.006, -scz);
+  rod(W(fx, TOP, scz), W(fx, fy, scz), 0.013, F.steel, scene, 16);
+  mesh(new THREE.TorusGeometry(R, 0.012, 10, 28, Math.PI), F.steel, scene, fx - R, fy, -scz);
+  rod(W(fx - 2 * R, fy, scz), W(fx - 2 * R, fy - 0.07, scz), 0.012, F.steel, scene, 16);
+  rod(W(fx, 1.04, scz), W(fx + 0.01, 1.06, scz + 0.08), 0.007, F.steel, scene, 10);
+  // base verde: abajo entera, arriba alrededor de la bacha
+  rbox(X0 + 0.04, XB - 0.05, Z0 + 0.04, ZS - 0.04, 0, 0.1, F.plinth, { r: 0.004 });
+  rbox(X0, XB, Z0, ZS, 0.1, 0.66, F.green, { r: 0.006 });
+  const g = { r: 0.002 };
+  rbox(X0, sx0, Z0, ZS, 0.66, TOP - T, F.green, g); rbox(sx1, XB, Z0, ZS, 0.66, TOP - T, F.green, g);
+  rbox(sx0, sx1, Z0, sz0, 0.66, TOP - T, F.green, g); rbox(sx0, sx1, sz1, ZS, 0.66, TOP - T, F.green, g);
+  doorSeams([X0, XB, Z0, ZS], 'x0', 0.1, TOP - T, 0.48);
+  // costado de estantes abiertos en madera (dos nichos, como la referencia)
+  for (const [a, b] of [[X0, X0 + 0.02], [1.935, 1.955], [XB - 0.02, XB]]) rbox(a, b, ZS, Z1, 0, TOP - T, F.veneer, { r: 0.004, uv: 1 });
+  for (const y of [0.02, 0.44]) rbox(X0 + 0.02, XB - 0.02, ZS, Z1 - 0.01, y, y + 0.025, F.veneer, { r: 0.004, uv: 1 });
+  rbox(X0 + 0.02, XB - 0.02, ZS, ZS + 0.01, 0.045, TOP - T, F.veneer, { r: 0.002, uv: 1 });   // fondo de los nichos
+  vase(1.75, 15.44, 0.465, 0.2, 0.07, F.creamCeramic);
+  for (let i = 0; i < 3; i++) mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.016, 28), F.creamCeramic, scene, 2.14, 0.045 + 0.008 + i * 0.017, -15.44);
+  colliders.push({ x0: X0, x1: X1, z0: Z0, z1: Z1, y0: 0, y1: TOP });
+}
+
 // ---- Lámparas: la pantalla brilla (deja pasar la luz) y adentro hay una luz real con sombras ----
 const LAMPS = [];
 function lampLight(x, y, z, intensity, color = 0xffd6a0) {
@@ -1372,26 +1464,23 @@ function buildFurniture() {
   wardrobe([0, 0.83, 10.06, 12.12], 'x1', 0, 2.4);
   counter([4.61, 5.38, 10.06, 12.70], 'x0');
 
-  // Cocina: bajo mesadas en madera miel con mesada clara, bacha de acero, isla verde con estantes de madera
-  counter([0, 0.64, 13.37, 17.40], 'x1');
+  // Cocina (no dibujada en detalle en el plano; ver estilos.md → Cocina + galería → Distribución).
+  // Pared izquierda (x = 0), del baño hacia el fondo: bajo mesada con anafe, módulo de estantes abiertos
+  // sobre la mesada y columna de alacenas de piso a techo con horno. En L contra el muro del baño, otra bajo mesada.
+  counter([0, 0.64, 13.37, 16.10], 'x1');
   counter([0.64, 2.49, 13.37, 14.0], 'z1');
-  rbox(0.1, 0.52, 14.75, 15.35, 0.9, 0.9025, F.steel, { r: 0.02, seg: 1 });                 // bacha bajo mesada
-  rbox(0.14, 0.48, 14.79, 15.31, 0.893, 0.9028, F.black, { r: 0.02, seg: 1 });
-  rod(W(0.07, 0.9, 15.05), W(0.07, 1.22, 15.05), 0.012, F.steel, scene, 16);               // grifería
-  mesh(new THREE.TorusGeometry(0.09, 0.011, 10, 24, Math.PI), F.steel, scene, 0.16, 1.22, -15.05);
-  rod(W(0.25, 1.22, 15.05), W(0.25, 1.15, 15.05), 0.011, F.steel, scene, 16);
-  // isla
-  rbox(1.56, 2.60, 14.3, 15.6, 0.87, 0.9, F.stone, { r: 0.01, uv: 1 });
-  rbox(1.60, 2.28, 14.34, 15.22, 0, 0.1, F.plinth, { r: 0.004 });
-  rbox(1.56, 2.33, 14.3, 15.26, 0.1, 0.87, F.green, { r: 0.006 });
-  doorSeams([1.56, 2.33, 14.3, 15.26], 'x0', 0.1, 0.87, 0.48);
-  for (const [a, b] of [[1.56, 1.58], [2.31, 2.33]]) rbox(a, b, 15.26, 15.6, 0, 0.87, F.veneer, { r: 0.004, uv: 1 });   // estantes abiertos
-  for (const y of [0.02, 0.44]) rbox(1.58, 2.31, 15.26, 15.59, y, y + 0.025, F.veneer, { r: 0.004, uv: 1 });
-  colliders.push({ x0: 1.56, x1: 2.60, z0: 14.3, z1: 15.6, y0: 0, y1: 0.9 });
+  rbox(0.06, 0.58, 14.10, 14.70, 0.9, 0.906, F.screen, { r: 0.006, seg: 1 });               // anafe de inducción (vidrio negro)
+  for (const [x, z, rr] of [[0.18, 14.24, 0.08], [0.18, 14.55, 0.1], [0.44, 14.25, 0.09], [0.44, 14.55, 0.08]]) {
+    const ring = mesh(new THREE.RingGeometry(rr - 0.003, rr, 40), F.ring, scene, x, 0.9065, -z); ring.rotation.x = -Math.PI / 2;
+  }
+  kitchenShelves();
+  tallColumn();
+  // isla: base verde muy oscuro, costado de estantes abiertos en madera, mesada clara con la bacha de acero
+  kitchenIsland();
   linearPendant(2.08, 14.45, 15.45, 1.85, H_WALL);
   for (const z of [14.62, 15.28]) modelSlot(['bar_chair_round_01'], barStool(2.8, z), { x: 2.8, z, h: 0.7 });
   // comedor: mesa redonda con cuatro sillas
-  const T = [4.265, 16.3];
+  const T = [4.265, 16.3];                                    // la ventana de paño fijo del fondo está centrada en T[0]
   modelSlot(['round_wooden_table_01', 'WoodenTable_01'], roundTable(T[0], T[1], 0.55, 0.75),
     { x: T[0], z: T[1], w: 1.1, d: 1.1, h: 0.75, fit: 'stretch' });
   for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
