@@ -44,7 +44,7 @@
 </head>
 <body>
 <div id="hud"><div class="room" id="roomName">Jardín delantero</div><div class="floor" id="floorName">Exterior</div></div>
-<div id="help">Clic para entrar · <b>WASD</b>/flechas: caminar · <b>Shift</b>: correr · <b>Mouse</b>: mirar · <b>T</b>: hora del día · <b>Esc</b>: salir</div>
+<div id="help">Clic para entrar · <b>WASD</b>/flechas: caminar · <b>Shift</b>: correr · <b>Mouse</b>: mirar · <b>T</b>: hora del día · <b>E</b>: portón · <b>Esc</b>: salir</div>
 <div id="crosshair"></div>
 <div id="photo"><span class="dot"></span><span id="photoText">Modo foto</span></div>
 <div id="notice"></div>
@@ -53,6 +53,7 @@
     <h1>Recorrido por la casa</h1>
     <p><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> o flechas para caminar</p>
     <p><kbd>Shift</kbd> para correr · mouse para mirar</p>
+    <p><kbd>E</kbd> cerca del portón del garage para abrirlo o cerrarlo</p>
     <p>La escalera está en el living, junto al hall</p>
     <p><kbd>Esc</kbd> para salir</p>
     <div id="timeofday" class="opts">Hora:
@@ -485,7 +486,6 @@ const M = {
   glass: new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.03, metalness: 0, transparent: true, opacity: 0.12,
     depthWrite: false, side: THREE.DoubleSide, envMapIntensity: 2.0, specularIntensity: 1 }),
   frame: std(0xf6f4ef, 0.4),                                  // carpinterías blancas (aluminio pintado)
-  groove: std(0xd9d6cf, 0.5),                                 // buñas del portón del garage
   rail: std(0x1b1c1e, 0.45, { metalness: 0.5 }),              // herrería negra (barandas, reja)
   leaf: std(0xffffff, 0.8, { side: THREE.DoubleSide }),       // hojas de la enredadera
   flower: std(0xfbfaf3, 0.7, { side: THREE.DoubleSide }),     // flores de jazmín
@@ -564,12 +564,52 @@ function glassPane([x0, x1, z0, z1], y0, y1, solid = false) {
   else box(xm - 0.006, xm + 0.006, z0, z1, y0, y1, M.glass, solid);
 }
 
-// Portón seccional blanco del garage (cerrado): paneles horizontales con buñas marcadas
+// Portón seccional blanco del garage: 5 paneles horizontales (la junta entre paneles marca la buña).
+// Va montado del lado de adentro del muro y corre por una guía: sube en vertical y, arriba del vano,
+// dobla y sigue horizontal bajo el techo del garage, como un portón seccional real. Se abre/cierra con E.
+const GARAGE = { n: 5, speed: 0.9, open: 0, target: 0, panels: [], collider: null };
 function garageDoor([x0, x1, z0, z1], yb, yt) {
-  const zm = (z0 + z1) / 2, t = 0.025, n = 5;
-  box(x0 + t, x1 - t, zm + 0.02, zm + 0.06, yb, yt - t, M.frame);                 // hoja (sólida)
-  const h = (yt - t - yb) / n;
-  for (let i = 1; i < n; i++) box(x0 + t, x1 - t, zm + 0.01, zm + 0.02, yb + i * h - 0.008, yb + i * h + 0.008, M.groove, false);
+  const G = GARAGE, t = 0.025, w = x1 - x0 - 2 * t;
+  Object.assign(G, { xm: (x0 + x1) / 2, zTrack: z1 + 0.03, yb, yCorner: yt + 0.08 });
+  G.height = G.yCorner - yb;                          // alto de la hoja (cubre el vano y pasa detrás del dintel)
+  G.panelH = G.height / G.n;
+  const geo = new THREE.BoxGeometry(w, G.panelH - 0.012, 0.04);
+  for (let i = 0; i < G.n; i++) { const m = new THREE.Mesh(geo, M.frame); scene.add(m); G.panels.push(m); }
+  G.collider = { x0: x0, x1: x1, z0: G.zTrack - 0.03, z1: G.zTrack + 0.03, y0: yb, y1: G.yCorner };
+  colliders.push(G.collider);
+  placeGarageDoor();
+}
+// Punto de la guía a una distancia d desde abajo, en coordenadas del plano: [y, z]
+function garageTrack(d) {
+  const G = GARAGE;
+  return d <= G.height ? [G.yb + d, G.zTrack] : [G.yCorner, G.zTrack + (d - G.height)];
+}
+// Ubica cada panel entre sus dos extremos sobre la guía (en la curva queda inclinado)
+function placeGarageDoor() {
+  const G = GARAGE;
+  G.panels.forEach((m, i) => {
+    const [ya, za] = garageTrack(i * G.panelH + G.open), [yb, zb] = garageTrack((i + 1) * G.panelH + G.open);
+    m.position.set(G.xm, (ya + yb) / 2, -(za + zb) / 2);
+    m.rotation.x = Math.atan2(-(zb - za), yb - ya);
+  });
+  G.collider.y0 = G.yb + Math.min(G.open, G.height);  // abierto: se pasa por debajo
+}
+function toggleGarageDoor() {
+  const G = GARAGE;
+  const near = player.feet < 1 && Math.abs(player.x - G.xm) < 2.2 && Math.abs(player.z - G.zTrack) < 2.5;
+  if (!near) return false;
+  G.target = G.target > 0 ? 0 : G.height;
+  return true;
+}
+let garageShadowFrame = 0;
+function updateGarageDoor(dt) {
+  const G = GARAGE;
+  if (G.open === G.target) return;
+  const step = G.speed * dt;
+  G.open = Math.abs(G.target - G.open) <= step ? G.target : G.open + Math.sign(G.target - G.open) * step;
+  placeGarageDoor();
+  // la sombra del sol se recalcula mientras se mueve (cada pocos cuadros) y al terminar
+  if (++garageShadowFrame % 4 === 0 || G.open === G.target) renderer.shadowMap.needsUpdate = true;
 }
 
 function buildWalls() {
@@ -1147,6 +1187,11 @@ function showNotice(text) {
   clearTimeout(showNotice.timer); showNotice.timer = setTimeout(() => { n.style.opacity = 0; }, 2500);
 }
 addEventListener('keydown', e => {
+  if (e.code !== 'KeyE' || e.repeat || !(controls.isLocked || debug.force)) return;
+  if (toggleGarageDoor()) showNotice(GARAGE.target > 0 ? 'Abriendo el portón' : 'Cerrando el portón');
+  else showNotice('Acercate al portón del garage para abrirlo o cerrarlo');
+});
+addEventListener('keydown', e => {
   if (e.code !== 'KeyT' || e.repeat) return;
   const names = Object.keys(TIMES), next = names[(names.indexOf(timeOfDay) + 1) % names.length];
   setTimeOfDay(next);
@@ -1175,6 +1220,7 @@ const clock = new THREE.Clock();
 function loop() {
   const rawDt = clock.getDelta(), dt = Math.min(rawDt, 0.05);
   update(dt, controls.isLocked || debug.force);
+  updateGarageDoor(dt);
   updateHud();
   if (!renderPhoto(rawDt)) renderNormal();
   watchPerformance(rawDt);
@@ -1191,7 +1237,7 @@ addEventListener('resize', () => {
 
 // Utilidades para pruebas automáticas (no afectan el uso normal)
 window.__debug = Object.assign(debug, {
-  player, keys, camera, room: () => currentRoom(), photo, setQuality, quality: () => quality, setTimeOfDay, timeOfDay: () => timeOfDay,
+  player, keys, camera, room: () => currentRoom(), photo, garage: GARAGE, toggleGarageDoor, updateGarageDoor, setQuality, quality: () => quality, setTimeOfDay, timeOfDay: () => timeOfDay,
   place(x, z, feet = 0, yawDeg = 0) { Object.assign(player, { x, z, feet, vy: 0, eyeY: feet + EYE }); camera.rotation.set(0, yawDeg * Math.PI / 180, 0, 'YXZ'); camera.position.set(x, feet + EYE, -z); },
   simulate(codes, seconds, look) { if (look !== undefined) camera.rotation.set(0, look * Math.PI / 180, 0, 'YXZ'); codes.forEach(c => keys.add(c)); for (let t = 0; t < seconds; t += 1 / 60) update(1 / 60, true); codes.forEach(c => keys.delete(c)); updateHud(); },
 });
