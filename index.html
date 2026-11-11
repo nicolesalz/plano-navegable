@@ -106,11 +106,11 @@ const LOT_D = GALERIA_Z[1] + 20.1;   // patio trasero de 20,1 detrás de la gale
 // Caras exteriores (revoque pintado crema): 'z0' = hacia el frente, 'z1' = hacia el fondo, 'x0' = izquierda, 'x1' = derecha.
 const PB_WALLS = [
   [0, 1.07, 17.37, 17.57, 'z1'], [3.24, 3.515, 17.40, 17.54, 'z1'], [5.015, 5.88, 17.40, 17.54, 'z1'], [8.06, 8.40, 17.40, 17.54, 'z1'], // fondo (a galería)
-  [5.38, 5.52, 14.19, 17.40], [5.38, 5.52, 7.86, 13.37], [5.38, 5.52, 5.16, 5.62, 'x1,z0'], [5.38, 5.52, 7.38, 7.86, 'x1'], // cocina/hall | garage
+  [5.38, 5.52, 14.19, 17.40], [5.38, 5.52, 7.86, 13.37], [5.38, 5.52, 5.16, 7.86, 'x1,z0'],          // cocina/hall | garage
   [0, 2.66, 13.09, 13.20], [2.49, 2.63, 12.14, 13.09],                              // baño PB (muro a la cocina de 11 cm: la cocina mide 4,20 de fondo)
   [0, 0.92, 12.14, 12.28], [2.33, 2.49, 12.14, 12.26],
   [0, 0.92, 9.98, 10.06], [3.33, 5.38, 9.98, 10.06],                                // living | hall
-  [5.24, 5.38, 5.16, 5.62, 'z0'], [5.24, 5.38, 7.38, 9.98], [4.23, 5.24, 7.86, 8.16], // caja de escalera (hueco: puerta corrediza al garage)
+  [5.24, 5.38, 5.16, 9.98, 'z0'], [4.23, 5.24, 7.86, 8.16],                         // caja de escalera (pared ciega al garage, como en el plano)
   [5.52, 5.72, 7.86, 8.16, 'z0'], [8.21, 8.40, 7.86, 8.16, 'z0'],                   // frente garage
   [0, 0.60, 5.16, 5.44, 'z0'], [3.12, 4.02, 5.18, 5.44, 'z0'], [5.04, 5.24, 5.16, 5.44, 'z0'], // frente living
   // (el bajo escalera queda abierto: sin muro ni tabique debajo de la escalera)
@@ -138,14 +138,13 @@ const OPENINGS = [
   // Planta baja
   { lvl: 0, t: 'door',   r: [4.02, 5.04, 5.16, 5.44], ext: 'z0', frame: true },                // puerta de entrada
   { lvl: 0, t: 'window', r: [0.60, 3.12, 5.16, 5.44], sill: 0.9, ext: 'z0' },     // ventana living
-  { lvl: 0, t: 'door',   r: [5.24, 5.52, 5.62, 7.38], ext: 'x1', frame: true, leaf: true },     // living ↔ garage (cochera del frente): corrediza de vidrio, igual a la de la cocina a la galería
   { lvl: 0, t: 'door',   r: [0.92, 3.33, 9.98, 10.06], slider: true }, // living ↔ hall/cocina: corredizas de vidrio repartido
   { lvl: 0, t: 'wall',   r: [0.92, 1.35, 12.14, 12.28] },
   { lvl: 0, t: 'door',   r: [1.35, 2.33, 12.14, 12.28] },              // baño PB
   { lvl: 0, t: 'door',   r: [5.38, 5.52, 13.37, 14.19] },              // cocina ↔ garage
   { lvl: 0, t: 'door',   r: [1.07, 3.24, 17.40, 17.54], ext: 'z1', frame: true, leaf: true },              // puerta-ventana a galería
   { lvl: 0, t: 'window', r: [3.515, 5.015, 17.40, 17.54], sill: 0.55, head: 2.05, ext: 'z1', fixed: true }, // paño fijo 1,50 x 1,50 centrado sobre la mesa; arriba alineado con la puerta-ventana
-  { lvl: 0, t: 'window', r: [5.88, 8.06, 17.40, 17.54], sill: 0.9, ext: 'z1' },   // ventana garage
+  { lvl: 0, t: 'door',   r: [5.88, 8.06, 17.40, 17.54], ext: 'z1', frame: true, leaf: true },              // garage ↔ galería/patio: puerta-ventana corrediza, igual a la de la cocina
   { lvl: 0, t: 'door',   r: [5.72, 8.21, 7.86, 8.16], head: 2.2, ext: 'z0', garage: true },     // portón garage (seccional blanco, cerrado)
   // Planta alta
   { lvl: 1, t: 'window', r: [0.60, 3.12, 5.16, 5.44], sill: 0.9, ext: 'z0' },     // hab principal
@@ -1117,12 +1116,12 @@ function buildFloorsAndCeilings() {
   M.paving.normalMap = normalFrom(pavingTex.image, 2.5); M.paving.normalScale = v2(0.8);
   floor(5.52, 8.40, 0, 7.86, 0.004, M.paving, 1.6);       // entrada de autos (adoquines de granito)
   floor(4.02, 5.04, 0, 5.16, 0.004, M.paving, 1.6);       // camino a la puerta
-  floor(5.38, 5.52, 5.62, 7.38, 0.006, M.wood);          // umbral de la corrediza living ↔ garage
   floor(-0.28, LOT_W + 0.28, GALERIA_Z[0], GALERIA_Z[1], 0.004, M.tile, 0.6);   // calcáreos 30 x 30
   // Pinotea en living, entrada, hall y baño PB; porcelanato 60 x 120 en la cocina
   floor(0, 5.38, 5.16, 13.09, 0.006, M.wood);
   floor(0, 5.38, 13.09, 17.40, 0.006, M.porcelain, 2.4);
   floor(5.52, 8.40, 8.16, 17.40, 0.006, M.concrete);      // garage
+  floor(5.88, 8.06, 17.40, 17.54, 0.006, M.concrete);     // umbral de la corrediza garage ↔ galería
   for (const [x0, x1, z0, z1] of PA_FLOORS) floor(x0, x1, z0, z1, PA_Y + 0.004, M.wood);
   floor(-0.28, 8.68, 15.83, 17.54, PA_Y + 0.004, M.roof); // techo sobre cocina/garage
   // Losa PB/PA (techo blanco de planta baja) y techo de planta alta (cantos con revoque crema)
@@ -1495,13 +1494,45 @@ function bed([x0, x1, z0, z1], y0, c) {
   return g;
 }
 // Mesa de luz redonda de madera clara
-function nightstand(x, z, y0) {
-  const g = new THREE.Group(); g.position.copy(W(x, y0, z)); scene.add(g);
+function nightstand(x, z, y0, s = 1) {                               // s: escala del diámetro (1 = 44 cm)
+  const g = new THREE.Group(); g.position.copy(W(x, y0, z)); g.scale.set(s, 1, s); scene.add(g);
   mesh(roundedDisc(0.22, 0.03, 0.01), F.veneerLight, g, 0, 0.5, 0);
   mesh(roundedDisc(0.2, 0.02, 0.008), F.veneerLight, g, 0, 0.18, 0);
   for (let k = 0; k < 3; k++) { const a = k * Math.PI * 2 / 3 + 0.3; rod(new THREE.Vector3(Math.cos(a) * 0.16, 0, Math.sin(a) * 0.16), new THREE.Vector3(Math.cos(a) * 0.17, 0.5, Math.sin(a) * 0.17), 0.015, F.veneerLight, g); }
-  colliders.push({ x0: x - 0.2, x1: x + 0.2, z0: z - 0.2, z1: z + 0.2, y0, y1: y0 + 0.55 });
+  colliders.push({ x0: x - 0.2 * s, x1: x + 0.2 * s, z0: z - 0.2 * s, z1: z + 0.2 * s, y0, y1: y0 + 0.55 });
   return g;
+}
+// Cama con la cabecera hacia +x (contra una pared o panel a la derecha). (cx, cz) = centro; w = ancho, L = largo.
+function bedHeadEast(cx, cz, y0, c, w = 1.7, L = 2.0) {
+  const g = bed([-w / 2, w / 2, -L / 2, L / 2], y0, c);
+  colliders.pop();
+  g.rotation.y = -Math.PI / 2; g.position.set(cx, 0, -cz);
+  colliders.push({ x0: cx - L / 2, x1: cx + L / 2, z0: cz - w / 2, z1: cz + w / 2, y0, y1: y0 + 0.6 });
+  return g;
+}
+// Panel de esterilla exento (separa la cama del vestidor): marco blanco y paños de esterilla en las dos caras.
+// rect = [x0, x1, z0, z1] (delgado en z), h = alto desde y0.
+function rattanScreen(rect, y0, h) {
+  const alongX = rect[1] - rect[0] > rect[3] - rect[2], faces = alongX ? ['z0', 'z1'] : ['x0', 'x1'];
+  const [a0, a1] = alongX ? [rect[0], rect[1]] : [rect[2], rect[3]], n = Math.max(1, Math.round((a1 - a0) / 0.7)), w = (a1 - a0) / n;
+  rbox(...rect, y0, y0 + h, F.white, { r: 0.006, uv: 1, solid: true });
+  const ROWS = [[0.10, 1.00], [1.07, h - 0.07]];
+  for (let i = 0; i < n; i++) for (const front of faces) for (const [p0, p1] of ROWS) {
+    const r = onFace(rect, front, a0 + i * w + 0.04, a0 + (i + 1) * w - 0.04, 0.002, 0.004);
+    rbox(...r, y0 + p0, y0 + p1, F.rattan, { r: 0.002, seg: 1, uv: 0.12 });
+  }
+}
+// Mueble bajo de madera clara con la tele colgada arriba, contra la pared izquierda (x = 0); mira a +x.
+function bedroomTV([x0, x1, z0, z1], y0) {
+  rbox(x0, x1 - 0.04, z0 + 0.03, z1 - 0.03, y0, y0 + 0.08, F.plinth, { r: 0.004 });
+  rbox(x0, x1, z0, z1, y0 + 0.08, y0 + 0.52, F.veneerLight, { r: 0.008, uv: 1 });
+  doorSeams([x0, x1, z0, z1], 'x1', y0 + 0.08, y0 + 0.52, 0.65);
+  rbox(x0, x1, z0, z1, y0 + 0.52, y0 + 0.55, F.veneerLight, { r: 0.006, uv: 1 });
+  colliders.push({ x0, x1, z0, z1, y0, y1: y0 + 0.55 });
+  const zm = (z0 + z1) / 2, [ty0, ty1] = [y0 + 0.92, y0 + 1.60];
+  rbox(0.01, 0.045, zm - 0.61, zm + 0.61, ty0, ty1, F.black, { r: 0.004 });             // tele (55") colgada en la pared
+  box(0.044, 0.0455, zm - 0.60, zm + 0.60, ty0 + 0.008, ty1 - 0.008, F.screen, false);
+  vase(0.2, z0 + 0.18, y0 + 0.55, 0.22, 0.07, F.creamCeramic);
 }
 // ---- Dormitorios ----
 // Pintura de una pared de un ambiente: lámina finita apenas delante de la cara del muro, con un hueco
@@ -2381,23 +2412,27 @@ function buildFurniture() {
   modelSlot(['potted_plant_04'], plant('strap', 7.95, 17.95, { h: 0.75, seed: 24, pot: F.potLight }), { x: 7.95, z: 17.95, h: 0.75 });   // suculenta
 
   // --- Planta alta ---
-  // Dormitorio principal (ver estilos.md → Dormitorios → Distribución): tonos beige y crudo.
-  // Placard de esterilla de pared completa en la pared del fondo (z = 9,02), de la puerta (x = 1,13) al
-  // muro de la escalera (x = 4,22), 60 cm de fondo y de piso a techo. La cama va contra el placard, centrada.
+  // Dormitorio principal (ver estilos.md → Dormitorios → Distribución): tonos beige y crudo, tipo vestidor.
+  // El placard es el del plano, en el nicho de la derecha (junto a la escalera, frente en x = 4,25), con puertas de
+  // esterilla. Delante, con 71 cm de pasillo, el panel de esterilla (x = 3,48 a 3,54) separa el placard de la cama;
+  // se entra al vestidor por los dos costados del panel (hacia la ventana y hacia el fondo). La cama va con la
+  // cabecera contra el panel, mirando a la tele, que está enfrente, contra la medianera izquierda.
   const YC = Y + H_WALL - 0.002;
-  wardrobe([1.13, 4.22, 8.42, 9.02], 'z0', Y, H_WALL - 0.002, 'rattan');
-  wardrobe([4.25, 5.23, 5.44, 7.86], 'x0', Y, H_WALL - 0.002, 'white');                  // placar del nicho (el del plano), liso crudo
-  bed([1.83, 3.53, 6.40, 8.40], Y, { base: F.beige, duvet: F.duvet, throw: F.beige, cushion: F.rose, head: 1.15 });
-  rbox(1.30, 4.06, 5.92, 7.80, Y + 0.004, Y + 0.016, F.rugCream, { r: 0.006, uv: 0.15 });  // alfombra cruda
-  nightstand(1.45, 8.12, Y); nightstand(3.91, 8.12, Y);
-  tableLamp(1.45, 8.12, Y + 0.53);
-  opalPendant(3.91, 8.12, Y + 1.12, YC);                                                 // globo colgante sobre la mesa de luz
-  plant('small', 3.86, 8.04, { y: Y + 0.53, h: 0.3, seed: 51, pot: F.creamCeramic });
-  // paredes beige (las que quedan detrás de los placares no se pintan)
-  paintFace('z', 5.443, 0, 5.23, Y, YC, F.beigeWall, [0.60, 3.12, Y + 0.9, Y + 2.1]);    // frente, con la ventana
+  wardrobe([4.25, 5.23, 5.44, 7.86], 'x0', Y, H_WALL - 0.002, 'rattan');                 // placar del nicho (el del plano), esterilla
+  rattanScreen([3.48, 3.54, 5.99, 8.49], Y, 2.10);                                        // panel de esterilla (vestidor detrás)
+  bedHeadEast(2.48, 7.25, Y, { base: F.beige, duvet: F.duvet, throw: F.beige, cushion: F.rose, head: 1.15 });   // cama 2,00 x 1,70
+  rbox(1.00, 2.95, 6.25, 8.25, Y + 0.004, Y + 0.016, F.rugCream, { r: 0.006, uv: 0.15 });  // alfombra cruda
+  nightstand(3.22, 6.19, Y, 0.82); nightstand(3.22, 8.31, Y, 0.82);                      // mesas de luz de 36 cm
+  tableLamp(3.22, 6.19, Y + 0.53);
+  opalPendant(3.22, 8.31, Y + 1.12, YC);                                                 // globo colgante sobre la mesa de luz
+  plant('small', 3.17, 8.36, { y: Y + 0.53, h: 0.3, seed: 51, pot: F.creamCeramic });
+  bedroomTV([0, 0.42, 6.60, 7.90], Y);                                                   // mueble con tele, contra la medianera, frente a la cama
+  // paredes beige (las que quedan detrás del placard no se pintan)
+  paintFace('z', 5.443, 0, 4.25, Y, YC, F.beigeWall, [0.60, 3.12, Y + 0.9, Y + 2.1]);    // frente, con la ventana
   paintFace('x', 0.003, 5.44, 9.02, Y, YC, F.beigeWall);                                   // medianera
   paintFace('z', 9.017, 0, 1.02, Y + 2.05, YC, F.beigeWall);                              // sobre la puerta
-  paintFace('x', 4.217, 7.86, 8.42, Y, YC, F.beigeWall);                                   // muro de la escalera
+  paintFace('z', 9.017, 1.13, 4.22, Y, YC, F.beigeWall);                                   // pared del fondo
+  paintFace('x', 4.217, 7.86, 9.02, Y, YC, F.beigeWall);                                   // muro de la escalera
   paintFace('z', 7.857, 4.31, 5.23, Y, YC, F.beigeWall);
 
   // Habitación 2
