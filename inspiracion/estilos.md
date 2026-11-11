@@ -3,7 +3,8 @@
 Guía de materiales y estilo por zona. Las imágenes de referencia están en `inspiracion/<zona>/`.
 Reglas para todas las zonas:
 - No cambiar la distribución ni las medidas del plano (`plano.pdf`).
-- Materiales con texturas realistas (Poly Haven CC0 o generadas por código), sin perder fluidez.
+- Materiales con texturas realistas (escaneos Megascans de `texturas/`, Poly Haven CC0 o generadas por código), sin perder fluidez.
+- Texturas escaneadas (`texturas/<carpeta>/`): siempre a la escala real del escaneo ("Scan Area" del `.json` de cada carpeta). Solo se usan los mapas BaseColor, Normal, Roughness y AO (si falta alguno, sin ese), en versión liviana para la web en `texturas/<carpeta>/web/` (se generan con `python3 scripts/preparar-texturas.py`).
 - Muebles simples y creíbles; nada de logos ni marcas visibles.
 
 ## Base (toda la casa)
@@ -26,10 +27,10 @@ Van por encima de la losa de techo de planta alta: no cambian muros, medidas ni 
 - **Volumen de la derecha** (habitación 2 y dormitorio chico, sobre el garage): techo plano con parapeto liso de 60 cm, del mismo crema de la fachada, al frente, al costado y al fondo; del lado izquierdo se apoya contra el volumen principal y ahí baja el faldón derecho de teja.
 
 ## Pisos
-Referencias: `pisos/`, `cocina/`
-- Living, hall de planta baja, dormitorios y hall de planta alta: madera natural de tablas largas, tono cálido tipo pinotea, satinado.
+Referencias: `pisos/`, `cocina/`, `texturas/`
+- Living, entrada, hall de planta baja, dormitorios, escritorio y hall de planta alta: madera de nogal (Megascans *Walnut Veneer*, `texturas/piso-madera`; escaneo de 1 x 2 m, veta en sentido frente-fondo). No trae mapa AO. La escalera va en la misma madera.
 - Cocina: porcelanato claro (blanco cálido o beige suave), mate, placas 60 x 120 con juntas finas.
-- Galería: calcáreos grises y blancos con dibujo clásico (rosetas), estilo antiguo.
+- Galería del fondo: calcáreo con flores en grises, beige y rosado viejo, estilo antiguo (Megascans *Flower Patterned Tiles*, `texturas/galeria-jardin`; escaneo de 2 x 2 m, baldosas de unos 33 cm).
 - Baños: ver cada baño.
 
 ## Living + entrada
@@ -129,7 +130,7 @@ Referencias: `banos/`
 ### Distribución
 Los artefactos van donde los marca `plano.pdf`; los muebles, revestimientos y luces se ubican sin cambiar paredes ni medidas.
 - **Baño PB** (toilette de 2,49 x 0,81; referencias `baño.jpg`, `baño2.jpg`, `baño3.jpg`):
-  - **Pared del fondo** (la que se ve al entrar) entera de azulejos terracota verticales 7,5 x 30 con brillo; las otras tres paredes y el techo pintados bordó. Piso: sigue la pinotea del hall.
+  - **Pared del fondo** (la que se ve al entrar) entera de azulejos terracota verticales 7,5 x 30 con brillo; las otras tres paredes y el techo pintados bordó. Piso: sigue la madera de nogal del hall.
   - **Inodoro** de pie contra la medianera, con un **mueble alto de nogal oscuro** arriba (dos puertas, perillas de bronce).
   - **Vanitory flotante de nogal oscuro** contra la pared derecha (donde el plano marca el lavatorio), con bacha de apoyo rectangular blanca, grifería de pared de bronce, espejo angosto con marco de nogal y un canasto de fibra abajo.
   - **Luces**: dos apliques de globo opalino con brazo de bronce **en la pared del espejo**, uno a cada lado del espejo (no en la pared de azulejos).
@@ -153,8 +154,9 @@ Los artefactos van donde los marca `plano.pdf`; los muebles, revestimientos y lu
 
 ## Exterior
 Referencias: `exterior/`, `base/frente de la casa reja.jpeg`
-- Jardín delantero: césped con borduras de plantas (gramíneas altas, hortensias rosas y blancas, flores en tonos rosa y bordó).
-- Patio trasero: césped amplio, borduras de plantas en los bordes y cerco verde alto contra las medianeras.
+- Jardín delantero: sin pasto. Todo el piso, de la reja a la fachada (incluida la entrada de autos y el camino a la puerta), de baldosas rojas de terracota (Megascans *Red Pavers*, `texturas/galeria-frente`; escaneo de 2 x 2 m, baldosas de unos 22 cm).
+  - Canteros (gramíneas altas, hortensias rosas y blancas, flores en tonos rosa y bordó): contra la medianera izquierda (el del costado), debajo de la ventana del living y una franja angosta de gramíneas entre el camino y la entrada de autos. Contra la reja del frente no va cantero.
+- Patio trasero: césped amplio (Megascans *Lawn Grass*, `texturas/pasto-jardin`; escaneo de 2 x 2 m), borduras de plantas en los bordes y cerco verde alto contra las medianeras.
 - Frente: reja negra de planchuelas con enredadera (ver Base).
 
 ## Autos
