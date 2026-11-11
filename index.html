@@ -202,7 +202,7 @@ const ROOMS = [
   { n: 'Depósito', lvl: 1, r: [3.51, 5.38, 13.37, 15.69] },
   { n: 'Hall planta alta', lvl: 1, r: [0, 5.38, 9.02, 13.37] },
   { n: 'Habitación 2', lvl: 1, r: [5.52, 8.40, 8.16, 12.05] },
-  { n: 'Habitación 3', lvl: 1, r: [5.52, 8.40, 12.19, 15.69] },
+  { n: 'Dormitorio chico / escritorio', lvl: 1, r: [5.52, 8.40, 12.19, 15.69] },
 ];
 
 /* ==========================================================================
@@ -561,9 +561,9 @@ const stoneTex = canvasTexture(512, (g, s) => {
 });
 // Esterilla (rattan) de las puertas del placar principal: trama octogonal con agujeritos. 1 textura = 12 cm
 const rattanTex = canvasTexture(256, (g, s) => {
-  g.fillStyle = '#3d2c1c'; g.fillRect(0, 0, s, s);
+  g.fillStyle = '#5e4a37'; g.fillRect(0, 0, s, s);                 // lo que se ve por los agujeritos
   const n = 8, c = s / n;
-  g.strokeStyle = '#d9b98a'; g.lineCap = 'round';
+  g.strokeStyle = '#e4cfa6'; g.lineCap = 'round';                   // caña clara, tono crudo
   for (let i = -1; i <= n; i++) for (let j = -1; j <= n; j++) {
     const x = i * c, y = j * c;
     g.lineWidth = c * 0.22;
@@ -637,6 +637,13 @@ const F = {
   screen: std(0x08090a, 0.12, { metalness: 0.2 }),                                                      // pantalla de la tele
   book: std(0xffffff, 0.8, { normalMap: NRM.fabric, normalScale: v2(0.3) }),                            // libros (color por instancia)
   vaseOlive: std(0x8a8a3c, 0.25), creamCeramic: std(0xefe8db, 0.3),                                         // jarrones
+  // Dormitorios
+  beigeWall: std(0xe6d9c4, 0.95),                                                                       // paredes beige/crudo (dormitorio principal)
+  oliveWall: std(0x857f55, 0.95),                                                                       // paredes verde oliva (dormitorio chico)
+  oliveLacquer: std(0x857f55, 0.6, { normalMap: NRM.veneer, normalScale: v2(0.05) }),                  // escritorio y estantes verde oliva
+  walnut: std(0x86624c, 0.45, { map: veneerTex, normalMap: NRM.veneer, normalScale: v2(0.4) }),       // silla de madera curva
+  rugCream: fabric(0xe2d8c6),                                                                           // alfombra cruda
+  curtain: std(0xf6f2ea, 1, { side: THREE.DoubleSide, transparent: true, opacity: 0.82, normalMap: NRM.fabric, normalScale: v2(0.5) }),   // lino blanco
 };
 // Pantallas de lámpara: dejan pasar la luz (brillan desde adentro) y no tapan la luz que tienen adentro
 const glow = (color, emissive, k, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.9, emissive, emissiveIntensity: k, side: THREE.DoubleSide, ...extra });
@@ -1030,18 +1037,27 @@ function counter(rect, front, { body = F.veneer, H = 0.9, T = 0.03, over = 0.025
   if (seams) doorSeams(c, front, 0.1, H - T);
   colliders.push({ x0, x1, z0, z1, y0: 0, y1: H });
 }
-// Placar de piso a techo: enchapado con buñas, o blanco con paneles de esterilla (placar principal)
+// Placar de piso a techo:
+//  'wood'   enchapado con buñas y perillas negras;
+//  'white'  laqueado crudo liso con perillas negras;  'olive' igual, en verde oliva (dormitorio chico);
+//  'rattan' marco blanco con paneles de esterilla en tres filas por puerta, sin tiradores (puertas push),
+//           como la referencia inspiracion/habitaciones/habitacionprincipal.jpg.
 function wardrobe(rect, front, y0, h, style = 'wood') {
   const [x0, x1, z0, z1] = rect;
-  rbox(x0, x1, z0, z1, y0, y0 + h, style === 'rattan' ? F.white : F.veneer, { r: 0.008, uv: 1, solid: true });
+  const body = { wood: F.veneer, white: F.millwork, olive: F.oliveLacquer, rattan: F.white }[style];
+  rbox(x0, x1, z0, z1, y0, y0 + h, body, { r: 0.008, uv: 1, solid: true });
   const [a0, a1] = alongFace(rect, front), n = Math.max(1, Math.round((a1 - a0) / 0.55)), w = (a1 - a0) / n;
+  const ROWS = [[0.10, 0.92], [0.99, 1.80], [1.87, h - 0.06]];      // filas de paneles (alto desde el piso)
   for (let i = 0; i < n; i++) {
     const b0 = a0 + i * w, b1 = b0 + w;
-    if (style === 'rattan') {                                        // marco blanco + paño de esterilla
-      const r = onFace(rect, front, b0 + 0.07, b1 - 0.07, 0.003, 0.004);
-      rbox(...r, y0 + 0.12, y0 + h - 0.12, F.rattan, { r: 0.002, seg: 1, uv: 0.12 });
+    if (style === 'rattan') {                                        // marco blanco + paños de esterilla
+      for (const [p0, p1] of ROWS) {
+        const r = onFace(rect, front, b0 + 0.035, b1 - 0.035, 0.002, 0.004);
+        rbox(...r, y0 + p0, y0 + p1, F.rattan, { r: 0.002, seg: 1, uv: 0.12 });
+      }
     }
     if (i > 0) { const r = onFace(rect, front, b0 - 0.0015, b0 + 0.0015, 0.0012, 0.002); box(...r, y0 + 0.005, y0 + h - 0.005, F.seam, false); }
+    if (style === 'rattan') continue;
     // tirador chico (perilla negra) junto a la buña de cada par de puertas
     const kx = i % 2 ? b0 + 0.05 : b1 - 0.05, r = onFace(rect, front, kx - 0.012, kx + 0.012, 0.025, 0);
     rbox(...r, y0 + 1.0, y0 + 1.024, F.black, { r: 0.008 });
@@ -1073,15 +1089,16 @@ function vase(x, z, y, h, r, mat) {
   const prof = [[0, 0], [r * 0.6, 0], [r * 0.95, h * 0.25], [r, h * 0.42], [r * 0.7, h * 0.7], [r * 0.38, h * 0.85], [r * 0.45, h], [r * 0.38, h], [0, h * 0.8]];
   return mesh(new THREE.LatheGeometry(prof.map(([a, b]) => new THREE.Vector2(a, b)), 28), mat, scene, x, y, -z);
 }
-// Libros parados en un estante: [z0, z1, y] = tramo y altura del estante; el lomo mira a +x (al living)
+// Libros parados en un estante: [z0, z1, y] = tramo y altura del estante; el lomo mira a +x (dir = 1,
+// estante contra la pared izquierda) o a −x (dir = −1, estante contra la pared derecha)
 const BOOK_COLORS = [0xe9dfcc, 0xc9805e, 0xb6524a, 0xd9b7a5, 0x6f7448, 0x2f3b4a, 0xd8a64a, 0xf3efe6, 0x8c3b3b, 0xa9b4a0];
-function shelfBooks(rows, front) {
+function shelfBooks(rows, front, dir = 1) {
   const rnd = seeded(77), list = [];
   for (const [z0, z1, y] of rows) {
     for (let z = z0; z < z1;) {
       const tk = 0.02 + rnd() * 0.025, h = 0.17 + rnd() * 0.11, d = 0.14 + rnd() * 0.07;
       if (z + tk > z1) break;
-      list.push([front - 0.02 - d / 2, y + h / 2, z + tk / 2, d, h, tk]);
+      list.push([front - dir * (0.02 + d / 2), y + h / 2, z + tk / 2, d, h, tk]);
       z += tk + 0.002;
     }
   }
@@ -1213,6 +1230,88 @@ function nightstand(x, z, y0) {
   colliders.push({ x0: x - 0.2, x1: x + 0.2, z0: z - 0.2, z1: z + 0.2, y0, y1: y0 + 0.55 });
   return g;
 }
+// ---- Dormitorios ----
+// Pintura de una pared de un ambiente: lámina finita apenas delante de la cara del muro, con un hueco
+// opcional (puerta o ventana). axis 'x' = pared en x = c que va de z = a0 a a1; 'z' = pared en z = c, de x = a0 a a1.
+// hole = [a0, a1, y0, y1] del vano. Las alturas son absolutas.
+function paintFace(axis, c, a0, a1, y0, y1, mat, hole = null) {
+  const piece = (b0, b1, h0, h1) => {
+    if (b1 - b0 < 1e-3 || h1 - h0 < 1e-3) return;
+    const m = axis === 'x' ? box(c - 0.002, c + 0.002, b0, b1, h0, h1, mat, false) : box(b0, b1, c - 0.002, c + 0.002, h0, h1, mat, false);
+    noShadow(m);
+  };
+  if (!hole) return piece(a0, a1, y0, y1);
+  const [h0, h1, hy0, hy1] = hole;
+  piece(a0, h0, y0, y1); piece(h1, a1, y0, y1); piece(h0, h1, y0, hy0); piece(h0, h1, hy1, y1);
+}
+
+// Silla de madera curva giratoria (escritorio): asiento y respaldo envolvente de nogal, pie de cuatro patas
+// de acero con regatones de madera. (x, z) = centro; el asiento mira hacia (dx, dz).
+function deskChair(x, z, y0, dx, dz) {
+  const g = new THREE.Group(); g.position.copy(W(x, y0, z)); g.rotation.y = faceAngle(dx, dz); scene.add(g);
+  mesh(roundedDisc(0.22, 0.045, 0.018), F.walnut, g, 0, 0.44, 0);                                          // asiento
+  sectorMesh(0, 0.0, 0.205, 0.235, Math.PI / 2 - 1.45, Math.PI / 2 + 1.45, 0.47, 0.62, F.walnut, 0.01, g); // respaldo bajo envolvente
+  sectorMesh(0, 0.0, 0.215, 0.245, Math.PI / 2 - 0.95, Math.PI / 2 + 0.95, 0.62, 0.80, F.walnut, 0.012, g);
+  mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.3, 16), F.steel, g, 0, 0.29, 0);                          // columna
+  for (let k = 0; k < 4; k++) {
+    const a = k * Math.PI / 2 + Math.PI / 4, ex = Math.cos(a) * 0.3, ez = Math.sin(a) * 0.3;
+    rod(new THREE.Vector3(0, 0.16, 0), new THREE.Vector3(ex, 0.03, ez), 0.011, F.steel, g, 10);
+    mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.03, 10), F.walnut, g, ex, 0.015, ez);
+  }
+  colliders.push({ x0: x - 0.26, x1: x + 0.26, z0: z - 0.26, z1: z + 0.26, y0, y1: y0 + 0.8 });
+  return g;
+}
+
+// Cortina de lino blanca recogida a un costado: paño con pliegues (de x0 a x1, colgando en z) + barral
+function curtain(x0, x1, z, yTop, yBottom) {
+  const w = x1 - x0, h = yTop - yBottom, geo = new THREE.PlaneGeometry(w, h, 56, 1), p = geo.attributes.position;
+  for (let i = 0; i < p.count; i++) p.setZ(i, Math.sin((p.getX(i) + w / 2) / 0.075 * Math.PI) * 0.035);   // pliegues cada 15 cm
+  geo.computeVertexNormals(); scaleUV(geo, 1 / 0.15);
+  noShadow(mesh(geo, F.curtain, scene, (x0 + x1) / 2, (yTop + yBottom) / 2, -z));
+}
+
+// Escritorio del dormitorio chico contra la pared derecha (x = 8,40): mueble verde oliva con puertas
+// abajo y estantes abiertos hasta el techo, escritorio flotante y estantes flotantes arriba, todo del mismo verde.
+function studyCorner(Y) {
+  const XW = 8.40, o = { r: 0.004 };
+  // mueble de estantes: z 12,82 → 13,80, 38 cm de fondo
+  const S0 = 12.82, S1 = 13.80, SD = 0.38, SX = XW - SD, BASE = 0.74, t = 0.025;
+  rbox(SX + 0.05, XW, S0, S1, Y, Y + 0.08, F.plinth, o);
+  rbox(SX, XW, S0, S1, Y + 0.08, Y + BASE, F.oliveLacquer, { r: 0.006 });                             // puertas abajo
+  doorSeams([SX, XW, S0, S1], 'x0', Y + 0.08, Y + BASE, 0.49);
+  rbox(SX - 0.01, XW, S0, S1, Y + BASE, Y + BASE + 0.025, F.oliveLacquer, o);                         // tapa
+  for (const z of [S0, S1 - t]) rbox(SX, XW, z, z + t, Y + BASE, Y + H_WALL - 0.002, F.oliveLacquer, o);   // costados
+  rbox(SX, XW, S0, S1, Y + H_WALL - 0.03, Y + H_WALL - 0.002, F.oliveLacquer, o);
+  const SY = [1.18, 1.58, 1.98, 2.34];
+  for (const y of SY) rbox(SX, XW - 0.01, S0 + t, S1 - t, Y + y - 0.025, Y + y, F.oliveLacquer, o);
+  colliders.push({ x0: SX, x1: XW, z0: S0, z1: S1, y0: Y, y1: Y + H_WALL });
+  shelfBooks([[S0 + 0.05, S0 + 0.62, Y + BASE + 0.025], [S0 + 0.04, S0 + 0.55, Y + 1.58], [S0 + 0.30, S1 - 0.05, Y + 1.98], [S0 + 0.05, S0 + 0.40, Y + 2.34]], SX, -1);
+  vase(XW - 0.17, S1 - 0.22, Y + 1.18, 0.24, 0.07, F.creamCeramic);
+  vase(XW - 0.17, S1 - 0.2, Y + 1.58, 0.16, 0.05, F.vaseOlive);
+  rbox(XW - 0.29, XW - 0.07, S1 - 0.2, S1 - 0.06, Y + BASE + 0.025, Y + BASE + 0.11, F.creamCeramic, { r: 0.01 });   // cajita
+  // escritorio flotante: z 13,80 → 15,65, 55 cm de fondo, tapa a 77 cm
+  const D0 = S1, D1 = 15.65, DX = XW - 0.55, TOP = 0.77;
+  rbox(DX, XW, D0, D1, Y + TOP - 0.05, Y + TOP, F.oliveLacquer, { r: 0.008 });
+  colliders.push({ x0: DX, x1: XW, z0: D0, z1: D1, y0: Y, y1: Y + TOP });
+  // estantes flotantes arriba del escritorio (25 cm de fondo)
+  for (const y of [1.38, 1.80]) rbox(XW - 0.25, XW, D0, D1 - 0.35, Y + y - 0.03, Y + y, F.oliveLacquer, o);
+  shelfBooks([[D0 + 0.1, D0 + 0.45, Y + 1.38], [D0 + 0.55, D0 + 0.85, Y + 1.80]], XW - 0.25, -1);
+  vase(XW - 0.12, D0 + 1.05, Y + 1.38, 0.2, 0.06, F.creamCeramic);
+  rbox(XW - 0.06, XW - 0.035, D0 + 1.1, D0 + 1.4, Y + 1.80, Y + 2.18, F.veneerLight, o);              // cuadrito apoyado
+  rbox(XW - 0.062, XW - 0.059, D0 + 1.13, D0 + 1.37, Y + 1.83, Y + 2.15, F.sage, { r: 0.001, seg: 1 });
+  // sobre el escritorio: pantalla (sin marca), teclado, lapicero y lámpara de globo opalino
+  const mz = 14.75, y1 = Y + TOP;
+  rbox(XW - 0.16, XW - 0.13, mz - 0.29, mz + 0.29, y1 + 0.17, y1 + 0.52, F.black, { r: 0.006 });
+  box(XW - 0.162, XW - 0.159, mz - 0.28, mz + 0.28, y1 + 0.18, y1 + 0.51, F.screen, false);
+  rod(W(XW - 0.11, y1, mz), W(XW - 0.11, y1 + 0.3, mz), 0.012, F.black);
+  rbox(XW - 0.18, XW - 0.05, mz - 0.07, mz + 0.07, y1, y1 + 0.008, F.black, o);
+  rbox(XW - 0.42, XW - 0.28, mz - 0.22, mz + 0.22, y1, y1 + 0.015, F.white, { r: 0.004 });
+  rbox(XW - 0.47, XW - 0.40, D0 + 0.12, D0 + 0.19, y1, y1 + 0.1, F.creamCeramic, o);
+  rod(W(XW - 0.12, y1, 15.38), W(XW - 0.12, y1 + 0.38, 15.38), 0.006, F.steel);
+  mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.015, 24), F.steel, scene, XW - 0.12, y1 + 0.008, -15.38);
+  noShadow(mesh(new THREE.SphereGeometry(0.09, 28, 14), SHADE.opal, scene, XW - 0.12, y1 + 0.46, -15.38));
+}
+
 function toilet(x0, z0, z1) {                         // tanque contra la pared x0, taza hacia +x
   const zm = (z0 + z1) / 2;
   rbox(x0, x0 + 0.18, zm - 0.18, zm + 0.18, 0.38, 0.78, F.ceramic, { r: 0.03 });
@@ -1354,12 +1453,21 @@ function linearPendant(x, z0, z1, y, ceiling) {
   for (const z of [z0 + 0.1, z1 - 0.1]) rod(W(x, y + 0.05, z), W(x, ceiling, z), 0.002, F.black, scene, 4);
   lampLight(x, y - 0.04, (z0 + z1) / 2, 7, 0xffe2bf);
 }
-// Colgante de vidrio opalino (dormitorios)
-function opalPendant(x, z, y, ceiling) {
-  noShadow(mesh(new THREE.SphereGeometry(0.13, 32, 16), SHADE.opal, scene, x, y, -z));
-  rbox(x - 0.025, x + 0.025, z - 0.025, z + 0.025, y + 0.11, y + 0.16, F.black, { r: 0.01 });
-  cord(x, z, ceiling, y + 0.16);
-  lampLight(x, y, z, 7);
+// Colgante de vidrio opalino (dormitorios): globo, o farol (cilindro panzón de bordes redondos, como la
+// referencia del escritorio). y = centro del vidrio.
+function opalPendant(x, z, y, ceiling, { shape = 'globe', intensity = 7 } = {}) {
+  let top = y + 0.11;
+  if (shape === 'lantern') {
+    const R = 0.14, H = 0.26, pts = [];
+    for (let i = 0; i <= 16; i++) { const a = -Math.PI / 2 + i / 16 * Math.PI; pts.push(new THREE.Vector2(R * Math.pow(Math.cos(a), 0.35), H / 2 * Math.sin(a))); }
+    noShadow(mesh(new THREE.LatheGeometry(pts, 40), SHADE.opal, scene, x, y, -z));
+    top = y + H / 2 - 0.01;
+  } else {
+    noShadow(mesh(new THREE.SphereGeometry(0.13, 32, 16), SHADE.opal, scene, x, y, -z));
+  }
+  rbox(x - 0.025, x + 0.025, z - 0.025, z + 0.025, top, top + 0.05, F.white, { r: 0.01 });
+  cord(x, z, ceiling, top + 0.05);
+  lampLight(x, y, z, intensity);
 }
 // Velador: base de cerámica y pantalla de lino
 function tableLamp(x, z, y0) {
@@ -1498,16 +1606,45 @@ function buildFurniture() {
   modelSlot(['potted_plant_04'], plant('strap', 7.95, 17.95, { h: 0.75, seed: 24, pot: F.potLight }), { x: 7.95, z: 17.95, h: 0.75 });   // suculenta
 
   // --- Planta alta ---
-  wardrobe([4.25, 5.23, 5.44, 7.86], 'x0', Y, 2.4, 'rattan');                             // placar principal (esterilla)
+  // Dormitorio principal (ver estilos.md → Dormitorios → Distribución): tonos beige y crudo.
+  // Placard de esterilla de pared completa en la pared del fondo (z = 9,02), de la puerta (x = 1,13) al
+  // muro de la escalera (x = 4,22), 60 cm de fondo y de piso a techo. La cama va contra el placard, centrada.
+  const YC = Y + H_WALL - 0.002;
+  wardrobe([1.13, 4.22, 8.42, 9.02], 'z0', Y, H_WALL - 0.002, 'rattan');
+  wardrobe([4.25, 5.23, 5.44, 7.86], 'x0', Y, H_WALL - 0.002, 'white');                  // placar del nicho (el del plano), liso crudo
+  bed([1.83, 3.53, 6.40, 8.40], Y, { base: F.beige, duvet: F.duvet, throw: F.beige, cushion: F.rose, head: 1.15 });
+  rbox(1.30, 4.06, 5.92, 7.80, Y + 0.004, Y + 0.016, F.rugCream, { r: 0.006, uv: 0.15 });  // alfombra cruda
+  nightstand(1.45, 8.12, Y); nightstand(3.91, 8.12, Y);
+  tableLamp(1.45, 8.12, Y + 0.53);
+  opalPendant(3.91, 8.12, Y + 1.12, YC);                                                 // globo colgante sobre la mesa de luz
+  plant('small', 3.86, 8.04, { y: Y + 0.53, h: 0.3, seed: 51, pot: F.creamCeramic });
+  // paredes beige (las que quedan detrás de los placares no se pintan)
+  paintFace('z', 5.443, 0, 5.23, Y, YC, F.beigeWall, [0.60, 3.12, Y + 0.9, Y + 2.1]);    // frente, con la ventana
+  paintFace('x', 0.003, 5.44, 9.02, Y, YC, F.beigeWall);                                   // medianera
+  paintFace('z', 9.017, 0, 1.02, Y + 2.05, YC, F.beigeWall);                              // sobre la puerta
+  paintFace('x', 4.217, 7.86, 8.42, Y, YC, F.beigeWall);                                   // muro de la escalera
+  paintFace('z', 7.857, 4.31, 5.23, Y, YC, F.beigeWall);
+
+  // Habitación 2
   wardrobe([6.42, 8.40, 11.45, 12.05], 'z0', Y, 2.4);                                    // placar hab 2
-  wardrobe([6.42, 8.40, 12.19, 12.80], 'z1', Y, 2.4);                                    // placar hab 3
-  bed([0.05, 2.09, 6.22, 8.20], Y, { base: F.beige, duvet: F.duvet, throw: F.beige, cushion: F.rose, head: 1.15 });
-  bed([5.53, 6.55, 8.20, 10.24], Y, { base: F.sage, duvet: F.duvet, throw: F.olive, cushion: F.olive, head: 0.95 });
-  bed([5.53, 6.55, 13.60, 15.65], Y, { base: F.beige, duvet: F.duvet, throw: F.rose, cushion: F.rose, head: 0.95 });
-  nightstand(2.38, 7.92, Y);
-  tableLamp(2.38, 7.92, Y + 0.53);
-  opalPendant(6.96, 10.1, Y + 2.15, Y + H_WALL);
-  opalPendant(6.96, 13.95, Y + 2.15, Y + H_WALL);
+  bed([5.53, 6.55, 8.20, 10.24], Y, { base: F.beige, duvet: F.duvet, throw: F.rose, cushion: F.rose, head: 0.95 });
+  opalPendant(6.96, 10.1, Y + 2.15, YC);
+
+  // Dormitorio chico / escritorio (habitación 3, la más chica: 2,9 x 3,5): paredes verde oliva, escritorio
+  // flotante y estantes del mismo verde contra la pared derecha, silla de madera curva, colgantes de vidrio
+  // opalino y cortina de lino blanca en la ventana.
+  wardrobe([6.42, 8.40, 12.19, 12.80], 'z1', Y, 2.4, 'olive');                           // placar hab 3 (el del plano), verde oliva
+  bed([5.53, 6.55, 13.60, 15.65], Y, { base: F.sage, duvet: F.duvet, throw: F.olive, cushion: F.olive, head: 0.95 });
+  studyCorner(Y);
+  deskChair(7.42, 14.75, Y, 1, 0);
+  opalPendant(7.62, 13.30, Y + 2.20, YC, { shape: 'lantern', intensity: 5 });
+  opalPendant(7.50, 13.62, Y + 1.98, YC, { shape: 'lantern', intensity: 4 });
+  curtain(7.10, 7.80, 15.60, Y + 2.32, Y + 0.02);
+  rod(W(5.72, Y + 2.34, 15.60), W(7.92, Y + 2.34, 15.60), 0.009, F.white, scene, 10);   // barral blanco
+  paintFace('x', 5.523, 12.19, 15.69, Y, YC, F.oliveWall, [12.19, 13.00, Y, Y + 2.05]);    // pared de la puerta
+  paintFace('x', 8.397, 12.19, 15.69, Y, YC, F.oliveWall);                                 // pared del escritorio
+  paintFace('z', 12.193, 5.52, 8.40, Y, YC, F.oliveWall);                                  // frente (detrás del placar)
+  paintFace('z', 15.687, 5.52, 8.40, Y, YC, F.oliveWall, [5.81, 7.83, Y + 0.9, Y + 2.1]);  // fondo, con la ventana
 }
 
 // Carga los modelos reales que estén en models/ y reemplaza la versión hecha por código

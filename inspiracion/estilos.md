@@ -64,6 +64,22 @@ Referencias: `habitaciones/`
 - Dormitorio principal: tonos beige y crudo; placard de pared completa con puertas de paneles de esterilla (rattan) enmarcados en blanco; cama tapizada beige con almohadones rosa viejo; mesas de luz redondas de madera clara; alfombra cruda.
 - Dormitorio chico / escritorio: paredes y estanterías verde oliva; escritorio flotante y estantes del mismo verde; silla de madera curva; lámparas colgantes de vidrio opalino; cortina de lino blanca.
 
+### Distribución
+El placard de esterilla y el escritorio con estantes verdes no están dibujados en `plano.pdf`; se ubican sin cambiar paredes ni medidas.
+- **Dormitorio principal** (mirando desde la puerta, que está en el rincón del fondo a la izquierda):
+  - **Placard de esterilla**: pared completa del fondo, desde la puerta hasta el muro de la escalera (3,09 m), 60 cm de fondo, de piso a techo. Seis puertas push (sin tiradores) con marco blanco y tres paños de esterilla cada una.
+  - **Cama** (1,70 x 2,00) con la cabecera contra el placard, centrada; una mesa de luz redonda a cada lado: velador a la izquierda y globo opalino colgante a la derecha, con una plantita.
+  - **Alfombra cruda** debajo de los dos tercios de la cama hacia los pies.
+  - El bloque de placard que el plano dibuja en el nicho de la derecha (junto a la caja de la escalera) queda como placard liso color crudo.
+  - Paredes en beige suave.
+- **Dormitorio chico / escritorio** = habitación 3 (la más chica, 2,9 x 3,5, al fondo, ventana al patio). Cama y placard quedan donde los marca el plano.
+  - **Contra la pared derecha** (medianera), del placard hacia el fondo:
+    - **Mueble de estantes** (98 cm de ancho, 38 cm de fondo): puertas abajo y estantes abiertos hasta el techo, con libros.
+    - **Escritorio flotante** (1,85 m x 55 cm, a 77 cm de alto) hasta el rincón de la ventana, con dos estantes flotantes arriba.
+  - **Silla** giratoria de madera curva frente al escritorio; dos colgantes de vidrio opalino frente al mueble de estantes.
+  - **Cortina de lino blanca** recogida del lado derecho de la ventana.
+  - Paredes y placard en verde oliva.
+
 ## Baños
 Referencias: `banos/`
 - Baño PB (toilette): tonos bordó y terracota; pared de azulejos rectangulares verticales terracota con brillo; paredes y techo pintados bordó; mueble y puerta en madera oscura; inodoro blanco.
