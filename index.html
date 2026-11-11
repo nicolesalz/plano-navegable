@@ -53,7 +53,7 @@
     <h1>Recorrido por la casa</h1>
     <p><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> o flechas para caminar</p>
     <p><kbd>Shift</kbd> para correr · mouse para mirar</p>
-    <p><kbd>E</kbd> cerca del portón del garage, de la puerta de vidrio del living o de las puertas de los baños para abrirlos o cerrarlos</p>
+    <p><kbd>E</kbd> cerca del portón del garage, de la puerta de vidrio del living, del lavadero del hall o de las puertas de los baños para abrirlos o cerrarlos</p>
     <p>La escalera está en el living, junto al hall</p>
     <p><kbd>Esc</kbd> para salir</p>
     <div id="timeofday" class="opts">Hora:
@@ -107,7 +107,7 @@ const LOT_D = GALERIA_Z[1] + 20.1;   // patio trasero de 20,1 detrás de la gale
 const PB_WALLS = [
   [0, 1.07, 17.37, 17.57, 'z1'], [3.24, 3.515, 17.40, 17.54, 'z1'], [5.015, 5.88, 17.40, 17.54, 'z1'], [8.06, 8.40, 17.40, 17.54, 'z1'], // fondo (a galería)
   [5.38, 5.52, 14.19, 17.40], [5.38, 5.52, 7.86, 13.37], [5.38, 5.52, 5.16, 7.86, 'x1,z0'],          // cocina/hall | garage
-  [0, 2.66, 13.09, 13.37], [2.49, 2.63, 12.14, 13.09],                              // baño PB
+  [0, 2.66, 13.09, 13.20], [2.49, 2.63, 12.14, 13.09],                              // baño PB (muro a la cocina de 11 cm: la cocina mide 4,20 de fondo)
   [0, 0.92, 12.14, 12.28], [2.33, 2.49, 12.14, 12.26],
   [0, 0.92, 9.98, 10.06], [3.33, 5.38, 9.98, 10.06],                                // living | hall
   [5.24, 5.38, 5.16, 9.98, 'z0'], [4.23, 5.24, 7.86, 8.16],                         // caja de escalera
@@ -137,7 +137,7 @@ const PA_WALLS = [
 const OPENINGS = [
   // Planta baja
   { lvl: 0, t: 'door',   r: [4.02, 5.04, 5.16, 5.44], ext: 'z0', frame: true },                // puerta de entrada
-  { lvl: 0, t: 'window', r: [0.60, 3.12, 5.16, 5.44], sill: 0.9, ext: 'z0' },     // ventana living
+  { lvl: 0, t: 'door',   r: [0.60, 3.12, 5.16, 5.44], ext: 'z0', frame: true, leaf: 'x0' },   // living ↔ jardín: puerta-ventana corrediza, igual a la de la cocina (hoja fija a la izquierda)
   { lvl: 0, t: 'door',   r: [0.92, 3.33, 9.98, 10.06], slider: true }, // living ↔ hall/cocina: corredizas de vidrio repartido
   { lvl: 0, t: 'wall',   r: [0.92, 1.35, 12.14, 12.28] },
   { lvl: 0, t: 'door',   r: [1.35, 2.33, 12.14, 12.28] },              // baño PB
@@ -1019,10 +1019,11 @@ function updateSlider(dt) {
 
 // Puertas corredizas de los baños: una hoja lisa que corre por delante del muro (en c, del lado elegido) sobre
 // un riel tapado, hacia dir (+1 / −1) a lo largo de `along` ('x' o 'z'). limit: hasta dónde puede llegar la hoja
-// abierta (para no meterse en una pared). Arrancan abiertas; se abren y cierran con E.
+// abierta (para no meterse en una pared). Arrancan abiertas (salvo open: 0); se abren y cierran con E.
+// H: alto de la hoja. Las hojas del lavadero (pares que se cruzan en dos rieles) se usan también con esto.
 const BATH_DOORS = [];
-function bathSlidingDoor({ along, a0, a1, c, dir, y0, mat, pull, limit = null, open = 1 }) {
-  const w = a1 - a0 + 0.06, t = 0.035, H = 2.08, g = new THREE.Group(), ax = along === 'x';
+function bathSlidingDoor({ along, a0, a1, c, dir, y0, mat, pull, limit = null, open = 1, H = 2.08, name = 'la puerta del baño' }) {
+  const w = a1 - a0 + 0.06, t = 0.035, g = new THREE.Group(), ax = along === 'x';
   const o = { r: 0.006, uv: 1, parent: g };
   ax ? rbox(-w / 2, w / 2, -t / 2, t / 2, 0, H, mat, o) : rbox(-t / 2, t / 2, -w / 2, w / 2, 0, H, mat, o);
   // tirador vertical en las dos caras, cerca del canto que cierra
@@ -1038,7 +1039,7 @@ function bathSlidingDoor({ along, a0, a1, c, dir, y0, mat, pull, limit = null, o
   if (limit !== null) opened = dir > 0 ? Math.min(opened, limit - w / 2) : Math.max(opened, limit + w / 2);
   const lo = Math.min(closed, opened) - w / 2, hi = Math.max(closed, opened) + w / 2;
   ax ? box(lo, hi, c - 0.03, c + 0.03, y0 + H, y0 + H + 0.035, mat, false) : box(c - 0.03, c + 0.03, lo, hi, y0 + H, y0 + H + 0.035, mat, false);   // riel tapado
-  const D = { g, ax, w, c, t, y0, closed, opened, open, target: open, mid: closed, collider: { y0, y1: y0 + H } };
+  const D = { g, ax, w, c, t, y0, closed, opened, open, target: open, mid: closed, name, collider: { y0, y1: y0 + H } };
   colliders.push(D.collider);
   BATH_DOORS.push(D);
   placeBathDoor(D);
@@ -1050,15 +1051,16 @@ function placeBathDoor(D) {
   if (D.ax) Object.assign(C, { x0: a - D.w / 2, x1: a + D.w / 2, z0: D.c - D.t / 2, z1: D.c + D.t / 2 });
   else Object.assign(C, { x0: D.c - D.t / 2, x1: D.c + D.t / 2, z0: a - D.w / 2, z1: a + D.w / 2 });
 }
-function toggleBathDoor() {
-  let best = null, bd = 1.4;
+function toggleBathDoor(only = null, bd = 1.4) {
+  let best = null;
   for (const D of BATH_DOORS) {
-    if (Math.abs(player.feet - D.y0) > 1) continue;
+    if (Math.abs(player.feet - D.y0) > 1 || (only && !only(D))) continue;
     const d = D.ax ? Math.hypot(player.x - D.mid, player.z - D.c) : Math.hypot(player.x - D.c, player.z - D.mid);
     if (d < bd) { bd = d; best = D; }
   }
   if (!best) return null;
   best.target = best.target > 0 ? 0 : 1;
+  if (best.target && best.pair) best.pair.target = 0;               // puertas que se cruzan: se abre una por vez
   return best;
 }
 let bathDoorShadowFrame = 0;
@@ -1096,8 +1098,8 @@ function buildWalls() {
       slidingDoors(o.r, base, head);
     } else if (o.frame) {
       frameOpening(o.r, base, head, { sill: false });
-      if (o.leaf) {                                                     // puerta-ventana: hoja fija de vidrio en una mitad
-        const xm = (x0 + x1) / 2, leaf = [xm, x1, z0, z1];
+      if (o.leaf) {                                                     // puerta-ventana corrediza: hoja fija de vidrio en una mitad ('x0' = la izquierda)
+        const xm = (x0 + x1) / 2, leaf = o.leaf === 'x0' ? [x0, xm, z0, z1] : [xm, x1, z0, z1];
         glassPane(leaf, base, head, true);
         frameOpening(leaf, base, head);
       }
@@ -1112,6 +1114,7 @@ function buildFloorsAndCeilings() {
   M.paving.normalMap = normalFrom(pavingTex.image, 2.5); M.paving.normalScale = v2(0.8);
   floor(5.52, 8.40, 0, 7.86, 0.004, M.paving, 1.6);       // entrada de autos (adoquines de granito)
   floor(4.02, 5.04, 0, 5.16, 0.004, M.paving, 1.6);       // camino a la puerta
+  floor(0.95, 3.12, 4.56, 5.16, 0.004, M.paving, 1.6);    // descanso frente a la puerta-ventana del living
   floor(-0.28, LOT_W + 0.28, GALERIA_Z[0], GALERIA_Z[1], 0.004, M.tile, 0.6);   // calcáreos 30 x 30
   // Pinotea en living, entrada, hall y baño PB; porcelanato 60 x 120 en la cocina
   floor(0, 5.38, 5.16, 13.09, 0.006, M.wood);
@@ -1409,31 +1412,32 @@ function bookcase() {
   tableLamp(0.2, 9.6, YB);
 }
 
-// Entrada (mud room) contra la pared derecha al entrar (x = 5,24), entre la puerta y la caja de la escalera:
-// banco empotrado con cajones, boiserie de listones verticales, ganchos y alacenas altas lisas.
+// Entrada (mud room): mueble recibidor contra la pared angosta que se ve de frente al entrar, el lateral de la
+// caja de la escalera (z = 7,86, de x = 4,23 a 5,24, 1,01 m). Banco con cajones, boiserie de listones verticales,
+// ganchos y alacenas altas lisas hasta el techo. La pared larga de la derecha (x = 5,24) queda libre.
 function mudroom() {
-  const X1 = 5.24, Z0 = 5.80, Z1 = 7.86, SEAT = 0.46, UP = 2.0;
+  const X0 = 4.23, X1 = 5.24, Z1 = 7.86, SEAT = 0.46, UP = 2.0;
   // banco
-  rbox(X1 - 0.37, X1, Z0, Z1, 0, 0.08, F.plinth, { r: 0.004 });
-  rbox(X1 - 0.42, X1, Z0, Z1, 0.08, SEAT - 0.035, F.millwork, { r: 0.006 });
-  doorSeams([X1 - 0.42, X1, Z0, Z1], 'x0', 0.08, SEAT - 0.035, 0.52);
-  rbox(X1 - 0.44, X1, Z0, Z1, SEAT - 0.035, SEAT, F.millwork, { r: 0.008 });
-  colliders.push({ x0: X1 - 0.44, x1: X1, z0: Z0, z1: Z1, y0: 0, y1: SEAT });
+  rbox(X0, X1, Z1 - 0.37, Z1, 0, 0.08, F.plinth, { r: 0.004 });
+  rbox(X0, X1, Z1 - 0.42, Z1, 0.08, SEAT - 0.035, F.millwork, { r: 0.006 });
+  doorSeams([X0, X1, Z1 - 0.42, Z1], 'z0', 0.08, SEAT - 0.035, 0.5);
+  rbox(X0, X1, Z1 - 0.44, Z1, SEAT - 0.035, SEAT, F.millwork, { r: 0.008 });
+  colliders.push({ x0: X0, x1: X1, z0: Z1 - 0.44, z1: Z1, y0: 0, y1: SEAT });
   // boiserie: panel de fondo + listones verticales redondeados (una sola malla instanciada)
-  rbox(X1 - 0.012, X1, Z0, Z1, SEAT, UP, F.millwork, { r: 0.002, seg: 1 });
-  const pitch = 0.04, n = Math.floor((Z1 - Z0) / pitch);
-  const slats = new THREE.InstancedMesh(new RoundedBoxGeometry(0.016, UP - SEAT, 0.03, 2, 0.007), F.millwork, n), mtx = new THREE.Matrix4();
-  for (let i = 0; i < n; i++) slats.setMatrixAt(i, mtx.makeTranslation(X1 - 0.02, (SEAT + UP) / 2, -(Z0 + pitch / 2 + i * pitch)));
+  rbox(X0, X1, Z1 - 0.012, Z1, SEAT, UP, F.millwork, { r: 0.002, seg: 1 });
+  const pitch = 0.04, n = Math.floor((X1 - X0) / pitch);
+  const slats = new THREE.InstancedMesh(new RoundedBoxGeometry(0.03, UP - SEAT, 0.016, 2, 0.007), F.millwork, n), mtx = new THREE.Matrix4();
+  for (let i = 0; i < n; i++) slats.setMatrixAt(i, mtx.makeTranslation(X0 + pitch / 2 + i * pitch, (SEAT + UP) / 2, -(Z1 - 0.02)));
   scene.add(slats);
   // ganchos negros finos
-  for (let i = 0; i < 5; i++) {
-    const z = Z0 + 0.3 + i * (Z1 - Z0 - 0.6) / 4;
-    rod(W(X1 - 0.028, 1.62, z), W(X1 - 0.085, 1.62, z), 0.006, F.black, scene, 6);
-    rod(W(X1 - 0.085, 1.615, z), W(X1 - 0.085, 1.67, z), 0.006, F.black, scene, 6);
+  for (let i = 0; i < 3; i++) {
+    const x = X0 + 0.22 + i * (X1 - X0 - 0.44) / 2;
+    rod(W(x, 1.62, Z1 - 0.028), W(x, 1.62, Z1 - 0.085), 0.006, F.black, scene, 6);
+    rod(W(x, 1.615, Z1 - 0.085), W(x, 1.67, Z1 - 0.085), 0.006, F.black, scene, 6);
   }
   // alacenas altas lisas hasta el techo
-  rbox(X1 - 0.36, X1, Z0, Z1, UP, H_WALL - 0.002, F.millwork, { r: 0.006 });
-  doorSeams([X1 - 0.36, X1, Z0, Z1], 'x0', UP, H_WALL - 0.002, 0.52);
+  rbox(X0, X1, Z1 - 0.36, Z1, UP, H_WALL - 0.002, F.millwork, { r: 0.006 });
+  doorSeams([X0, X1, Z1 - 0.36, Z1], 'z0', UP, H_WALL - 0.002, 0.5);
 }
 function roundTable(x, z, R, H, mat = F.veneer, parent = scene) {
   const g = new THREE.Group(); g.position.copy(W(x, 0, z)); parent.add(g);
@@ -1763,10 +1767,10 @@ function bathPB() {
   hollowBox(2.1, 2.44, 12.47, 12.93, 0.825, 0.955, F.ceramic, { inner: [2.115, 2.425, 12.485, 12.915], r: 0.02, ri: 0.012 });
   mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.003, 20), F.steel, scene, 2.27, 0.842, -12.70);   // desagüe
   wallSpout(X1 - 0.004, 1.03, 12.70, -1, 0, 0.2, F.brass, 0.16);
-  wallMirror(X1 - 0.004, 12.65, -1, 0, 0.5, 1.15, 1.95, { frame: F.walnutDark, t: 0.03 });
-  // dos globos opalinos sobre los azulejos, al costado del espejo (como la referencia baño.jpg)
-  for (const y of [1.45, 1.72]) globeSconce(2.19, y, Z1 - 0.005, 0, -1, F.brass);
-  lampLight(2.19, 1.6, 12.9, 3, 0xffd6a0, 3);
+  wallMirror(X1 - 0.004, 12.695, -1, 0, 0.36, 1.15, 1.95, { frame: F.walnutDark, t: 0.03 });
+  // dos globos opalinos en la pared del espejo, uno a cada lado del espejo
+  for (const z of [12.40, 12.99]) globeSconce(X1 - 0.004, 1.58, z, -1, 0, F.brass);
+  lampLight(2.3, 1.58, 12.695, 3, 0xffd6a0, 3);
   vase(2.27, 13.0, 0.825, 0.17, 0.05, F.pot);
   paperHolder(0.86, 0.68, Z1 - 0.005, 0, -1, F.brass);
   // canasto de fibra bajo el vanitory
@@ -2107,6 +2111,87 @@ function kitchenIsland() {
   colliders.push({ x0: X0, x1: X1, z0: Z0, z1: Z1, y0: 0, y1: TOP });
 }
 
+// Comedor diario: banco tipo bar booth en L. Un tramo contra el muro del fondo, debajo de la ventana fija de
+// 1,50 x 1,50 (de x = 3,30, junto a la puerta-ventana, hasta el rincón); el otro contra la pared del garage
+// (x = 5,38). Base de madera miel, asiento y almohadones de respaldo tapizados en lino beige (los del tramo
+// del fondo se apoyan contra la parte baja del vidrio). Mesa rectangular de madera delante del banco.
+function kitchenBooth() {
+  const ZB = 17.40, XG = 5.38, XA = 3.30, ZBs = 15.85, D = 0.55, SEAT = 0.45, BK = 0.13;
+  // tramo A (fondo) y tramo B (pared del garage): x0, x1, z0, z1 de la base y lado del frente
+  const segs = [[XA, XG, ZB - D, ZB, 'z0'], [XG - D, XG, ZBs, ZB - D, 'x0']];
+  for (const [x0, x1, z0, z1, front] of segs) {
+    const p = front === 'z0' ? [x0 + 0.02, x1, z0 + 0.06, z1] : [x0 + 0.06, x1, z0 + 0.02, z1];
+    rbox(...p, 0, 0.08, F.plinth, { r: 0.004 });
+    rbox(x0, x1, z0, z1, 0.08, SEAT - 0.08, F.veneer, { r: 0.008, uv: 1 });
+    doorSeams([x0, x1, z0, z1], front, 0.08, SEAT - 0.08, 0.55);
+    colliders.push({ x0, x1, z0, z1, y0: 0, y1: SEAT });
+  }
+  const o = { r: 0.035, seg: 3, uv: 0.15 };
+  rbox(XA + 0.01, XG - BK, ZB - D + 0.005, ZB - BK, SEAT - 0.08, SEAT, F.beige, o);          // asiento A
+  rbox(XG - D + 0.005, XG - BK, ZBs + 0.01, ZB - D + 0.005, SEAT - 0.08, SEAT, F.beige, o);  // asiento B
+  rbox(XA + 0.02, XG - 0.01, ZB - BK, ZB - 0.008, SEAT, 0.88, F.beige, { ...o, r: 0.045 });  // respaldo A (contra la ventana)
+  rbox(XG - BK, XG - 0.008, ZBs + 0.02, ZB - BK, SEAT, 0.88, F.beige, { ...o, r: 0.045 });   // respaldo B (pared del garage)
+  colliders.push({ x0: XA, x1: XG, z0: ZB - BK, z1: ZB, y0: 0, y1: 0.9 }, { x0: XG - BK, x1: XG, z0: ZBs, z1: ZB, y0: 0, y1: 0.9 });
+  // mesa rectangular (1,30 x 0,80) de madera miel con pie central
+  const [tx0, tx1, tz0, tz1, TH] = [3.45, 4.75, 16.0, 16.80, 0.75];
+  rbox(tx0, tx1, tz0, tz1, TH - 0.035, TH, F.veneer, { r: 0.012, uv: 1 });
+  const tc = W((tx0 + tx1) / 2, 0, (tz0 + tz1) / 2);
+  rbox(tx0 + 0.3, tx1 - 0.3, tz0 + 0.25, tz1 - 0.25, 0, 0.03, F.veneer, { r: 0.01, uv: 1 });               // pie
+  mesh(new THREE.CylinderGeometry(0.05, 0.06, TH - 0.06, 20), F.veneer, scene, tc.x, (TH - 0.035) / 2 + 0.01, tc.z);
+  colliders.push({ x0: tx0, x1: tx1, z0: tz0, z1: tz1, y0: 0, y1: TH });
+  vase(4.3, 16.42, TH, 0.18, 0.055, F.creamCeramic);
+  opalPendant((tx0 + tx1) / 2, (tz0 + tz1) / 2, 1.55, H_WALL, { intensity: 5 });
+}
+
+// Lavadero del hall: al pasar la puerta de vidrio, a la derecha (contra la pared del garage, x = 5,38), un mueble
+// cerrado de piso a techo con dos puertas corredizas de madera miel que se cruzan en dos rieles (E abre la más
+// cercana). Adentro: lavarropas y bacha sobre una mesada (mitad del frente) y mueble de guardado (mitad del fondo).
+function laundry() {
+  const X0 = 4.68, X1 = 5.38, Z0 = 10.06, Z1 = 12.70, ZM = 11.38, TOP = H_WALL - 0.002, XF = 4.55;
+  const o = { r: 0.004, uv: 1 };
+  // casco: costados, división central, frente superior que tapa los rieles
+  rbox(XF, X1, Z0, Z0 + 0.02, 0, TOP, F.veneer, o);
+  rbox(XF, X1, Z1 - 0.03, Z1, 0, TOP, F.veneer, o);
+  rbox(X0, X1, ZM - 0.01, ZM + 0.01, 0, 2.45, F.millwork, o);
+  rbox(XF, X1, Z0, Z1, 2.45, TOP, F.veneer, o);
+  rbox(X0, X1, Z0 + 0.02, Z1 - 0.03, 0, 0.012, F.millwork, o);                                // piso del mueble
+  rbox(X1 - 0.015, X1, Z0 + 0.02, Z1 - 0.03, 0.012, 2.45, F.millwork, o);                   // fondo
+  colliders.push({ x0: X0 - 0.02, x1: X1, z0: Z0, z1: Z1, y0: 0, y1: TOP });
+  // lavarropas de carga frontal (60 x 60 x 85) bajo la mesada
+  const [wz0, wz1] = [10.10, 10.70], wzm = (wz0 + wz1) / 2, wx = 4.74;
+  rbox(wx, X1 - 0.02, wz0, wz1, 0.012, 0.85, F.white, { r: 0.02 });
+  rbox(wx - 0.004, wx + 0.01, wz0 + 0.02, wz1 - 0.02, 0.73, 0.83, F.screen, { r: 0.004, seg: 1 });  // panel de comandos
+  const ringW = mesh(new THREE.TorusGeometry(0.17, 0.025, 12, 40), F.steel, scene, wx - 0.012, 0.42, -wzm); ringW.rotation.y = Math.PI / 2;
+  const porthole = mesh(new THREE.CircleGeometry(0.15, 40), F.ovenGlass, scene, wx - 0.006, 0.42, -wzm); porthole.rotation.y = -Math.PI / 2;
+  // mesada de piedra clara sobre el lavarropas y la bajo mesada, con bacha de loza y grifería de pared
+  rbox(X0, X1, 10.72, ZM - 0.01, 0.012, 0.87, F.millwork, { r: 0.006 });
+  doorSeams([X0, X1, 10.72, ZM - 0.01], 'x0', 0.012, 0.87, 0.3);
+  rbox(X0 - 0.02, X1, Z0 + 0.02, ZM - 0.01, 0.87, 0.9, F.stone, { r: 0.006, uv: 1 });
+  hollowBox(4.78, 5.24, 10.80, 11.30, 0.9, 1.12, F.ceramic, { inner: [4.80, 5.22, 10.82, 11.28], r: 0.02, ri: 0.015 });
+  wallSpout(X1 - 0.015, 1.3, 11.05, -1, 0, 0.2, F.steel, 0);
+  wallKnob(X1 - 0.015, 1.3, 11.20, -1, 0, F.steel, true);
+  // estantes arriba del lavarropas y la bacha: canastos, botellas y toallas
+  for (const y of [1.55, 1.95]) rbox(5.0, X1 - 0.015, Z0 + 0.02, ZM - 0.01, y - 0.022, y, F.veneer, o);
+  for (const [z, c] of [[10.18, 0x6f8aa0], [10.27, 0xefe8db], [10.36, 0xd9b7a5]]) {
+    mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.24, 16), std(c, 0.4), scene, 5.2, 1.55 + 0.12, -z);
+  }
+  for (const z0 of [10.55, 10.92]) rbox(5.04, 5.34, z0, z0 + 0.32, 1.95, 2.17, F.rattan, { r: 0.012, uv: 0.12 });
+  for (let i = 0; i < 3; i++) rbox(5.06, 5.32, 10.6, 11.0, 1.55 + i * 0.05, 1.55 + (i + 1) * 0.05 - 0.004, F.pillow, { r: 0.015 });
+  // mueble de guardado: puertas abajo y estantes con canastos arriba
+  rbox(X0, X1, ZM + 0.01, Z1 - 0.03, 0.012, 0.9, F.millwork, { r: 0.006 });
+  doorSeams([X0, X1, ZM + 0.01, Z1 - 0.03], 'x0', 0.012, 0.9, 0.42);
+  for (const z of [11.6, 12.05, 12.5]) rbox(X0 - 0.022, X0, z - 0.011, z + 0.011, 0.789, 0.811, F.steel, { r: 0.009 });   // perillas
+  for (const y of [1.3, 1.7, 2.1]) rbox(X0 + 0.02, X1 - 0.015, ZM + 0.01, Z1 - 0.03, y - 0.022, y, F.veneer, o);
+  for (const [y, zs] of [[0.9, [11.45, 11.9, 12.3]], [1.3, [11.5, 12.0]], [1.7, [11.5, 11.95, 12.35]]])
+    for (const z0 of zs) rbox(4.9, 5.3, z0, z0 + 0.3, y, y + 0.24, F.rattan, { r: 0.012, uv: 0.12 });
+  for (let i = 0; i < 4; i++) rbox(4.95, 5.3, 12.1, 12.55, 2.1 + i * 0.05, 2.1 + (i + 1) * 0.05 - 0.004, F.pillow, { r: 0.015 });
+  // dos puertas corredizas de madera miel (se cruzan en dos rieles; arrancan cerradas)
+  const LD = { along: 'z', y0: 0, H: 2.47, mat: F.veneer, pull: F.black, open: 0, name: 'el lavadero' };
+  const a = bathSlidingDoor({ ...LD, a0: Z0, a1: ZM, c: 4.585, dir: 1, limit: Z1 - 0.03 });
+  const b = bathSlidingDoor({ ...LD, a0: ZM, a1: Z1 - 0.06, c: 4.627, dir: -1, limit: Z0 });
+  a.pair = b; b.pair = a;
+}
+
 // ---- Lámparas: la pantalla brilla (deja pasar la luz) y adentro hay una luz real con sombras ----
 const LAMPS = [];
 function lampLight(x, y, z, intensity, color = 0xffd6a0, range = 5) {
@@ -2253,21 +2338,21 @@ function buildFurniture() {
   modelSlot(['potted_plant_02'], plant('small', LC[0] + 0.12, LC[1] - 0.1, { y: 0.38, h: 0.3, seed: 5, pot: F.potDark }),
     { x: LC[0] + 0.12, z: LC[1] - 0.1, y: 0.38, h: 0.3 });
   paperPendant(LC[0], LC[1], 1.72, H_WALL);
-  // Plantas del living: ficus junto a la ventana y una mata frondosa entre la biblioteca y la ventana
-  modelSlot(['pachira_aquatica_01'], plant('ficus', 3.58, 5.82, { h: 1.65, seed: 11 }), { x: 3.58, z: 5.82, h: 1.65, variant: 'b' });
+  // Planta del living: una mata frondosa en el rincón entre la biblioteca y la puerta-ventana al jardín
+  // (junto a la puerta de entrada no va ninguna planta)
   modelSlot(['potted_plant_01', 'calathea_orbifolia_01'], plant('bush', 0.78, 5.80, { h: 0.95, seed: 12, pot: F.pot }), { x: 0.78, z: 5.80, h: 0.95, variant: 'b' });
   // Entrada: banco, boiserie, ganchos y alacenas sobre la pared derecha
   mudroom();
 
-  // Hall: placar y mesada con pileta
+  // Hall: placar, y a la derecha (al pasar la puerta de vidrio) el lavadero cerrado de piso a techo
   wardrobe([0, 0.83, 10.06, 12.12], 'x1', 0, 2.4);
-  counter([4.61, 5.38, 10.06, 12.70], 'x0');
+  laundry();
 
   // Cocina (no dibujada en detalle en el plano; ver estilos.md → Cocina + galería → Distribución).
   // Pared izquierda (x = 0), del baño hacia el fondo: bajo mesada con anafe, módulo de estantes abiertos
   // sobre la mesada y columna de alacenas de piso a techo con horno. En L contra el muro del baño, otra bajo mesada.
-  counter([0, 0.64, 13.37, 16.10], 'x1');
-  counter([0.64, 2.49, 13.37, 14.0], 'z1');
+  counter([0, 0.64, 13.20, 16.10], 'x1');
+  counter([0.64, 2.49, 13.20, 13.83], 'z1');
   rbox(0.06, 0.58, 14.10, 14.70, 0.9, 0.906, F.screen, { r: 0.006, seg: 1 });               // anafe de inducción (vidrio negro)
   for (const [x, z, rr] of [[0.18, 14.24, 0.08], [0.18, 14.55, 0.1], [0.44, 14.25, 0.09], [0.44, 14.55, 0.08]]) {
     const ring = mesh(new THREE.RingGeometry(rr - 0.003, rr, 40), F.ring, scene, x, 0.9065, -z); ring.rotation.x = -Math.PI / 2;
@@ -2278,14 +2363,10 @@ function buildFurniture() {
   kitchenIsland();
   linearPendant(2.08, 14.45, 15.45, 1.85, H_WALL);
   for (const z of [14.62, 15.28]) modelSlot(['bar_chair_round_01'], barStool(2.8, z), { x: 2.8, z, h: 0.7 });
-  // comedor: mesa redonda con cuatro sillas
-  const T = [4.265, 16.3];                                    // la ventana de paño fijo del fondo está centrada en T[0]
-  modelSlot(['round_wooden_table_01', 'WoodenTable_01'], roundTable(T[0], T[1], 0.55, 0.75),
-    { x: T[0], z: T[1], w: 1.1, d: 1.1, h: 0.75, fit: 'stretch' });
-  for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-    const cx = T[0] - dx * 0.62, cz = T[1] - dz * 0.62;
-    modelSlot(['dining_chair_02', 'WoodenChair_01'], chair(cx, cz, dx, dz), { x: cx, z: cz, h: 0.85, rotY: faceAngle(dx, dz) });
-  }
+  // comedor diario: banco tipo bar booth en L (contra la ventana fija y contra la pared del garage), mesa
+  // rectangular delante del banco y dos sillas del lado abierto, mirando a la ventana
+  kitchenBooth();
+  for (const cx of [3.78, 4.42]) modelSlot(['dining_chair_02', 'WoodenChair_01'], chair(cx, 15.72, 0, 1), { x: cx, z: 15.72, h: 0.85, rotY: faceAngle(0, 1) });
 
   bathPB();                                                                               // baño PB (toilette)
   buildCar(CAR_SPECS.bmw, 6.965, 8.75 + CAR_SPECS.bmw.L / 2);                             // garage: BMW 120i blanco, de frente a la calle
@@ -2668,11 +2749,11 @@ function flushGarden() {
 }
 function buildGarden() {
   const H = 2.45, back = LOT_D, start = GALERIA_Z[1] + 0.4;
-  // Jardín delantero: borduras contra la reja, la medianera izquierda y bajo la ventana del living;
+  // Jardín delantero: borduras contra la reja, la medianera izquierda y entre la puerta-ventana del living y el camino;
   // una franja angosta de gramíneas entre el camino y la entrada de autos (deja paso junto a la casa)
   border({ axis: 'x', c: 0.12, dir: 1, a0: 0, a1: 4.0, depth: 0.95, seed: 101 });
   border({ axis: 'z', c: 0, dir: 1, a0: 1.15, a1: 4.45, depth: 0.95, seed: 102 });
-  border({ axis: 'x', c: 5.16, dir: -1, a0: 1.1, a1: 4.0, depth: 0.6, seed: 103, rows: ['low'] });
+  border({ axis: 'x', c: 5.16, dir: -1, a0: 3.22, a1: 4.0, depth: 0.6, seed: 103, rows: ['low'] });
   border({ axis: 'z', c: 5.08, dir: 1, a0: 0.12, a1: 4.3, depth: 0.4, seed: 104, rows: ['mid'], spacing: 0.55 });
   // Patio trasero: cerco alto contra las tres medianeras y borduras anchas delante, con el frente ondulado
   hedge(0, 0.8, start, back, H, 201);
@@ -3079,12 +3160,14 @@ function showNotice(text) {
 }
 addEventListener('keydown', e => {
   if (e.code !== 'KeyE' || e.repeat || !(controls.isLocked || debug.force)) return;
-  if (toggleSlider()) showNotice(SLIDER.target > 0 ? 'Abriendo la puerta corrediza' : 'Cerrando la puerta corrediza');
+  const laundry = toggleBathDoor(D => D.pair, 1.1);                      // el lavadero del hall gana si está cerca (queda junto a la puerta de vidrio)
+  if (laundry) showNotice(laundry.target > 0 ? 'Abriendo el lavadero' : 'Cerrando el lavadero');
+  else if (toggleSlider()) showNotice(SLIDER.target > 0 ? 'Abriendo la puerta corrediza' : 'Cerrando la puerta corrediza');
   else if (toggleGarageDoor()) showNotice(GARAGE.target > 0 ? 'Abriendo el portón' : 'Cerrando el portón');
   else {
     const d = toggleBathDoor();
-    if (d) showNotice(d.target > 0 ? 'Abriendo la puerta del baño' : 'Cerrando la puerta del baño');
-    else showNotice('Acercate al portón del garage, a la puerta de vidrio del living o a una puerta de baño para abrirlos o cerrarlos');
+    if (d) showNotice(d.target > 0 ? `Abriendo ${d.name}` : `Cerrando ${d.name}`);
+    else showNotice('Acercate al portón del garage, a la puerta de vidrio del living, al lavadero del hall o a una puerta de baño para abrirlos o cerrarlos');
   }
 });
 addEventListener('keydown', e => {

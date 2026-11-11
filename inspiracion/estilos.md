@@ -37,7 +37,8 @@ Referencias: `living/` (`living.jpg`, `entrada.png`, `puerta separadoralivingaco
 - Biblioteca empotrada de piso a techo en color bordó (vino), con estantes abiertos y módulos cerrados abajo.
 - Sillón curvo en tonos terracota/óxido, alfombra con dibujo en rosas y crudos, lámpara colgante de papel plisado.
 - Living y cocina separados por puertas de vidrio repartido (referencia `living/puerta separadoralivingacocina.jpg`): corredizas, marco verde salvia, paños de vidrio divididos y zócalo ciego abajo. Desde el living se tiene que ver la cocina a través del vidrio.
-- Entrada (mud room): pared con boiserie de listones verticales blanco cálido, banco empotrado y alacenas altas lisas, ganchos para colgar.
+- Entrada (mud room): mueble recibidor con boiserie de listones verticales blanco cálido, banco empotrado y alacenas altas lisas, ganchos para colgar.
+- Puerta del living al jardín delantero: puerta-ventana corrediza de vidrio, del mismo tipo que la de la cocina a la galería (marco blanco fino, una hoja fija y la otra corrida/abierta). En el plano está donde se ve dibujada la "ventana" del living, de 2,52 m.
 
 ### Distribución (mirando desde la puerta de entrada)
 Estos muebles no están dibujados en `plano.pdf`; se ubican sin cambiar paredes ni medidas.
@@ -45,8 +46,9 @@ Estos muebles no están dibujados en `plano.pdf`; se ubican sin cambiar paredes 
 - **Tele**: empotrada en la columna del centro de la biblioteca, a la altura de la vista sentado, con estantes arriba.
 - **Sillón curvo**: mira hacia la tele, así que al entrar a la casa se lo ve de espaldas. Va en el centro del living con la mesa ratona y la alfombra entre el sillón y la biblioteca; el colgante de papel queda sobre la mesa ratona. Se deja libre el paso de la entrada hacia la escalera y las puertas de vidrio.
 - **Puertas corredizas de vidrio**: en el vano corredizo que ya existe entre el living y el hall (2,4 m). Del otro lado del hall está la cocina, que se ve a través del vidrio. Dos hojas: la del lado del hall queda fija a la izquierda y la del lado del living corre por delante (tecla E para abrir o cerrar).
-- **Entrada**: sobre la pared derecha al entrar, entre la puerta y la caja de la escalera: banco empotrado con cajones, boiserie con ganchos arriba del banco y alacenas altas hasta el techo.
-- **Plantas**: ficus junto a la ventana del frente, apenas a la izquierda de la puerta de entrada; mata frondosa en el rincón entre la biblioteca y la ventana.
+- **Entrada (recibidor)**: ocupa solo la pared angosta que se ve de frente al entrar, que es el lateral de la caja de la escalera (1,01 m de ancho). No va en la pared larga de la derecha, que queda libre. Banco empotrado con cajones (44 cm de fondo), boiserie con tres ganchos arriba del banco y alacenas altas hasta el techo.
+- **Puerta-ventana al jardín**: corrediza de vidrio en el frente del living, del ancho de la abertura del plano (2,52 m). La hoja de la izquierda (del lado de la biblioteca) queda fija y la de la derecha, abierta. Afuera, un descanso de adoquines; la bordura de plantas queda solo entre la puerta-ventana y el camino de entrada.
+- **Plantas**: apenas entrás al living no hay ninguna planta. Solo queda la mata frondosa en el rincón entre la biblioteca y la puerta-ventana.
 
 ## Cocina + galería
 Referencias: `cocina/`, `pisos/piso galeria.jpeg`
@@ -55,18 +57,31 @@ Referencias: `cocina/`, `pisos/piso galeria.jpeg`
 - Isla: base verde muy oscuro con un costado de estantes abiertos en madera; colgante lineal negro arriba.
 - Mesada clara (cuarcita o mármol crema) con un poco de brillo.
 - Bacha de acero bajo mesada **en la isla** (no en la mesada contra la pared), con grifería de acero. En la mesada de la pared va el anafe de inducción negro.
-- Ventana de paño fijo (no se abre) de 1,50 x 1,50 m sobre la mesa del comedor diario, centrada sobre la mesa, con marco blanco fino como el resto de las carpinterías.
+- Ventana de paño fijo (no se abre) de 1,50 x 1,50 m sobre el comedor diario (detrás del banco en L), con marco blanco fino como el resto de las carpinterías.
+- Comedor diario: banco tipo bar booth en L con base de madera miel y almohadones de lino beige; mesa rectangular de madera miel; dos sillas de madera; globo opalino colgante sobre la mesa.
 - Paredes blanco cálido, sin azulejos. Piso: porcelanato claro (ver Pisos).
 - Galería: piso de calcáreos; abertura grande vidriada hacia el patio. Sin columnas: el techo (losa) de la galería va en voladizo desde el muro del fondo de la casa, sin apoyos visibles.
 
+### Medidas
+- La cocina mide **5,40 x 4,20 m** (como dice el plano): 5,38 m de la medianera a la pared del garage y 4,20 m del muro del baño PB al muro del fondo, medidos por dentro.
+- Antes medía 5,38 x 4,03 m por dentro: la cota de 4,2 del plano arranca en la cara de afuera del muro del fondo. Para que dé 4,20 por dentro, el muro entre el baño PB y la cocina pasó de 28 a 11 cm (del lado de la cocina). El baño PB, el hall, el garage y la fachada no cambian.
+
 ### Distribución (mirando desde el hall hacia la galería)
-La columna de alacenas, el módulo de estantes abiertos y la isla no están dibujados en `plano.pdf`; se ubican sin cambiar paredes ni medidas.
+La columna de alacenas, el módulo de estantes abiertos, la isla y el banco del comedor no están dibujados en `plano.pdf`; se ubican sin cambiar paredes ni medidas.
 - **Pared izquierda (medianera)**, del muro del baño hacia el fondo:
   - Bajo mesada con anafe (del muro del baño hasta 2,7 m), en L con la bajo mesada contra el muro del baño.
   - **Módulo de estantes abiertos** (50 cm de ancho): sobre la mesada, desde la mesada hasta el techo, en madera miel, con platos, tazas y libros de cocina.
   - **Columna de alacenas** (1,27 m de ancho, de piso a techo, 62 cm de fondo) en el rincón del fondo, donde el plano marca la heladera: dos módulos con alacenas arriba; el **horno grafito** empotrado a la altura de la mano en el módulo junto a los estantes. Llega hasta el muro del fondo, al lado de la puerta-ventana a la galería.
 - **Isla** (1,04 x 1,30 m) en el centro, frente a la mesada de la pared (pasillo de 90 cm): bacha con grifería del lado de la mesada, banquetas del lado del comedor, estantes abiertos en el costado que mira a la galería, colgante lineal negro arriba.
-- **Comedor diario**: mesa redonda con cuatro sillas contra el muro del fondo, a la derecha de la puerta-ventana; la ventana fija de 1,50 x 1,50 m (dintel a 2,05 m, alineado arriba con la puerta-ventana corrediza a la galería; antepecho a 55 cm) está centrada sobre la mesa y da a la galería.
+- **Comedor diario** en el rincón del fondo a la derecha (a la derecha de la puerta-ventana a la galería): **banco tipo bar booth en L** de 45 cm de alto y 55 cm de fondo, con respaldo de almohadones hasta 88 cm.
+  - Un tramo contra el muro del fondo, debajo de la ventana fija de 1,50 x 1,50 m (de x = 3,30, junto a la puerta-ventana, hasta el rincón; 2,08 m). La ventana (dintel a 2,05 m, alineado con la puerta-ventana; antepecho a 55 cm) queda detrás del banco y los almohadones del respaldo se apoyan contra la parte baja del vidrio.
+  - El otro tramo contra la pared del garage (1,00 m más el rincón).
+  - **Mesa** rectangular de 1,30 x 0,80 delante del banco, con pie central, y **2 sillas** del lado abierto (el que mira a la isla), de frente a la ventana. Globo opalino colgante sobre la mesa.
+
+### Hall: lavadero
+- **Lavadero** al pasar la puerta corrediza de vidrio del living, a la derecha (contra la pared del garage), donde el plano dibuja la mesada con pileta del hall: mueble **cerrado de piso a techo** (2,64 m de largo, 83 cm de fondo) en madera miel, con **dos puertas corredizas** que se cruzan en dos rieles (tecla E, se abre una por vez; arrancan cerradas).
+  - Mitad de adelante (lado del living): **lavarropas** de carga frontal bajo una mesada de piedra clara, con **bacha** de loza y grifería de pared de acero; dos estantes arriba con canastos, botellas y toallas.
+  - Mitad del fondo (lado de la cocina): **mueble de guardado**, puertas abajo y estantes con canastos de fibra y toallas arriba.
 
 ## Dormitorios + escritorio
 Referencias: `habitaciones/`
@@ -108,7 +123,8 @@ Los artefactos van donde los marca `plano.pdf`; los muebles, revestimientos y lu
 - **Baño PB** (toilette de 2,49 x 0,81; referencias `baño.jpg`, `baño2.jpg`, `baño3.jpg`):
   - **Pared del fondo** (la que se ve al entrar) entera de azulejos terracota verticales 7,5 x 30 con brillo; las otras tres paredes y el techo pintados bordó. Piso: sigue la pinotea del hall.
   - **Inodoro** de pie contra la medianera, con un **mueble alto de nogal oscuro** arriba (dos puertas, perillas de bronce).
-  - **Vanitory flotante de nogal oscuro** contra la pared derecha (donde el plano marca el lavatorio), con bacha de apoyo rectangular blanca, grifería de pared de bronce, espejo con marco de nogal, dos apliques de globo opalino sobre los azulejos y un canasto de fibra abajo.
+  - **Vanitory flotante de nogal oscuro** contra la pared derecha (donde el plano marca el lavatorio), con bacha de apoyo rectangular blanca, grifería de pared de bronce, espejo angosto con marco de nogal y un canasto de fibra abajo.
+  - **Luces**: dos apliques de globo opalino con brazo de bronce **en la pared del espejo**, uno a cada lado del espejo (no en la pared de azulejos).
   - **Puerta corrediza** de nogal oscuro con tirador de bronce, del lado de adentro (en el plano es corrediza).
 - **Baño principal** = Baño PA 2 (1,71 x 2,32, el de la bañera) + su antebaño (Lavatorio Baño PA 2):
   - **Bañera** de 1,70 x 0,73 de pared a pared, donde la marca el plano. La pared de atrás (con la ventana) es la "pared de ducha": azulejos cuadrados de 18 cm con semicírculos verde salvia y crudo, de piso a techo. Ducha de lluvia negra, tres llaves negras y mampara fija de vidrio con perfil negro.
