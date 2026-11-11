@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plano navegable</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #bcd7ee; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  canvas { display: block; }
+  #hud {
+    position: fixed; top: 12px; left: 12px; padding: 10px 14px; border-radius: 8px;
+    background: rgba(20, 24, 30, .72); color: #fff; font-size: 14px; line-height: 1.45; pointer-events: none;
+  }
+  #hud .room { font-size: 20px; font-weight: 600; }
+  #hud .floor { opacity: .8; }
+  #help {
+    position: fixed; bottom: 12px; left: 12px; padding: 8px 12px; border-radius: 8px;
+    background: rgba(20, 24, 30, .6); color: #fff; font-size: 13px; pointer-events: none;
+  }
+  #overlay {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(10, 14, 20, .55); cursor: pointer;
+  }
+  #overlay .box {
+    max-width: 420px; margin: 16px; padding: 22px 26px; border-radius: 12px; background: #fff; color: #222;
+    box-shadow: 0 10px 30px rgba(0,0,0,.3); text-align: center;
+  }
+  #overlay h1 { margin: 0 0 10px; font-size: 22px; }
+  #overlay p { margin: 6px 0; }
+  #overlay kbd { background: #eee; border: 1px solid #ccc; border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; font-size: 13px; }
+  #overlay .go { margin-top: 14px; font-weight: 600; color: #1a6dd6; }
+  #crosshair { position: fixed; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: rgba(255,255,255,.8); pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="hud"><div class="room" id="roomName">Jardín delantero</div><div class="floor" id="floorName">Exterior</div></div>
+<div id="help">Clic para entrar · <b>WASD</b>/flechas: caminar · <b>Shift</b>: correr · <b>Mouse</b>: mirar · <b>Esc</b>: salir</div>
+<div id="crosshair"></div>
+<div id="overlay">
+  <div class="box">
+    <h1>Recorrido por la casa</h1>
+    <p><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> o flechas para caminar</p>
+    <p><kbd>Shift</kbd> para correr · mouse para mirar</p>
+    <p>La escalera está en el living, junto al hall</p>
+    <p><kbd>Esc</kbd> para salir</p>
+    <p class="go">Hacé clic para entrar</p>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+/* ==========================================================================
+   1. MEDIDAS Y DATOS DEL PLANO
+   Coordenadas en metros, tal como se ve el plano desde arriba:
+   x = 0 en la medianera izquierda → 8,4 en la derecha
+   z = 0 en la línea municipal (frente) → hacia el fondo
+   ========================================================================== */
+const H_WALL = 2.6;           // alto de paredes por planta
+const SLAB = 0.2;             // espesor de losa
+const PA_Y = H_WALL + SLAB;   // nivel de piso de planta alta (2,80)
+const LOT_W = 8.4;
+const GALERIA_Z = [17.54, 19.52];
+const LOT_D = GALERIA_Z[1] + 20.1;   // patio trasero de 20,1 detrás de la galería
+
+// Muros [x0, x1, z0, z1] medidos a escala desde plano.pdf
+const PB_WALLS = [
+  [0, 1.07, 17.37, 17.57], [3.24, 5.88, 17.40, 17.54], [8.06, 8.40, 17.40, 17.54], // fondo (a galería)
+  [5.38, 5.52, 14.19, 17.40], [5.38, 5.52, 5.16, 13.37],                            // cocina/hall | garage
+  [0, 2.66, 13.09, 13.37], [2.49, 2.63, 12.14, 13.09],                              // baño PB
+  [0, 0.92, 12.14, 12.28], [2.33, 2.49, 12.14, 12.26],
+  [0, 0.92, 9.98, 10.06], [3.33, 5.38, 9.98, 10.06],                                // living | hall
+  [3.42, 4.32, 9.02, 9.11],                                                         // bajo escalera
+  [5.24, 5.38, 5.16, 9.98], [4.23, 5.24, 7.86, 8.16],                               // caja de escalera
+  [5.52, 5.72, 7.86, 8.16], [8.21, 8.40, 7.86, 8.16],                               // frente garage
+  [0, 0.60, 5.16, 5.44], [3.12, 4.02, 5.18, 5.44], [5.04, 5.24, 5.16, 5.44],        // frente living
+];
+const PA_WALLS = [
+  [-0.29, 0.60, 15.69, 15.83], [1.52, 2.05, 15.69, 15.83], [2.97, 3.81, 15.69, 15.83], // fondo
+  [5.07, 5.81, 15.69, 15.83], [7.83, 8.69, 15.69, 15.83],
+  [-0.29, 0, 5.16, 15.69], [8.40, 8.69, 7.86, 15.69],                                  // laterales
+  [1.52, 1.66, 13.09, 15.69], [3.37, 3.51, 13.09, 15.69], [5.38, 5.52, 13.00, 15.69],  // baños | depósito | hab 3
+  [0, 0.10, 13.09, 13.37], [0.82, 1.52, 13.09, 13.37], [1.66, 1.91, 13.09, 13.37],
+  [2.64, 3.37, 13.09, 13.37], [3.51, 4.46, 13.09, 13.37], [5.28, 5.38, 13.09, 13.37],
+  [1.72, 1.85, 11.80, 13.09], [3.57, 3.71, 11.80, 12.34],                              // lavatorios
+  [0, 0.10, 11.80, 11.94], [0.82, 1.72, 11.80, 11.94], [1.85, 3.57, 11.80, 11.94],
+  [5.38, 8.40, 12.05, 12.19], [5.38, 5.52, 11.94, 12.05],                              // hab 2 | hab 3
+  [5.38, 5.52, 5.16, 11.13], [5.23, 5.38, 5.16, 10.06],
+  [1.02, 1.13, 9.02, 9.98], [1.13, 4.31, 9.02, 9.11], [4.22, 4.31, 7.86, 9.02],        // hab principal | hall
+  [4.31, 5.23, 7.86, 8.16], [5.52, 5.81, 7.86, 8.16], [7.83, 8.40, 7.86, 8.16],        // frente hab 2
+  [0, 0.60, 5.16, 5.44], [3.12, 5.23, 5.16, 5.44],                                     // frente hab principal
+];
+
+// Aberturas en los huecos de los muros. door: dintel arriba. window: antepecho + vidrio + dintel.
+const OPENINGS = [
+  // Planta baja
+  { lvl: 0, t: 'door',   r: [4.02, 5.04, 5.16, 5.44] },                // puerta de entrada
+  { lvl: 0, t: 'window', r: [0.60, 3.12, 5.16, 5.44], sill: 0.9 },     // ventana living
+  { lvl: 0, t: 'door',   r: [0.92, 3.33, 9.98, 10.06] },               // living ↔ hall (vano corredizo)
+  { lvl: 0, t: 'wall',   r: [0.92, 1.35, 12.14, 12.28] },
+  { lvl: 0, t: 'door',   r: [1.35, 2.33, 12.14, 12.28] },              // baño PB
+  { lvl: 0, t: 'door',   r: [5.38, 5.52, 13.37, 14.19] },              // cocina ↔ garage
+  { lvl: 0, t: 'door',   r: [1.07, 3.24, 17.40, 17.54] },              // puerta-ventana a galería
+  { lvl: 0, t: 'window', r: [5.88, 8.06, 17.40, 17.54], sill: 0.9 },   // ventana garage
+  { lvl: 0, t: 'door',   r: [5.72, 8.21, 7.86, 8.16], head: 2.2 },     // portón garage
+  // Planta alta
+  { lvl: 1, t: 'window', r: [0.60, 3.12, 5.16, 5.44], sill: 0.9 },     // hab principal
+  { lvl: 1, t: 'door',   r: [0, 1.02, 9.02, 9.11] },                   // hab principal
+  { lvl: 1, t: 'door',   r: [0.10, 0.82, 11.80, 11.94] },              // lavatorio 1
+  { lvl: 1, t: 'door',   r: [0.10, 0.82, 13.09, 13.37] },              // baño PA 1
+  { lvl: 1, t: 'door',   r: [1.91, 2.64, 13.09, 13.37] },              // baño PA 2
+  { lvl: 1, t: 'door',   r: [3.57, 3.71, 12.34, 13.09] },              // lavatorio 2
+  { lvl: 1, t: 'door',   r: [4.46, 5.28, 13.09, 13.37] },              // depósito
+  { lvl: 1, t: 'door',   r: [5.38, 5.52, 11.13, 11.94] },              // hab 2
+  { lvl: 1, t: 'door',   r: [5.38, 5.52, 12.19, 13.00] },              // hab 3
+  { lvl: 1, t: 'window', r: [0.60, 1.52, 15.69, 15.83], sill: 1.5 },   // baño PA 1
+  { lvl: 1, t: 'window', r: [2.05, 2.97, 15.69, 15.83], sill: 1.5 },   // baño PA 2
+  { lvl: 1, t: 'window', r: [3.81, 5.07, 15.69, 15.83], sill: 1.2 },   // depósito
+  { lvl: 1, t: 'window', r: [5.81, 7.83, 15.69, 15.83], sill: 0.9 },   // hab 3
+  { lvl: 1, t: 'window', r: [5.81, 7.83, 7.86, 8.16], sill: 0.9 },     // hab 2
+];
+
+// Escalera: compensada 180° (giro alrededor de C) + tramo recto hacia el hall de planta alta
+const STAIR = {
+  cx: 4.32, cz: 9.06,                       // centro del giro
+  winder: [4.32, 5.24, 8.16, 9.98],         // zona de peldaños compensados
+  straight: [2.43, 4.32, 9.11, 9.98],       // tramo recto
+  nWinder: 8, nStraight: 7, risers: 16,
+};
+STAIR.rise = PA_Y / STAIR.risers;
+STAIR.tread = (STAIR.straight[1] - STAIR.straight[0]) / STAIR.nStraight;
+
+// Losa entre plantas (con hueco de escalera)
+const SLAB_RECTS = [
+  [-0.28, 5.52, 5.16, 8.16], [-0.28, 4.32, 8.16, 9.11], [-0.28, 2.43, 9.11, 9.98],
+  [-0.28, 5.52, 9.98, 17.54], [5.52, 8.68, 7.86, 17.54], [5.24, 5.52, 8.16, 9.98],
+];
+const PA_FLOORS = [[0, 5.38, 5.44, 8.16], [0, 4.32, 8.16, 9.11], [0, 2.43, 9.11, 9.98], [0, 5.38, 9.98, 15.69], [5.52, 8.40, 8.16, 15.69]];
+const PA_ROOF = [[-0.29, 5.52, 5.16, 15.83], [5.38, 8.69, 7.86, 15.83]];
+
+// Muebles simples (bloques sólidos): [x0, x1, z0, z1, alto, color]
+const FURNITURE_PB = [
+  [0, 0.83, 10.06, 12.12, 2.4, 'wood'],             // placar hall
+  [4.61, 5.38, 10.06, 12.70, 0.9, 'counter'],       // mesada con pileta
+  [0, 0.64, 13.37, 17.40, 0.9, 'counter'],          // mesada cocina
+  [0.64, 2.49, 13.37, 14.0, 0.9, 'counter'],
+  [1.56, 2.60, 14.3, 15.6, 0.9, 'counter'],         // isla
+  [3.66, 4.87, 15.7, 16.9, 0.75, 'wood'],           // mesa
+  [0.32, 0.92, 5.9, 8.2, 0.45, 'sofa'],             // sillón en L
+  [0.92, 2.10, 5.9, 6.5, 0.45, 'sofa'],
+  [1.21, 1.75, 6.6, 7.8, 0.4, 'wood'],              // mesa ratona
+  [5.9, 7.7, 8.8, 13.4, 1.0, 'car'],                // auto
+  [0.05, 0.75, 12.32, 12.75, 0.45, 'white'],        // inodoro PB (simplificado)
+];
+const FURNITURE_PA = [
+  [4.25, 5.23, 5.44, 7.86, 2.4, 'wood'],            // placar hab principal
+  [6.42, 8.40, 11.45, 12.05, 2.4, 'wood'],          // placar hab 2
+  [6.42, 8.40, 12.19, 12.80, 2.4, 'wood'],          // placar hab 3
+  [0.05, 2.09, 6.22, 8.20, 0.5, 'bed'],             // cama principal
+  [5.53, 6.55, 8.20, 10.24, 0.5, 'bed'],            // cama hab 2
+  [5.53, 6.55, 13.60, 15.65, 0.5, 'bed'],           // cama hab 3
+];
+
+// Ambientes (para el cartel). Se evalúan en orden: el primero que contiene al jugador gana.
+const ROOMS = [
+  { n: 'Baño PB', lvl: 0, r: [0, 2.49, 12.28, 13.09] },
+  { n: 'Living', lvl: 0, r: [0, 5.24, 5.44, 9.98] },
+  { n: 'Hall', lvl: 0, r: [0, 5.38, 9.98, 13.09] },
+  { n: 'Cocina', lvl: 0, r: [0, 5.38, 13.09, 17.40] },
+  { n: 'Garage', lvl: 0, r: [5.52, 8.40, 8.16, 17.40] },
+  { n: 'Galería', lvl: 0, r: [-1, 9, 17.54, 19.52] },
+  { n: 'Patio trasero', lvl: 0, r: [-1, 9, 19.52, 99] },
+  { n: 'Jardín delantero', lvl: 0, r: [-1, 9, -99, 8.16] },
+  { n: 'Habitación principal', lvl: 1, r: [0, 5.23, 5.44, 9.02] },
+  { n: 'Lavatorio Baño PA 1', lvl: 1, r: [0.10, 1.72, 11.94, 13.09] },
+  { n: 'Lavatorio Baño PA 2', lvl: 1, r: [1.85, 3.57, 11.94, 13.09] },
+  { n: 'Baño PA 1', lvl: 1, r: [0, 1.52, 13.37, 15.69] },
+  { n: 'Baño PA 2', lvl: 1, r: [1.66, 3.37, 13.37, 15.69] },
+  { n: 'Depósito', lvl: 1, r: [3.51, 5.38, 13.37, 15.69] },
+  { n: 'Hall planta alta', lvl: 1, r: [0, 5.38, 9.02, 13.37] },
+  { n: 'Habitación 2', lvl: 1, r: [5.52, 8.40, 8.16, 12.05] },
+  { n: 'Habitación 3', lvl: 1, r: [5.52, 8.40, 12.19, 15.69] },
+];
+
+/* ==========================================================================
+   2. ESCENA, CÁMARA Y MATERIALES
+   ========================================================================== */
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xbcd7ee);
+const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.05, 200);
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0xcfc4b0, 2.2));
+const sun = new THREE.DirectionalLight(0xfff4e0, 1.3);
+sun.position.set(6, 12, 4);
+scene.add(sun);
+
+function canvasTexture(size, draw) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  draw(c.getContext('2d'), size);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  return t;
+}
+const woodTex = canvasTexture(512, (g, s) => {   // tablas de madera clara (1 textura = 2 m)
+  const rows = 14, h = s / rows;
+  for (let i = 0; i < rows; i++) {
+    let x = -Math.random() * s;
+    while (x < s) {
+      const len = s * (0.35 + Math.random() * 0.4), l = 76 + Math.random() * 8;
+      g.fillStyle = `hsl(34, 45%, ${l}%)`;
+      g.fillRect(x, i * h, len, h);
+      g.strokeStyle = 'rgba(120,85,45,.06)';
+      for (let k = 0; k < 5; k++) { const y = i * h + Math.random() * h; g.beginPath(); g.moveTo(x, y); g.lineTo(x + len, y + (Math.random() - .5) * 3); g.stroke(); }
+      g.fillStyle = 'rgba(110,80,45,.35)'; g.fillRect(x, i * h, 1.5, h);
+      x += len;
+    }
+    g.fillStyle = 'rgba(110,80,45,.35)'; g.fillRect(0, i * h, s, 1.5);
+  }
+});
+const grassTex = canvasTexture(256, (g, s) => {
+  g.fillStyle = '#6f9a4a'; g.fillRect(0, 0, s, s);
+  for (let i = 0; i < 5000; i++) { g.fillStyle = `hsl(${85 + Math.random() * 20}, 40%, ${30 + Math.random() * 20}%)`; g.fillRect(Math.random() * s, Math.random() * s, 1.5, 3); }
+});
+const tileTex = canvasTexture(256, (g, s) => {
+  g.fillStyle = '#c9c2b8'; g.fillRect(0, 0, s, s);
+  g.strokeStyle = '#9f978c'; g.lineWidth = 3;
+  for (let i = 0; i <= 4; i++) { g.beginPath(); g.moveTo(i * s / 4, 0); g.lineTo(i * s / 4, s); g.moveTo(0, i * s / 4); g.lineTo(s, i * s / 4); g.stroke(); }
+});
+
+const M = {
+  wall: new THREE.MeshLambertMaterial({ color: 0xf1ebe1 }),
+  ceiling: new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0x9a9a9a }),   // techo blanco aunque no le dé el sol
+  wood: new THREE.MeshLambertMaterial({ map: woodTex }),
+  grass: new THREE.MeshLambertMaterial({ map: grassTex }),
+  tile: new THREE.MeshLambertMaterial({ map: tileTex }),
+  concrete: new THREE.MeshLambertMaterial({ color: 0xa9a6a0 }),
+  roof: new THREE.MeshLambertMaterial({ color: 0x8d8a85 }),
+  outside: new THREE.MeshLambertMaterial({ color: 0x7e9a68 }),
+  medianera: new THREE.MeshLambertMaterial({ color: 0xd8cfc2 }),
+  glass: new THREE.MeshLambertMaterial({ color: 0x9cc8e8, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide }),
+  frame: new THREE.MeshLambertMaterial({ color: 0x55585c }),
+  stair: new THREE.MeshLambertMaterial({ color: 0xc9a77a }),
+  rail: new THREE.MeshLambertMaterial({ color: 0x3d3f42 }),
+  furn: {
+    wood: new THREE.MeshLambertMaterial({ color: 0xb08a5e }),
+    counter: new THREE.MeshLambertMaterial({ color: 0xe6e3dd }),
+    sofa: new THREE.MeshLambertMaterial({ color: 0x7b8a9a }),
+    bed: new THREE.MeshLambertMaterial({ color: 0xe9e4f2 }),
+    car: new THREE.MeshLambertMaterial({ color: 0x5b6f86 }),
+    white: new THREE.MeshLambertMaterial({ color: 0xffffff }),
+  },
+};
+
+/* ==========================================================================
+   3. CONSTRUCCIÓN DE LA CASA
+   El plano usa z hacia el fondo; en Three.js el mundo usa -z para que
+   la izquierda/derecha queden igual que en el plano al mirar desde el frente.
+   ========================================================================== */
+const edgeMat = new THREE.LineBasicMaterial({ color: 0x8f8678, transparent: true, opacity: 0.45 });   // aristas suaves
+const colliders = [];   // cajas sólidas {x0,x1,z0,z1,y0,y1} en coordenadas del plano
+
+function box(x0, x1, z0, z1, y0, y1, mat, solid = true) {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0), mat);
+  mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, -(z0 + z1) / 2);
+  scene.add(mesh);
+  if (mat === M.wall || Object.values(M.furn).includes(mat)) mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry), edgeMat));
+  if (solid) colliders.push({ x0, x1, z0, z1, y0, y1 });
+  return mesh;
+}
+function floor(x0, x1, z0, z1, y, mat, texSize = 2) {
+  const geo = new THREE.PlaneGeometry(x1 - x0, z1 - z0);
+  const uv = geo.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * (x1 - x0) / texSize, uv.getY(i) * (z1 - z0) / texSize);
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.set((x0 + x1) / 2, y, -(z0 + z1) / 2);
+  scene.add(mesh);
+}
+
+function buildWalls() {
+  // PB: paredes hasta 2,80 (cubren el canto de la losa); PA: de 2,80 a 5,40
+  for (const [x0, x1, z0, z1] of PB_WALLS) box(x0, x1, z0, z1, 0, PA_Y, M.wall);
+  box(3.33, 3.42, 9.02, 9.98, 0, 1.8, M.wall);   // tabique bajo la escalera: llega justo debajo de los peldaños
+  for (const [x0, x1, z0, z1] of PA_WALLS) box(x0, x1, z0, z1, PA_Y, PA_Y + H_WALL, M.wall);
+
+  for (const o of OPENINGS) {
+    const [x0, x1, z0, z1] = o.r;
+    const base = o.lvl * PA_Y, top = o.lvl ? base + H_WALL : PA_Y;
+    if (o.t === 'wall') { box(x0, x1, z0, z1, base, top, M.wall); continue; }
+    const head = base + (o.head ?? (o.t === 'door' ? 2.05 : 2.1));
+    box(x0, x1, z0, z1, head, top, M.wall);                          // dintel
+    if (o.t === 'window') {
+      const sill = base + o.sill;
+      box(x0, x1, z0, z1, base, sill, M.wall);                         // antepecho
+      const alongX = (x1 - x0) > (z1 - z0), zm = (z0 + z1) / 2, xm = (x0 + x1) / 2;
+      if (alongX) box(x0, x1, zm - 0.01, zm + 0.01, sill, head, M.glass, false);
+      else box(xm - 0.01, xm + 0.01, z0, z1, sill, head, M.glass, false);
+      // marco
+      if (alongX) { box(x0, x1, zm - 0.03, zm + 0.03, sill, sill + 0.04, M.frame, false); box(x0, x1, zm - 0.03, zm + 0.03, head - 0.04, head, M.frame, false); box(xm - 0.02, xm + 0.02, zm - 0.03, zm + 0.03, sill, head, M.frame, false); }
+    }
+  }
+}
+
+function buildFloorsAndCeilings() {
+  // Terreno y exterior
+  floor(-30, 40, -20, LOT_D + 20, -0.02, M.outside, 4);
+  floor(-0.28, LOT_W + 0.28, 0, LOT_D, 0, M.grass, 3);
+  floor(5.52, 8.40, 0, 8.16, 0.004, M.concrete);          // entrada de autos
+  floor(4.02, 5.04, 0, 5.16, 0.004, M.concrete);          // camino a la puerta
+  floor(-0.28, LOT_W + 0.28, GALERIA_Z[0], GALERIA_Z[1], 0.004, M.tile, 1.2);
+  // Pisos de madera clara
+  floor(0, 5.38, 5.16, 17.40, 0.006, M.wood);
+  floor(5.52, 8.40, 8.16, 17.40, 0.006, M.concrete);      // garage
+  for (const [x0, x1, z0, z1] of PA_FLOORS) floor(x0, x1, z0, z1, PA_Y + 0.004, M.wood);
+  floor(-0.28, 8.68, 15.83, 17.54, PA_Y + 0.004, M.roof); // techo sobre cocina/garage
+  // Losa PB/PA (techo blanco de planta baja) y techo de planta alta
+  for (const [x0, x1, z0, z1] of SLAB_RECTS) box(x0, x1, z0, z1, H_WALL, PA_Y, M.ceiling, false);
+  for (const [x0, x1, z0, z1] of PA_ROOF) box(x0, x1, z0, z1, PA_Y + H_WALL, PA_Y + H_WALL + SLAB, M.ceiling, false);
+}
+
+function buildStairs() {
+  const S = STAIR;
+  // Peldaños compensados: cuñas alrededor del centro C recortadas por la caja de la escalera
+  const [bx0, bx1, bz0, bz1] = S.winder;
+  const rayToBox = (a) => {
+    const dx = Math.cos(a), dz = Math.sin(a); let t = Infinity;
+    if (dx > 1e-6) t = Math.min(t, (bx1 - S.cx) / dx);
+    if (dz > 1e-6) t = Math.min(t, (bz1 - S.cz) / dz);
+    if (dz < -1e-6) t = Math.min(t, (bz0 - S.cz) / dz);
+    return [S.cx + dx * t, S.cz + dz * t];
+  };
+  const corners = [[bx1, bz0], [bx1, bz1]].map(([x, z]) => ({ x, z, a: Math.atan2(z - S.cz, x - S.cx) }));
+  for (let k = 0; k < S.nWinder; k++) {
+    const a0 = -Math.PI / 2 + k * Math.PI / S.nWinder, a1 = a0 + Math.PI / S.nWinder;
+    const pts = [[S.cx, S.cz], rayToBox(a0)];
+    for (const c of corners) if (c.a > a0 && c.a < a1) pts.push([c.x, c.z]);
+    pts.push(rayToBox(a1));
+    const shape = new THREE.Shape(pts.map(([x, z]) => new THREE.Vector2(x, z)));
+    const h = (k + 1) * S.rise;
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: h, bevelEnabled: false });
+    const mesh = new THREE.Mesh(geo, M.stair);
+    mesh.rotation.x = -Math.PI / 2;     // forma en (x, z) → mundo (x, -z), extrusión hacia arriba
+    scene.add(mesh);
+  }
+  // Tramo recto: cada peldaño un bloque (sobre el living solo una "losa" escalonada)
+  const [sx0, sx1, sz0, sz1] = S.straight;
+  for (let i = 0; i < S.nStraight; i++) {
+    const xr = sx1 - i * S.tread, xl = xr - S.tread;
+    const h = (S.nWinder + i + 1) * S.rise;
+    const bottom = xl >= 3.42 ? 0 : h - 0.3;
+    box(xl, xr, sz0, sz1, bottom, h, M.stair, false);
+  }
+  // Lateral del tramo recto sobre el living (evita caerse) y baranda en el hall de planta alta
+  box(2.43, 3.42, 9.02, 9.11, 1.9, PA_Y, M.wall);
+  box(2.43, 5.38, 9.98, 10.06, H_WALL, PA_Y + 0.95, M.rail);
+}
+
+function buildFurniture() {
+  for (const [x0, x1, z0, z1, h, m] of FURNITURE_PB) box(x0, x1, z0, z1, 0, h, M.furn[m]);
+  for (const [x0, x1, z0, z1, h, m] of FURNITURE_PA) box(x0, x1, z0, z1, PA_Y, PA_Y + h, M.furn[m]);
+  // almohadas
+  box(0.15, 1.99, 7.8, 8.15, 0.5 + PA_Y, 0.62 + PA_Y, M.furn.white, false);
+  box(5.65, 6.45, 9.85, 10.2, 0.5 + PA_Y, 0.62 + PA_Y, M.furn.white, false);
+  box(5.65, 6.45, 15.25, 15.6, 0.5 + PA_Y, 0.62 + PA_Y, M.furn.white, false);
+}
+
+function buildExterior() {
+  // Medianeras laterales y del fondo
+  box(-0.28, 0, 0, LOT_D, 0, H_WALL, M.medianera);
+  box(LOT_W, LOT_W + 0.28, 0, LOT_D, 0, H_WALL, M.medianera);
+  box(-0.28, LOT_W + 0.28, LOT_D, LOT_D + 0.28, 0, H_WALL, M.medianera);
+  // Galería: losa y columnas
+  box(-0.28, LOT_W + 0.28, GALERIA_Z[0], GALERIA_Z[1], H_WALL, H_WALL + 0.18, M.ceiling, false);
+  for (const [x0, x1] of [[1.96, 2.15], [4.10, 4.30], [6.26, 6.45]]) box(x0, x1, 19.32, 19.52, 0, H_WALL, M.wall);
+  // Reja de frente sobre la L.M (h = 2,00 m) con portón peatonal y vehicular abiertos
+  const gaps = [[4.02, 5.04], [5.62, 8.30]];
+  const segs = [[-0.28, 4.02], [5.04, 5.62], [8.30, LOT_W + 0.28]];
+  for (const [x0, x1] of segs) {
+    box(x0, x1, -0.1, 0.1, 0, 0.35, M.medianera);                 // murete
+    box(x0, x1, -0.03, 0.03, 1.94, 2.0, M.rail, false);            // planchuela superior
+    colliders.push({ x0, x1, z0: -0.1, z1: 0.1, y0: 0, y1: 2 });
+  }
+  const bar = new THREE.BoxGeometry(0.02, 1.6, 0.02);
+  const bars = [];
+  for (const [x0, x1] of segs) for (let x = x0 + 0.06; x < x1; x += 0.12) bars.push(x);
+  const inst = new THREE.InstancedMesh(bar, M.rail, bars.length);
+  const mtx = new THREE.Matrix4();
+  bars.forEach((x, i) => { mtx.makeTranslation(x, 1.15, 0); inst.setMatrixAt(i, mtx); });
+  scene.add(inst);
+  for (const [x0, x1] of gaps) for (const x of [x0, x1]) box(x - 0.05, x + 0.05, -0.05, 0.05, 0, 2.0, M.rail);
+}
+
+buildWalls();
+buildFloorsAndCeilings();
+buildStairs();
+buildFurniture();
+buildExterior();
+
+/* ==========================================================================
+   4. ALTURA DEL PISO (planta baja, planta alta y escalera)
+   ========================================================================== */
+const inRect = (x, z, [x0, x1, z0, z1]) => x >= x0 && x <= x1 && z >= z0 && z <= z1;
+
+function stairHeight(x, z) {
+  const S = STAIR;
+  if (inRect(x, z, S.winder) && x >= S.cx) {
+    const a = Math.atan2(z - S.cz, x - S.cx);                       // -90° (abajo) … +90° (arriba)
+    const k = Math.min(S.nWinder, Math.floor((a + Math.PI / 2) / Math.PI * S.nWinder) + 1);
+    return k * S.rise;
+  }
+  if (inRect(x, z, S.straight)) {
+    const i = Math.min(S.nStraight - 1, Math.floor((S.straight[1] - x) / S.tread));
+    return (S.nWinder + i + 1) * S.rise;
+  }
+  return null;
+}
+// Piso más alto bajo el jugador al que se puede "subir" (un escalón como máximo)
+function groundHeight(x, z, feet) {
+  let g = 0;
+  const cands = [];
+  const s = stairHeight(x, z);
+  if (s !== null) cands.push(s);
+  if (SLAB_RECTS.some(r => inRect(x, z, r))) cands.push(PA_Y);
+  for (const c of cands) if (c <= feet + 0.45 && c > g) g = c;
+  return g;
+}
+
+/* ==========================================================================
+   5. JUGADOR: CONTROLES, COLISIONES Y MOVIMIENTO
+   ========================================================================== */
+const EYE = 1.6, RADIUS = 0.25, STEP = 0.3, BODY = 1.75;
+const player = { x: 4.5, z: 2.0, feet: 0, vy: 0, eyeY: EYE };
+camera.position.set(player.x, EYE, -player.z);
+
+const controls = new PointerLockControls(camera, document.body);
+const overlay = document.getElementById('overlay');
+overlay.addEventListener('click', () => controls.lock());
+controls.addEventListener('lock', () => { overlay.style.display = 'none'; });
+controls.addEventListener('unlock', () => { overlay.style.display = 'flex'; keys.clear(); });
+
+const keys = new Set();
+addEventListener('keydown', e => { keys.add(e.code); if (e.code.startsWith('Arrow')) e.preventDefault(); });
+addEventListener('keyup', e => keys.delete(e.code));
+
+// Empuja el círculo del jugador fuera de cada caja que se cruza a la altura del cuerpo
+function resolveCollisions() {
+  const lo = player.feet + STEP, hi = player.feet + BODY;
+  for (let iter = 0; iter < 3; iter++) {
+    for (const c of colliders) {
+      if (c.y1 <= lo || c.y0 >= hi) continue;
+      const nx = Math.max(c.x0, Math.min(player.x, c.x1));
+      const nz = Math.max(c.z0, Math.min(player.z, c.z1));
+      let dx = player.x - nx, dz = player.z - nz;
+      const d2 = dx * dx + dz * dz;
+      if (d2 >= RADIUS * RADIUS) continue;
+      if (d2 > 1e-10) {
+        const d = Math.sqrt(d2), push = RADIUS - d;
+        player.x += dx / d * push; player.z += dz / d * push;
+      } else {                               // centro dentro de la caja: salir por el lado más cercano
+        const opts = [[player.x - c.x0 + RADIUS, -1, 0], [c.x1 - player.x + RADIUS, 1, 0], [player.z - c.z0 + RADIUS, 0, -1], [c.z1 - player.z + RADIUS, 0, 1]];
+        opts.sort((a, b) => a[0] - b[0]);
+        player.x += opts[0][1] * opts[0][0]; player.z += opts[0][2] * opts[0][0];
+      }
+    }
+  }
+}
+
+const fwd = new THREE.Vector3(), right = new THREE.Vector3();
+function update(dt, active) {
+  // Dirección según hacia dónde mira la cámara (solo en el plano horizontal)
+  let mx = 0, mz = 0;
+  if (active) {
+    const f = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0);
+    const s = (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0);
+    camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
+    right.crossVectors(fwd, camera.up).normalize();
+    const speed = keys.has('ShiftLeft') || keys.has('ShiftRight') ? 4.0 : 2.2;
+    let wx = fwd.x * f + right.x * s, wz = fwd.z * f + right.z * s;
+    const len = Math.hypot(wx, wz);
+    if (len > 0) { mx = wx / len * speed; mz = -wz / len * speed; }  // mundo → plano (z invertida)
+  }
+  // Sub-pasos cortos para no atravesar paredes finas
+  const steps = Math.max(1, Math.ceil(Math.hypot(mx, mz) * dt / 0.08));
+  for (let i = 0; i < steps; i++) {
+    player.x += mx * dt / steps; player.z += mz * dt / steps;
+    resolveCollisions();
+    const g = groundHeight(player.x, player.z, player.feet);
+    if (g >= player.feet - 0.4 && player.vy === 0) player.feet = g;   // subir/bajar escalones
+  }
+  // Gravedad (por ejemplo, al bajar de un desnivel mayor a un escalón)
+  const g = groundHeight(player.x, player.z, player.feet);
+  if (player.feet > g + 1e-4) {
+    player.vy -= 9.8 * dt; player.feet = Math.max(g, player.feet + player.vy * dt);
+    if (player.feet === g) player.vy = 0;
+  } else player.vy = 0;
+  // Altura de la cámara suavizada para que los escalones no "salten"
+  player.eyeY += (player.feet + EYE - player.eyeY) * Math.min(1, dt * 14);
+  camera.position.set(player.x, player.eyeY, -player.z);
+}
+
+/* ==========================================================================
+   6. CARTEL CON EL AMBIENTE ACTUAL
+   ========================================================================== */
+const roomEl = document.getElementById('roomName'), floorEl = document.getElementById('floorName');
+let lastRoom = '';
+function currentRoom() {
+  if (stairHeight(player.x, player.z) !== null && player.feet > 0.05 && player.feet < PA_Y - 0.05) return ['Escalera', 'Entre plantas'];
+  const lvl = player.feet > PA_Y / 2 ? 1 : 0;
+  const r = ROOMS.find(r => r.lvl === lvl && inRect(player.x, player.z, r.r));
+  const floorName = lvl ? 'Planta alta' : (r && /Galería|Patio|Jardín/.test(r.n) ? 'Exterior' : 'Planta baja');
+  return [r ? r.n : (lvl ? 'Planta alta' : 'Exterior'), floorName];
+}
+function updateHud() {
+  const [n, f] = currentRoom();
+  if (n + f !== lastRoom) { roomEl.textContent = n; floorEl.textContent = f; lastRoom = n + f; }
+}
+
+/* ==========================================================================
+   7. BUCLE PRINCIPAL
+   ========================================================================== */
+const debug = { force: false };
+const clock = new THREE.Clock();
+function loop() {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  update(dt, controls.isLocked || debug.force);
+  updateHud();
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+loop();
+
+addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Utilidades para pruebas automáticas (no afectan el uso normal)
+window.__debug = Object.assign(debug, {
+  player, keys, camera, room: () => currentRoom(),
+  place(x, z, feet = 0, yawDeg = 0) { Object.assign(player, { x, z, feet, vy: 0, eyeY: feet + EYE }); camera.rotation.set(0, yawDeg * Math.PI / 180, 0, 'YXZ'); camera.position.set(x, feet + EYE, -z); },
+  simulate(codes, seconds, look) { if (look !== undefined) camera.rotation.set(0, look * Math.PI / 180, 0, 'YXZ'); codes.forEach(c => keys.add(c)); for (let t = 0; t < seconds; t += 1 / 60) update(1 / 60, true); codes.forEach(c => keys.delete(c)); updateHud(); },
+});
+</script>
+</body>
+</html>
