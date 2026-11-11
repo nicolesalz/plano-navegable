@@ -62,7 +62,7 @@
     </div>
     <div id="quality" class="opts">Calidad:
       <button data-q="baja">Baja</button><button data-q="media">Media</button><button data-q="alta">Alta</button>
-      <div class="hint">Baja apaga la oclusión ambiental; usala si se traba. Alta suma sombras de las lámparas.</div>
+      <div class="hint">Baja apaga la oclusión ambiental; usala si se traba. Alta suma sombras de las lámparas cercanas.</div>
     </div>
     <p class="go">Hacé clic para entrar</p>
   </div>
@@ -2347,7 +2347,10 @@ function currentRoom() {
 }
 function updateHud() {
   const [n, f] = currentRoom();
-  if (n + f !== lastRoom) { roomEl.textContent = n; floorEl.textContent = f; lastRoom = n + f; }
+  if (n + f !== lastRoom) {
+    roomEl.textContent = n; floorEl.textContent = f; lastRoom = n + f;
+    if (quality && QUALITY[quality].lampShadows) updateLampShadows();   // las sombras siguen a las lámparas del ambiente donde estás
+  }
 }
 
 /* ==========================================================================
@@ -2371,6 +2374,27 @@ gtao.blendIntensity = 1.0;
 composer.addPass(gtao);
 composer.addPass(new OutputPass());          // tone mapping + conversión a sRGB al final
 
+// Sombras de las lámparas. Cada luz con sombra suma una textura (su mapa de sombra) a TODOS los
+// materiales. Con las 15 lámparas de la casa más el sol, el entorno, la textura y el relieve se
+// pasaba el límite de la placa (16 unidades en casi todas): three.js avisa y sigue, y la GPU termina
+// leyendo texturas equivocadas (por ejemplo un mapa de sombra, casi blanco, como luz del entorno),
+// así que en Alta la imagen salía lavada. Por eso solo proyectan sombra las lámparas más cercanas,
+// siempre la misma cantidad (si cambiara la cantidad habría que recompilar todos los shaders).
+const LAMP_SHADOW_MAX = Math.max(0, Math.min(4, renderer.capabilities.maxTextures - 8));
+function updateLampShadows() {
+  const n = quality && QUALITY[quality].lampShadows ? LAMP_SHADOW_MAX : 0;
+  const d = (l) => l.position.distanceToSquared(camera.position);
+  const near = new Set(LAMPS.slice().sort((a, b) => d(a) - d(b)).slice(0, n));
+  let changed = false;
+  for (const l of LAMPS) {
+    const on = near.has(l);
+    if (l.castShadow === on) continue;
+    l.castShadow = on; changed = true;
+    if (on) l.shadow.needsUpdate = true;
+  }
+  if (changed) renderer.shadowMap.needsUpdate = true;
+}
+
 let quality = null, userChoseQuality = false;
 function setQuality(name, byUser = false) {
   if (!QUALITY[name]) return;
@@ -2382,7 +2406,7 @@ function setQuality(name, byUser = false) {
   composer.setPixelRatio(renderer.getPixelRatio());
   composer.setSize(window.innerWidth, window.innerHeight);
   if (sun.shadow.mapSize.x !== q.shadow || !sun.shadow.map) fitSunShadow(q.shadow);
-  for (const l of LAMPS) l.castShadow = q.lampShadows;      // las sombras de las lámparas solo en calidad alta (son lo más caro)
+  updateLampShadows();                                       // las sombras de las lámparas solo en calidad alta (son lo más caro)
   refreshShadows();
   document.querySelectorAll('#quality button').forEach(b => b.classList.toggle('on', b.dataset.q === name));
 }
