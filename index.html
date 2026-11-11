@@ -140,7 +140,7 @@ const OPENINGS = [
   { lvl: 0, t: 'door',   r: [5.38, 5.52, 13.37, 14.19] },              // cocina ↔ garage
   { lvl: 0, t: 'door',   r: [1.07, 3.24, 17.40, 17.54], ext: 'z1', frame: true, leaf: true },              // puerta-ventana a galería
   { lvl: 0, t: 'window', r: [5.88, 8.06, 17.40, 17.54], sill: 0.9, ext: 'z1' },   // ventana garage
-  { lvl: 0, t: 'door',   r: [5.72, 8.21, 7.86, 8.16], head: 2.2, ext: 'z0' },     // portón garage
+  { lvl: 0, t: 'door',   r: [5.72, 8.21, 7.86, 8.16], head: 2.2, ext: 'z0', garage: true },     // portón garage (seccional blanco, cerrado)
   // Planta alta
   { lvl: 1, t: 'window', r: [0.60, 3.12, 5.16, 5.44], sill: 0.9, ext: 'z0' },     // hab principal
   { lvl: 1, t: 'door',   r: [0, 1.02, 9.02, 9.11] },                   // hab principal
@@ -485,6 +485,7 @@ const M = {
   glass: new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.03, metalness: 0, transparent: true, opacity: 0.12,
     depthWrite: false, side: THREE.DoubleSide, envMapIntensity: 2.0, specularIntensity: 1 }),
   frame: std(0xf6f4ef, 0.4),                                  // carpinterías blancas (aluminio pintado)
+  groove: std(0xd9d6cf, 0.5),                                 // buñas del portón del garage
   rail: std(0x1b1c1e, 0.45, { metalness: 0.5 }),              // herrería negra (barandas, reja)
   leaf: std(0xffffff, 0.8, { side: THREE.DoubleSide }),       // hojas de la enredadera
   flower: std(0xfbfaf3, 0.7, { side: THREE.DoubleSide }),     // flores de jazmín
@@ -563,6 +564,14 @@ function glassPane([x0, x1, z0, z1], y0, y1, solid = false) {
   else box(xm - 0.006, xm + 0.006, z0, z1, y0, y1, M.glass, solid);
 }
 
+// Portón seccional blanco del garage (cerrado): paneles horizontales con buñas marcadas
+function garageDoor([x0, x1, z0, z1], yb, yt) {
+  const zm = (z0 + z1) / 2, t = 0.025, n = 5;
+  box(x0 + t, x1 - t, zm + 0.02, zm + 0.06, yb, yt - t, M.frame);                 // hoja (sólida)
+  const h = (yt - t - yb) / n;
+  for (let i = 1; i < n; i++) box(x0 + t, x1 - t, zm + 0.01, zm + 0.02, yb + i * h - 0.008, yb + i * h + 0.008, M.groove, false);
+}
+
 function buildWalls() {
   // PB: paredes hasta 2,80 (cubren el canto de la losa); PA: de 2,80 a 5,40
   for (const [x0, x1, z0, z1, ext] of PB_WALLS) box(x0, x1, z0, z1, 0, PA_Y, M.wall, true, ext);
@@ -579,6 +588,9 @@ function buildWalls() {
       box(x0, x1, z0, z1, base, sill, M.wall, true, o.ext);             // antepecho
       glassPane(o.r, sill, head);
       frameOpening(o.r, sill, head, { mullion: (x1 - x0) > 1.2 });
+    } else if (o.garage) {
+      frameOpening(o.r, base, head, { sill: false });
+      garageDoor(o.r, base, head);
     } else if (o.frame) {
       frameOpening(o.r, base, head, { sill: false });
       if (o.leaf) {                                                     // puerta-ventana: hoja fija de vidrio en una mitad
