@@ -2,7 +2,9 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>Plano navegable</title>
 <style>
   html, body { margin: 0; height: 100%; overflow: hidden; background: #bcd7ee; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
@@ -40,6 +42,41 @@
   #photo.done .dot { background: #6fd38a; animation: none; }
   @keyframes pulse { from { opacity: .35; } to { opacity: 1; } }
   #crosshair { position: fixed; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: rgba(255,255,255,.8); pointer-events: none; }
+  #overlay { z-index: 10; }
+  #overlay .box { max-height: calc(100% - 32px); overflow-y: auto; box-sizing: border-box; }
+
+  /* ---- Celular / tablet (body.touch). En la compu nada de esto se ve. ---- */
+  .mob { display: none; }
+  body.touch .mob { display: block; }
+  body.touch .desk, body.touch #help { display: none; }
+  body.touch { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+  body.touch canvas { touch-action: none; }
+  body.touch #overlay .box { max-width: 560px; padding: 14px 18px; font-size: 14px; }
+  body.touch #overlay h1 { font-size: 19px; margin-bottom: 6px; }
+  body.touch .opts { margin-top: 10px; padding-top: 8px; }
+  body.touch .opts button { padding: 7px 12px; }
+  body.touch #notice { right: auto; left: 50%; transform: translateX(-50%); text-align: center; max-width: 70%; z-index: 6; }
+  #overlay .start { margin: 12px auto 0; padding: 11px 20px; border: 0; border-radius: 10px; background: #1a6dd6; color: #fff; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+
+  /* Cartel para girar el celular */
+  #rotate { position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center; background: #14181e; color: #fff; text-align: center; padding: 24px; box-sizing: border-box; }
+  @media (orientation: portrait) { body.touch #rotate { display: flex; } }
+  #rotate .phone { width: 46px; height: 80px; margin: 0 auto 22px; border: 4px solid #fff; border-radius: 10px; animation: turn 2s ease-in-out infinite; }
+  #rotate p { margin: 0; font-size: 18px; line-height: 1.4; }
+  @keyframes turn { 0%, 20% { transform: rotate(0); } 55%, 100% { transform: rotate(-90deg); } }
+
+  /* Controles táctiles */
+  #touchUI { position: fixed; inset: 0; z-index: 5; display: none; touch-action: none; }
+  body.touch.playing #touchUI { display: block; }
+  #joy { position: absolute; left: calc(36px + env(safe-area-inset-left)); bottom: 36px; width: 120px; height: 120px; margin: 0; border-radius: 50%; background: rgba(255,255,255,.16); border: 2px solid rgba(255,255,255,.45); pointer-events: none; transition: opacity .2s; opacity: .75; }
+  #joy.on { opacity: 1; transition: none; }
+  #joyKnob { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%; background: rgba(255,255,255,.75); box-shadow: 0 2px 8px rgba(0,0,0,.35); }
+  .tbtn { display: block; min-width: 64px; height: 50px; padding: 0 14px; border: 2px solid rgba(255,255,255,.5); border-radius: 25px; background: rgba(20,24,30,.55); color: #fff; font: inherit; font-size: 14px; font-weight: 600; touch-action: none; }
+  .tbtn:active, .tbtn.pressed { background: rgba(255,255,255,.35); }
+  .tbtn.on { background: #1a6dd6; border-color: #1a6dd6; }
+  #tbtns { position: absolute; right: calc(20px + env(safe-area-inset-right)); bottom: 24px; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+  #tTop { position: absolute; top: 12px; right: calc(12px + env(safe-area-inset-right)); display: flex; gap: 8px; }
+  #tTop .tbtn { min-width: 0; width: 44px; height: 44px; padding: 0; font-size: 18px; }
 </style>
 </head>
 <body>
@@ -48,25 +85,47 @@
 <div id="crosshair"></div>
 <div id="photo"><span class="dot"></span><span id="photoText">Modo foto</span></div>
 <div id="notice"></div>
+<div id="touchUI">
+  <div id="joy"><div id="joyKnob"></div></div>
+  <div id="tbtns">
+    <button class="tbtn" id="btnDoor">Abrir / cerrar</button>
+    <button class="tbtn" id="btnTime">Hora</button>
+    <button class="tbtn" id="btnRun">Correr</button>
+  </div>
+  <div id="tTop">
+    <button class="tbtn" id="btnFull" aria-label="Pantalla completa">⛶</button>
+    <button class="tbtn" id="btnPause" aria-label="Pausa">❚❚</button>
+  </div>
+</div>
 <div id="overlay">
   <div class="box">
     <h1>Recorrido por la casa</h1>
-    <p><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> o flechas para caminar</p>
-    <p><kbd>Shift</kbd> para correr · mouse para mirar</p>
-    <p><kbd>E</kbd> cerca del portón del garage, de la puerta de vidrio del living, del lavadero del hall o de las puertas de los baños para abrirlos o cerrarlos</p>
-    <p>La escalera está en el living, junto al hall</p>
-    <p><kbd>Esc</kbd> para salir</p>
+    <div class="desk">
+      <p><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> o flechas para caminar</p>
+      <p><kbd>Shift</kbd> para correr · mouse para mirar</p>
+      <p><kbd>E</kbd> cerca del portón del garage, de la puerta de vidrio del living, del lavadero del hall o de las puertas de los baños para abrirlos o cerrarlos</p>
+      <p>La escalera está en el living, junto al hall</p>
+      <p><kbd>Esc</kbd> para salir</p>
+    </div>
+    <div class="mob">
+      <p>Círculo abajo a la izquierda para caminar · arrastrá el dedo en la mitad derecha para mirar</p>
+      <p><b>Abrir / cerrar</b> cerca del portón, la puerta de vidrio del living, el lavadero del hall o las puertas de los baños · <b>Hora</b> cambia la luz · <b>Correr</b> se prende y se apaga</p>
+      <p>La escalera está en el living, junto al hall · <b>❚❚</b> para volver a este cartel</p>
+    </div>
     <div id="timeofday" class="opts">Hora:
       <button data-t="manana">Mañana</button><button data-t="mediodia">Mediodía</button><button data-t="tarde">Tarde</button>
-      <div class="hint">También con la tecla <kbd>T</kbd> mientras recorrés.</div>
+      <div class="hint desk">También con la tecla <kbd>T</kbd> mientras recorrés.</div>
     </div>
     <div id="quality" class="opts">Calidad:
       <button data-q="baja">Baja</button><button data-q="media">Media</button><button data-q="alta">Alta</button>
-      <div class="hint">Baja apaga la oclusión ambiental; usala si se traba. Alta suma sombras de las lámparas cercanas.</div>
+      <div class="hint desk">Baja apaga la oclusión ambiental; usala si se traba. Alta suma sombras de las lámparas cercanas.</div>
+      <div class="hint mob">En el celular arranca en Baja para que ande fluido. Si tu celu es potente, probá Media.</div>
     </div>
-    <p class="go">Hacé clic para entrar</p>
+    <p class="go desk">Hacé clic para entrar</p>
+    <button class="start mob" id="btnStart">Empezar en pantalla completa</button>
   </div>
 </div>
+<div id="rotate"><div><div class="phone"></div><p>Girá el celular a horizontal<br>para recorrer la casa</p></div></div>
 
 <script type="importmap">
 { "imports": {
@@ -2840,13 +2899,119 @@ camera.position.set(player.x, EYE, -player.z);
 
 const controls = new PointerLockControls(camera, document.body);
 const overlay = document.getElementById('overlay');
-overlay.addEventListener('click', () => controls.lock());
+overlay.addEventListener('click', () => {
+  if (!isTouch) { controls.lock(); return; }
+  if (performance.now() - touch.pausedAt > 500) startTouch();   // que el mismo toque de "pausa" no vuelva a arrancar
+});
 controls.addEventListener('lock', () => { overlay.style.display = 'none'; });
 controls.addEventListener('unlock', () => { overlay.style.display = 'flex'; keys.clear(); });
 
 const keys = new Set();
 addEventListener('keydown', e => { keys.add(e.code); if (e.code.startsWith('Arrow')) e.preventDefault(); });
 addEventListener('keyup', e => keys.delete(e.code));
+
+// ---- Celular / tablet: joystick, mirar arrastrando y botones en pantalla ----
+// Se activa si la pantalla es táctil y no hay mouse (o forzado con ?tactil=si / ?tactil=no).
+const isTouch = (() => {
+  const p = new URLSearchParams(location.search).get('tactil');
+  if (p === 'si') return true;
+  if (p === 'no') return false;
+  return matchMedia('(pointer: coarse)').matches && !matchMedia('(pointer: fine)').matches && navigator.maxTouchPoints > 0;
+})();
+const touch = { active: false, run: false, pausedAt: -1e9, mx: 0, my: 0, movePtr: null, lookPtr: null, joyX: 0, joyY: 0, lookX: 0, lookY: 0 };
+const playing = () => controls.isLocked || touch.active;
+const JOY_R = 50, LOOK_SENS = 0.0055;
+const joyEl = document.getElementById('joy'), knobEl = document.getElementById('joyKnob'), touchUI = document.getElementById('touchUI');
+const lookEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+if (isTouch) document.body.classList.add('touch');
+
+function goFullscreen() {
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (!req || document.fullscreenElement || document.webkitFullscreenElement) return;
+  try {
+    const r = req.call(el, { navigationUI: 'hide' });
+    const lock = () => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {});
+    if (r && r.then) r.then(lock).catch(() => {}); else lock();
+  } catch (e) {}
+}
+function startTouch() {
+  goFullscreen();
+  touch.active = true;
+  overlay.style.display = 'none';
+  document.body.classList.add('playing');
+}
+function pauseTouch() {
+  touch.active = false; touch.pausedAt = performance.now();
+  releaseJoystick(); touch.lookPtr = null;
+  overlay.style.display = 'flex';
+  document.body.classList.remove('playing');
+}
+function releaseJoystick() {
+  touch.movePtr = null; touch.mx = touch.my = 0;
+  joyEl.classList.remove('on'); joyEl.style.left = joyEl.style.top = joyEl.style.bottom = '';
+  knobEl.style.transform = '';
+}
+// Mitad izquierda: el joystick aparece donde apoyás el dedo. Mitad derecha: mirar.
+touchUI.addEventListener('pointerdown', e => {
+  if (e.target !== touchUI) return;                     // los botones se manejan aparte
+  e.preventDefault();
+  if (e.clientX < innerWidth / 2 && touch.movePtr === null) {
+    touch.movePtr = e.pointerId; touch.joyX = e.clientX; touch.joyY = e.clientY;
+    joyEl.classList.add('on');
+    joyEl.style.left = (e.clientX - joyEl.offsetWidth / 2) + 'px';
+    joyEl.style.top = (e.clientY - joyEl.offsetHeight / 2) + 'px';
+    joyEl.style.bottom = 'auto';
+  } else if (e.clientX >= innerWidth / 2 && touch.lookPtr === null) {
+    touch.lookPtr = e.pointerId; touch.lookX = e.clientX; touch.lookY = e.clientY;
+  } else return;
+  try { touchUI.setPointerCapture(e.pointerId); } catch (err) {}
+});
+touchUI.addEventListener('pointermove', e => {
+  if (e.pointerId === touch.movePtr) {
+    let dx = e.clientX - touch.joyX, dy = e.clientY - touch.joyY;
+    const d = Math.hypot(dx, dy);
+    if (d > JOY_R) { dx *= JOY_R / d; dy *= JOY_R / d; }
+    knobEl.style.transform = `translate(${dx}px, ${dy}px)`;
+    const m = Math.min(1, d / JOY_R);
+    touch.mx = m < 0.15 ? 0 : dx / JOY_R; touch.my = m < 0.15 ? 0 : dy / JOY_R;   // zona muerta en el centro
+  } else if (e.pointerId === touch.lookPtr) {
+    const dx = e.clientX - touch.lookX, dy = e.clientY - touch.lookY;
+    touch.lookX = e.clientX; touch.lookY = e.clientY;
+    lookEuler.setFromQuaternion(camera.quaternion);
+    lookEuler.y -= dx * LOOK_SENS;
+    lookEuler.x = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, lookEuler.x - dy * LOOK_SENS));
+    camera.quaternion.setFromEuler(lookEuler);
+  }
+});
+const endPointer = e => {
+  if (e.pointerId === touch.movePtr) releaseJoystick();
+  if (e.pointerId === touch.lookPtr) touch.lookPtr = null;
+};
+touchUI.addEventListener('pointerup', endPointer);
+touchUI.addEventListener('pointercancel', endPointer);
+// Botones: responden al apoyar el dedo (sin esperar a soltarlo) y funcionan mientras el otro dedo camina
+function touchButton(id, fn) {
+  const b = document.getElementById(id);
+  b.addEventListener('pointerdown', e => {
+    e.preventDefault(); e.stopPropagation();
+    b.classList.add('pressed'); fn(b);
+  });
+  const up = () => b.classList.remove('pressed');
+  b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('pointerleave', up);
+  b.addEventListener('click', e => e.preventDefault());
+}
+touchButton('btnRun', b => { touch.run = !touch.run; b.classList.toggle('on', touch.run); });
+touchButton('btnDoor', () => toggleNearestDoor());
+touchButton('btnTime', () => nextTimeOfDay());
+touchButton('btnPause', () => pauseTouch());
+touchButton('btnFull', () => {
+  if (document.fullscreenElement || document.webkitFullscreenElement) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+  else goFullscreen();
+});
+document.getElementById('btnStart').addEventListener('click', e => { e.stopPropagation(); startTouch(); });
+// Al pasar a vertical (aparece el cartel de girar) se suelta el joystick para no seguir caminando solo
+matchMedia('(orientation: portrait)').addEventListener?.('change', ev => { if (ev.matches) { releaseJoystick(); touch.lookPtr = null; } });
 
 // Empuja el círculo del jugador fuera de cada caja que se cruza a la altura del cuerpo
 function resolveCollisions() {
@@ -2877,11 +3042,13 @@ function update(dt, active) {
   // Dirección según hacia dónde mira la cámara (solo en el plano horizontal)
   let mx = 0, mz = 0;
   if (active) {
-    const f = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0);
-    const s = (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0);
+    let f = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0);
+    let s = (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0);
+    let amount = 1;                                   // con el joystick, cuanto más lo empujás más rápido
+    if (!f && !s && (touch.mx || touch.my)) { f = -touch.my; s = touch.mx; amount = Math.min(1, Math.hypot(f, s)); }
     camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
     right.crossVectors(fwd, camera.up).normalize();
-    const speed = keys.has('ShiftLeft') || keys.has('ShiftRight') ? 4.0 : 2.2;
+    const speed = (keys.has('ShiftLeft') || keys.has('ShiftRight') || touch.run ? 4.0 : 2.2) * amount;
     let wx = fwd.x * f + right.x * s, wz = fwd.z * f + right.z * s;
     const len = Math.hypot(wx, wz);
     if (len > 0) { mx = wx / len * speed; mz = -wz / len * speed; }  // mundo → plano (z invertida)
@@ -2985,7 +3152,7 @@ function setQuality(name, byUser = false) {
 (function initQuality() {
   let q = new URLSearchParams(location.search).get('calidad');
   if (QUALITY[q]) userChoseQuality = true;
-  else { try { q = localStorage.getItem('calidad'); } catch (e) { q = null; } if (QUALITY[q]) userChoseQuality = true; else q = 'media'; }
+  else { try { q = localStorage.getItem('calidad'); } catch (e) { q = null; } if (QUALITY[q]) userChoseQuality = true; else q = isTouch ? 'baja' : 'media'; }
   setQuality(q);
 })();
 document.querySelectorAll('#quality button').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); setQuality(b.dataset.q, true); }));
@@ -3138,7 +3305,7 @@ function showPhotoIndicator(text, done = false) {
 function renderPhoto(dt) {
   const moved = camera.position.distanceToSquared(photo.lastPos) > 1e-8 || 1 - Math.abs(camera.quaternion.dot(photo.lastQuat)) > 1e-9;
   photo.lastPos.copy(camera.position); photo.lastQuat.copy(camera.quaternion);
-  if (!PHOTO.available || !photo.enabled || photo.failed || moved || !(controls.isLocked || debug.force)) {
+  if (!PHOTO.available || !photo.enabled || photo.failed || moved || !(playing() || debug.force)) {
     photo.still = 0;
     if (photo.active || photo.el.classList.contains('show')) { photo.active = false; showPhotoIndicator(null); }
     return false;
@@ -3181,6 +3348,10 @@ function showNotice(text) {
 }
 addEventListener('keydown', e => {
   if (e.code !== 'KeyE' || e.repeat || !(controls.isLocked || debug.force)) return;
+  toggleNearestDoor();
+});
+// Tecla E o botón "Abrir / cerrar" del celular
+function toggleNearestDoor() {
   const laundry = toggleBathDoor(D => D.pair, 1.1);                      // el lavadero del hall gana si está cerca (queda junto a la puerta de vidrio)
   if (laundry) showNotice(laundry.target > 0 ? 'Abriendo el lavadero' : 'Cerrando el lavadero');
   else if (toggleSlider()) showNotice(SLIDER.target > 0 ? 'Abriendo la puerta corrediza' : 'Cerrando la puerta corrediza');
@@ -3190,20 +3361,24 @@ addEventListener('keydown', e => {
     if (d) showNotice(d.target > 0 ? `Abriendo ${d.name}` : `Cerrando ${d.name}`);
     else showNotice('Acercate al portón del garage, a la puerta de vidrio del living, al lavadero del hall o a una puerta de baño para abrirlos o cerrarlos');
   }
-});
+}
 addEventListener('keydown', e => {
   if (e.code !== 'KeyT' || e.repeat) return;
+  nextTimeOfDay();
+});
+// Tecla T o botón "Hora" del celular: pasa a la siguiente hora del día
+function nextTimeOfDay() {
   const names = Object.keys(TIMES), next = names[(names.indexOf(timeOfDay) + 1) % names.length];
   setTimeOfDay(next);
   const h = TIMES[next].hour;
   showNotice(`${TIMES[next].label} (${Math.floor(h)}:${String(Math.round(h % 1 * 60)).padStart(2, '0')})`);
-});
+}
 
 // Si la compu no da abasto (menos de ~30 cuadros por segundo), baja la calidad sola una vez por nivel
 const perf = { time: 0, frames: 0 };
 function watchPerformance(dt) {
   // (con el modo foto activo los cuadros son más lentos a propósito: no cuentan)
-  if (userChoseQuality || quality === 'baja' || !controls.isLocked || photo.active) { perf.time = perf.frames = 0; return; }
+  if (userChoseQuality || quality === 'baja' || !playing() || photo.active) { perf.time = perf.frames = 0; return; }
   perf.time += dt; perf.frames++;
   if (perf.time < 4) return;
   if (perf.frames / perf.time < 30) {
@@ -3219,7 +3394,7 @@ function renderNormal() {
 const clock = new THREE.Clock();
 function loop() {
   const rawDt = clock.getDelta(), dt = Math.min(rawDt, 0.05);
-  update(dt, controls.isLocked || debug.force);
+  update(dt, playing() || debug.force);
   updateGarageDoor(dt);
   updateSlider(dt);
   updateBathDoors(dt);
@@ -3240,7 +3415,7 @@ addEventListener('resize', () => {
 
 // Utilidades para pruebas automáticas (no afectan el uso normal)
 window.__debug = Object.assign(debug, {
-  player, keys, camera, room: () => currentRoom(), photo, garage: GARAGE, toggleGarageDoor, updateGarageDoor, slider: SLIDER, toggleSlider, updateSlider, bathDoors: BATH_DOORS, toggleBathDoor, updateBathDoors, setQuality, quality: () => quality, setTimeOfDay, timeOfDay: () => timeOfDay,
+  player, keys, camera, touch, startTouch, pauseTouch, isTouch, room: () => currentRoom(), photo, garage: GARAGE, toggleGarageDoor, updateGarageDoor, slider: SLIDER, toggleSlider, updateSlider, bathDoors: BATH_DOORS, toggleBathDoor, updateBathDoors, setQuality, quality: () => quality, setTimeOfDay, timeOfDay: () => timeOfDay,
   place(x, z, feet = 0, yawDeg = 0) { Object.assign(player, { x, z, feet, vy: 0, eyeY: feet + EYE }); camera.rotation.set(0, yawDeg * Math.PI / 180, 0, 'YXZ'); camera.position.set(x, feet + EYE, -z); },
   simulate(codes, seconds, look) { if (look !== undefined) camera.rotation.set(0, look * Math.PI / 180, 0, 'YXZ'); codes.forEach(c => keys.add(c)); for (let t = 0; t < seconds; t += 1 / 60) update(1 / 60, true); codes.forEach(c => keys.delete(c)); updateHud(); },
 });

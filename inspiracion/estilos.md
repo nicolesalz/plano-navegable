@@ -175,3 +175,12 @@ Referencia: `exterior/techo-auto.jpg` (solo el techo y la estructura; el resto n
 - Garage (lateral derecho de planta baja): BMW 120i blanco (hatchback compacto), estacionado de frente hacia la calle.
 - Afuera, en el jardín delantero frente al portón del garage: Volvo XC60 negra (SUV mediana), bajo la cochera cubierta (ver Exterior).
 - Modelos simplificados pero con proporciones y colores fieles; sin logos.
+
+## Interfaz en el celular
+- Se activa sola en pantallas táctiles sin mouse (se puede forzar con `?tactil=si` o apagar con `?tactil=no`). En la compu no cambia nada.
+- **Vertical**: pantalla oscura a pantalla completa con un celular dibujado que gira y el texto "Girá el celular a horizontal para recorrer la casa".
+- **Cartel de inicio**: el mismo de la compu (blanco, esquinas redondeadas) con las instrucciones táctiles y un botón azul grande "Empezar en pantalla completa". En el celular la calidad arranca en **Baja**.
+- **Joystick**: círculo blanco translúcido con borde y una bolita blanca, abajo a la izquierda. Aparece donde apoyás el dedo en la mitad izquierda y vuelve a su lugar al soltar.
+- **Botones de acción** abajo a la derecha, en columna: píldoras oscuras translúcidas con borde blanco y texto blanco ("Abrir / cerrar", "Hora", "Correr"). "Correr" queda azul mientras está prendido.
+- **Arriba a la derecha**: dos botones redondos chicos, pantalla completa (⛶) y pausa (❚❚).
+- Los avisos (por ejemplo "Abriendo el portón") se ven arriba al centro para no tapar los botones.
