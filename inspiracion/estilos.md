@@ -185,6 +185,19 @@ Referencia: `exterior/techo-auto.jpg` (solo el techo y la estructura; el resto n
 - No tapa la ventana del living ni la puerta de entrada (quedan a la izquierda de la pared lateral del living), ni la ventana de la habitación 2 (su antepecho está a 3,70 m).
 - La **Volvo** queda entera debajo: cola a 50 cm de la fachada y trompa a unos 2,5 m de la reja; sigue corrida a la derecha, con paso del lado de la casa.
 
+## Iluminación de noche
+Cuarto momento del día: **Noche (21:00)**, después de Tarde. Se elige en el cartel de inicio (botón "Noche"), con la tecla **T** o con el botón táctil "Hora" del celular (pasa Mañana → Mediodía → Tarde → Noche → Mañana).
+- **Cielo**: degradé azul muy oscuro, casi negro arriba y un poco más claro (con un resplandor apenas cálido de la ciudad) en el horizonte; estrellas chicas y la **luna** alta hacia el noreste, con un halo suave.
+- **Luz de luna**: fría (azul grisácea) y suave; proyecta sombras tenues. La cámara se abre un poco más que de día (exposición 0,85 en vez de 0,6), como el ojo acostumbrado a la oscuridad.
+- **Adentro**: se prenden todas las luces de la casa (colgantes, veladores, plafones y apliques) con **luz cálida de ~2700 K** y más fuertes que de día (x1,6), iluminando de verdad su ambiente; las pantallas (papel, lino, vidrio opalino) brillan más.
+- **Afuera** (todas cálidas salvo el farol):
+  - **Apliques en la fachada**: dos cilindros negros a los lados de la puerta de entrada, con luz hacia arriba y hacia abajo.
+  - **Cochera**: artefacto lineal estanco negro colgado del techo, a mitad de la cochera.
+  - **Balizas**: postecitos negros de 45 cm con una franja que brilla arriba: 4 en los canteros del jardín delantero y 8 en las borduras del patio trasero.
+  - **Farol de la calle**: columna gris galvanizada de 7 m en la vereda (frente al lote vecino de la derecha), con brazo sobre la calle y luminaria LED de luz blanca neutra hacia abajo.
+- **Ventanas iluminadas**: desde afuera, todas las ventanas y puertas-ventana de ambientes con luz se ven cálidas (además de verse el interior iluminado). La puerta-ventana del garage no, porque no tiene luz.
+- **Para que ande fluido**: las luces de afuera no proyectan sombra y son pocas (una cada una o dos balizas; los artefactos brillan solos). Las sombras de las lámparas de adentro siguen igual que antes: solo en calidad Alta y solo las 4 más cercanas.
+
 ## Autos
 - Garage (lateral derecho de planta baja): BMW 120i blanco (hatchback compacto), estacionado de frente hacia la calle.
 - Afuera, en el jardín delantero frente al portón del garage: Volvo XC60 negra (SUV mediana), bajo la cochera cubierta (ver Exterior).

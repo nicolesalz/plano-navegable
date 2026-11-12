@@ -81,7 +81,7 @@
 </head>
 <body>
 <div id="hud"><div class="room" id="roomName">Jardín delantero</div><div class="floor" id="floorName">Exterior</div></div>
-<div id="help">Clic para entrar · <b>WASD</b>/flechas: caminar · <b>Shift</b>: correr · <b>Mouse</b>: mirar · <b>T</b>: hora del día · <b>E</b>: abrir/cerrar puertas y portones · <b>Esc</b>: salir</div>
+<div id="help">Clic para entrar · <b>WASD</b>/flechas: caminar · <b>Shift</b>: correr · <b>Mouse</b>: mirar · <b>T</b>: hora del día (mañana, mediodía, tarde, noche) · <b>E</b>: abrir/cerrar puertas y portones · <b>Esc</b>: salir</div>
 <div id="crosshair"></div>
 <div id="photo"><span class="dot"></span><span id="photoText">Modo foto</span></div>
 <div id="notice"></div>
@@ -109,11 +109,11 @@
     </div>
     <div class="mob">
       <p>Círculo abajo a la izquierda para caminar · arrastrá el dedo en la mitad derecha para mirar</p>
-      <p><b>Abrir / cerrar</b> cerca de la puerta o del portón de la reja, del portón del garage, la puerta de vidrio del living, el lavadero del hall o las puertas de los baños · <b>Hora</b> cambia la luz · <b>Correr</b> se prende y se apaga</p>
+      <p><b>Abrir / cerrar</b> cerca de la puerta o del portón de la reja, del portón del garage, la puerta de vidrio del living, el lavadero del hall o las puertas de los baños · <b>Hora</b> cambia la luz (mañana, mediodía, tarde, noche) · <b>Correr</b> se prende y se apaga</p>
       <p>La escalera está en el living, junto al hall · <b>❚❚</b> para volver a este cartel</p>
     </div>
     <div id="timeofday" class="opts">Hora:
-      <button data-t="manana">Mañana</button><button data-t="mediodia">Mediodía</button><button data-t="tarde">Tarde</button>
+      <button data-t="manana">Mañana</button><button data-t="mediodia">Mediodía</button><button data-t="tarde">Tarde</button><button data-t="noche">Noche</button>
       <div class="hint desk">También con la tecla <kbd>T</kbd> mientras recorrés.</div>
     </div>
     <div id="quality" class="opts">Calidad:
@@ -294,7 +294,10 @@ const TIMES = {                                 // hora solar de cada momento de
   manana:   { label: 'Mañana',   hour: 8 },     // sol del este: frente y costado del garage
   mediodia: { label: 'Mediodía', hour: 12.5 },  // sol del norte: costado del garage
   tarde:    { label: 'Tarde',    hour: 16.5 },  // sol del oeste-noroeste: patio y galería
+  noche:    { label: 'Noche',    hour: 21, night: true },   // luna, cielo estrellado y todas las luces prendidas
 };
+// De noche la "luz del sol" pasa a ser la luna: alta, del noreste, fría y suave
+const MOON_DIR = new THREE.Vector3(0.55, 0.78, 0.3).normalize();
 const NORTH = new THREE.Vector3(1, 0, -1).normalize(), EAST = new THREE.Vector3(1, 0, 1).normalize();
 // Dirección hacia el sol para una hora solar (fórmula astronómica estándar)
 function solarDirection(hour, target = new THREE.Vector3()) {
@@ -305,6 +308,7 @@ function solarDirection(hour, target = new THREE.Vector3()) {
   return target.copy(EAST).multiplyScalar(e).addScaledVector(NORTH, n).setY(u).normalize();
 }
 const EXPOSURE = 0.6;           // exposición de la "cámara"
+const NIGHT_EXPOSURE = 0.85;    // de noche se abre un poco más (como el ojo acostumbrado a la oscuridad)
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
@@ -327,8 +331,9 @@ const sunDir = solarDirection(TIMES.manana.hour);   // se actualiza con setTimeO
 //  - como luz ambiente (environment map) mezclado con una bruma blanca cálida y un "suelo" claro
 //    debajo del horizonte, para que el rebote de luz ilumine techos y caras inferiores y los
 //    interiores no queden teñidos de azul.
-function buildEnvironment() {
+function buildEnvironment(night = false) {
   const envScene = new THREE.Scene();
+  if (night) return buildNightEnvironment(envScene);
   const sky = new Sky();
   sky.scale.setScalar(100);
   const u = sky.material.uniforms;
@@ -354,10 +359,46 @@ function buildEnvironment() {
   pmrem.dispose();
   return { background, lighting, backgroundCube, lightingCube };
 }
+// Cielo de noche: degradé azul muy oscuro (más claro y apenas cálido en el horizonte, por el resplandor
+// de la ciudad), estrellas chicas y la luna. Como luz ambiente queda casi a oscuras, con un tinte azul frío.
+function buildNightEnvironment(envScene) {
+  const c = document.createElement('canvas'), W2 = 2048, H2 = 1024;
+  c.width = W2; c.height = H2;
+  const g = c.getContext('2d'), r = seeded(11);
+  const grad = g.createLinearGradient(0, 0, 0, H2 / 2);
+  grad.addColorStop(0, '#040814'); grad.addColorStop(0.55, '#0a1428'); grad.addColorStop(0.9, '#18233b'); grad.addColorStop(1, '#2a2a3a');
+  g.fillStyle = grad; g.fillRect(0, 0, W2, H2 / 2);
+  g.fillStyle = '#0b0c10'; g.fillRect(0, H2 / 2, W2, H2 / 2);                      // abajo del horizonte
+  for (let i = 0; i < 1400; i++) {                                                  // estrellas (menos cerca del horizonte)
+    const y = Math.pow(r(), 1.6) * H2 * 0.45, a = 0.25 + r() * 0.75 * (1 - y / (H2 * 0.5));
+    g.fillStyle = `rgba(${220 + r() * 35 | 0}, ${225 + r() * 30 | 0}, 255, ${a})`;
+    const sz = r() < 0.08 ? 3 : 2;
+    g.fillRect(r() * W2, y, sz, sz);
+  }
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  envScene.add(new THREE.Mesh(new THREE.SphereGeometry(50, 64, 32), new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide, depthWrite: false })));
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(1.3, 24, 12), new THREE.MeshBasicMaterial({ color: 0xe6ecff }));
+  moon.position.copy(MOON_DIR).multiplyScalar(45);
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(3.2, 24, 12), new THREE.MeshBasicMaterial({ color: 0x6f86b8, transparent: true, opacity: 0.12, depthWrite: false }));
+  halo.position.copy(moon.position);
+  envScene.add(halo, moon);
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const cube = () => {
+    const rt = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType });
+    new THREE.CubeCamera(0.1, 200, rt).update(renderer, envScene);
+    return rt;
+  };
+  const background = pmrem.fromScene(envScene, 0, 0.1, 200).texture;
+  const backgroundCube = cube();
+  const lighting = pmrem.fromScene(envScene, 0.04, 0.1, 200).texture;
+  const lightingCube = cube();
+  pmrem.dispose(); tex.dispose();
+  return { background, lighting, backgroundCube, lightingCube };
+}
 let env = null;
-function applyEnvironment() {
+function applyEnvironment(night = false) {
   if (env) { env.background.dispose(); env.lighting.dispose(); env.backgroundCube.dispose(); env.lightingCube.dispose(); }
-  env = buildEnvironment();
+  env = buildEnvironment(night);
   scene.environment = env.lighting;
   scene.background = env.background;
 }
@@ -389,17 +430,25 @@ function fitSunShadow(mapSize) {
 }
 
 // Cambia la hora del día: mueve el sol, regenera cielo y luz ambiente y recalcula la sombra
-const SUN_LOW = new THREE.Color(0xffc890), SUN_HIGH = new THREE.Color(0xfff6ec);
+const SUN_LOW = new THREE.Color(0xffc890), SUN_HIGH = new THREE.Color(0xfff6ec), MOON_COLOR = 0x9fb3e6;
 let timeOfDay = null;
 function setTimeOfDay(name) {
   if (!TIMES[name]) return;
   timeOfDay = name;
-  solarDirection(TIMES[name].hour, sunDir);
-  const elev = THREE.MathUtils.radToDeg(Math.asin(sunDir.y));
-  const t = THREE.MathUtils.clamp((elev - 10) / 45, 0, 1);       // 0 = sol bajo (cálido), 1 = alto (blanco)
-  sun.color.copy(SUN_LOW).lerp(SUN_HIGH, t);
-  sun.intensity = 2.6 + 0.8 * t;
-  applyEnvironment();
+  const night = !!TIMES[name].night;
+  if (night) {                                                   // la luna: luz fría y suave
+    sunDir.copy(MOON_DIR);
+    sun.color.set(MOON_COLOR); sun.intensity = 0.32;
+  } else {
+    solarDirection(TIMES[name].hour, sunDir);
+    const elev = THREE.MathUtils.radToDeg(Math.asin(sunDir.y));
+    const t = THREE.MathUtils.clamp((elev - 10) / 45, 0, 1);     // 0 = sol bajo (cálido), 1 = alto (blanco)
+    sun.color.copy(SUN_LOW).lerp(SUN_HIGH, t);
+    sun.intensity = 2.6 + 0.8 * t;
+  }
+  renderer.toneMappingExposure = night ? NIGHT_EXPOSURE : EXPOSURE;
+  setNightLights(night);
+  applyEnvironment(night);
   fitSunShadow(sun.shadow.mapSize.x);
   photoLightingChanged();
   mirrorsDirty = true;                                         // los espejos vuelven a sacar su reflejo
@@ -2559,6 +2608,7 @@ function buildExterior() {
   // de la fachada (corrida a la derecha: queda paso del lado de la casa para llegar al portón)
   buildCar(CAR_SPECS.volvo, 7.2, CARPORT.z1 - 0.5 - CAR_SPECS.volvo.L / 2);
   buildCarport();
+  buildNightLights();
 }
 
 // ---- Puerta peatonal y portón corredizo de la reja (ver estilos.md → Exterior) ----
@@ -2724,6 +2774,82 @@ function fresno(x, z) {
     const k = 0.55 + rnd() * 0.4;
     gPiece('foliage', p, _gq.setFromEuler(_ge.set((rnd() - 0.5) * 0.6, rnd() * 6, (rnd() - 0.5) * 0.6)), k, k * 0.8, k,
       hsl(0.22 + rnd() * 0.05, 0.4 + rnd() * 0.15, 0.22 + rnd() * 0.09));
+  }
+}
+
+// ---- Iluminación de noche (ver estilos.md → Iluminación de noche) ----
+// De noche todas las lámparas de la casa pasan a luz cálida (~2700 K) y más fuertes, y se prenden las luces de
+// afuera: apliques junto a la puerta de entrada, la luz bajo la cochera, balizas en los canteros (adelante y en
+// el patio) y el farol de la calle. Para que ande fluido, las luces de afuera NO proyectan sombra y hay pocas
+// (una cada una o dos balizas); los artefactos brillan solos. Las ventanas de la casa se ven iluminadas
+// desde afuera con un velo cálido del lado de adentro del vidrio (solo se ve desde afuera).
+const WARM_2700K = new THREE.Color(0xffb873), LAMP_NIGHT_BOOST = 1.6;
+const NIGHT = { lights: [], glows: [], lens: glow(0xfff4e4, 0xffc27e, 0), streetLens: glow(0xf4f6f8, 0xfff1dc, 0) };
+function nightLight(x, y, z, intensity, range, color = WARM_2700K) {
+  const l = new THREE.PointLight(color, intensity, range, 2);
+  l.position.copy(W(x, y, z)); l.castShadow = false; l.visible = false;
+  scene.add(l); NIGHT.lights.push(l);
+  return l;
+}
+function setNightLights(night) {
+  for (const l of LAMPS) {
+    l.userData.base ??= { i: l.intensity, c: l.color.clone() };
+    l.intensity = l.userData.base.i * (night ? LAMP_NIGHT_BOOST : 1);
+    l.color.copy(night ? WARM_2700K : l.userData.base.c);
+  }
+  for (const l of NIGHT.lights) l.visible = night;
+  for (const m of NIGHT.glows) m.visible = night;
+  NIGHT.lens.emissiveIntensity = night ? 2.4 : 0;
+  NIGHT.streetLens.emissiveIntensity = night ? 3 : 0;
+  for (const m of Object.values(SHADE)) { m.userData.k ??= m.emissiveIntensity; m.emissiveIntensity = m.userData.k * (night ? 1.5 : 1); }
+  refreshShadows();
+}
+function buildNightLights() {
+  const dark = std(0x1c1d1f, 0.5, { metalness: 0.4 });
+  // Apliques en la fachada, a los dos lados de la puerta de entrada: cilindro negro que tira luz arriba y abajo
+  for (const x of [3.80, 5.22]) {
+    rbox(x - 0.045, x + 0.045, 5.04, 5.16, 1.95, 2.21, dark, { r: 0.02 });
+    for (const y of [1.94, 2.21]) rbox(x - 0.032, x + 0.032, 5.07, 5.13, y - 0.006, y + 0.006, NIGHT.lens, { r: 0.004 });
+  }
+  nightLight(4.53, 2.05, 4.85, 4.5, 6);
+  // Luz bajo la cochera: artefacto lineal estanco colgado de la chapa, a mitad de camino
+  rbox(6.62, 7.30, 3.92, 4.06, 2.66, 2.72, dark, { r: 0.015 });
+  rbox(6.65, 7.27, 3.94, 4.04, 2.65, 2.662, NIGHT.lens, { r: 0.004, seg: 1 });
+  nightLight(6.96, 2.5, 4.0, 9, 7);
+  // Balizas en los canteros: postecito negro de 45 cm con una franja que brilla arriba
+  const bollards = [[1.05, 1.7], [1.05, 3.9], [1.7, 4.45], [3.5, 4.45],                      // jardín delantero
+    [2.25, 24], [2.25, 30], [2.25, 35.5], [LOT_W - 2.25, 24], [LOT_W - 2.25, 30], [LOT_W - 2.25, 35.5], [3.0, 37.2], [5.4, 37.2]];   // patio
+  for (const [x, z] of bollards) {
+    mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.36, 16), dark, scene, x, 0.18, -z);
+    mesh(new THREE.CylinderGeometry(0.043, 0.043, 0.07, 16), NIGHT.lens, scene, x, 0.395, -z);
+    mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.03, 16), dark, scene, x, 0.445, -z);
+    colliders.push({ x0: x - 0.06, x1: x + 0.06, z0: z - 0.06, z1: z + 0.06, y0: 0, y1: 0.46 });
+  }
+  for (const [x, z, k] of [[1.05, 2.8, 1.6], [2.6, 4.4, 1.6], [2.25, 30, 2.5], [LOT_W - 2.25, 30, 2.5], [4.2, 37.0, 2.2]]) nightLight(x, 0.45, z, k, k > 2 ? 6 : 3.5);
+  // Farol de la calle: columna gris en la vereda (frente al lote vecino, a la derecha) con un brazo que sale
+  // sobre la calle y una luminaria LED blanca neutra que ilumina hacia abajo la vereda y la calzada
+  const PX = 9.6, PZ = STREET.edge + 0.25, HZ = STREET.curb - 1.2, pole = std(0x8a8e92, 0.45, { metalness: 0.6 });
+  mesh(new THREE.CylinderGeometry(0.055, 0.075, 7.0, 14), pole, scene, PX, 3.5, -PZ);
+  rbox(PX - 0.12, PX + 0.12, PZ - 0.12, PZ + 0.12, 0, 0.5, pole, { r: 0.02 });              // base
+  rod(W(PX, 6.75, PZ), W(PX, 7.05, HZ + 0.25), 0.04, pole);                                  // brazo
+  rbox(PX - 0.16, PX + 0.16, HZ - 0.32, HZ + 0.3, 6.98, 7.1, pole, { r: 0.03 });              // luminaria
+  rbox(PX - 0.12, PX + 0.12, HZ - 0.26, HZ + 0.24, 6.965, 6.985, NIGHT.streetLens, { r: 0.005, seg: 1 });
+  colliders.push({ x0: PX - 0.12, x1: PX + 0.12, z0: PZ - 0.12, z1: PZ + 0.12, y0: -1, y1: 7 });
+  const street = new THREE.SpotLight(0xfff0dc, 70, 22, 1.15, 0.7, 2);
+  street.position.copy(W(PX, 6.95, HZ)); street.target.position.copy(W(PX - 0.5, 0, HZ + 0.6));
+  street.castShadow = false; street.visible = false;
+  scene.add(street, street.target); NIGHT.lights.push(street);
+  // Ventanas iluminadas: velo cálido apenas adentro del vidrio, mirando hacia afuera (de adentro no se ve)
+  const veil = new THREE.MeshBasicMaterial({ color: 0xffb46a, transparent: true, opacity: 0.16, depthWrite: false, blending: THREE.AdditiveBlending });
+  for (const o of OPENINGS) {
+    if (!o.ext || !(o.t === 'window' || o.leaf) || o.r[0] === 5.88) continue;   // la del garage no (no tiene luz)
+    const [x0, x1, z0, z1] = o.r, base = o.lvl * PA_Y;
+    const y0 = base + (o.t === 'window' ? o.sill : 0), y1 = base + (o.head ?? (o.t === 'door' ? 2.05 : 2.1));
+    const front = o.ext === 'z0', z = (z0 + z1) / 2 + (front ? 0.03 : -0.03);
+    const m = mesh(new THREE.PlaneGeometry(x1 - x0 - 0.04, y1 - y0 - 0.04), veil, scene, (x0 + x1) / 2, (y0 + y1) / 2, -z);
+    if (!front) m.rotation.y = Math.PI;
+    m.userData.noCast = true; m.visible = false; m.renderOrder = 2;
+    NIGHT.glows.push(m);
   }
 }
 
