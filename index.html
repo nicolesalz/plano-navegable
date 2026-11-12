@@ -81,7 +81,7 @@
 </head>
 <body>
 <div id="hud"><div class="room" id="roomName">Jardín delantero</div><div class="floor" id="floorName">Exterior</div></div>
-<div id="help">Clic para entrar · <b>WASD</b>/flechas: caminar · <b>Shift</b>: correr · <b>Mouse</b>: mirar · <b>T</b>: hora del día · <b>E</b>: portón y puertas corredizas · <b>Esc</b>: salir</div>
+<div id="help">Clic para entrar · <b>WASD</b>/flechas: caminar · <b>Shift</b>: correr · <b>Mouse</b>: mirar · <b>T</b>: hora del día (mañana, mediodía, tarde, noche) · <b>E</b>: abrir/cerrar puertas y portones · <b>Esc</b>: salir</div>
 <div id="crosshair"></div>
 <div id="photo"><span class="dot"></span><span id="photoText">Modo foto</span></div>
 <div id="notice"></div>
@@ -103,17 +103,17 @@
     <div class="desk">
       <p><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> o flechas para caminar</p>
       <p><kbd>Shift</kbd> para correr · mouse para mirar</p>
-      <p><kbd>E</kbd> cerca del portón del garage, de la puerta de vidrio del living, del lavadero del hall o de las puertas de los baños para abrirlos o cerrarlos</p>
+      <p><kbd>E</kbd> cerca de la puerta o del portón corredizo de la reja, del portón del garage, de la puerta de vidrio del living, del lavadero del hall o de las puertas de los baños para abrirlos o cerrarlos</p>
       <p>La escalera está en el living, junto al hall</p>
       <p><kbd>Esc</kbd> para salir</p>
     </div>
     <div class="mob">
       <p>Círculo abajo a la izquierda para caminar · arrastrá el dedo en la mitad derecha para mirar</p>
-      <p><b>Abrir / cerrar</b> cerca del portón, la puerta de vidrio del living, el lavadero del hall o las puertas de los baños · <b>Hora</b> cambia la luz · <b>Correr</b> se prende y se apaga</p>
+      <p><b>Abrir / cerrar</b> cerca de la puerta o del portón de la reja, del portón del garage, la puerta de vidrio del living, el lavadero del hall o las puertas de los baños · <b>Hora</b> cambia la luz (mañana, mediodía, tarde, noche) · <b>Correr</b> se prende y se apaga</p>
       <p>La escalera está en el living, junto al hall · <b>❚❚</b> para volver a este cartel</p>
     </div>
     <div id="timeofday" class="opts">Hora:
-      <button data-t="manana">Mañana</button><button data-t="mediodia">Mediodía</button><button data-t="tarde">Tarde</button>
+      <button data-t="manana">Mañana</button><button data-t="mediodia">Mediodía</button><button data-t="tarde">Tarde</button><button data-t="noche">Noche</button>
       <div class="hint desk">También con la tecla <kbd>T</kbd> mientras recorrés.</div>
     </div>
     <div id="quality" class="opts">Calidad:
@@ -249,6 +249,10 @@ const PARAPET = { h: 0.6, t: 0.15 };
 // Ocupa todo el ancho libre entre la pared lateral del living (x = 5,52) y la medianera (8,40): 2,88 m.
 // Del lado de la casa va amurada a la fachada del garage (z = 7,86) y llega hasta la reja, donde apoya en 2 columnas.
 // top: alto de la viga perimetral contra la fachada; drop: lo que baja hacia la reja (desagüe).
+// Vereda, cordón y calle frente a la reja (z negativa = hacia la calle). edge: borde de la vereda (cara de
+// adentro del cordón, 3 m desde la reja); curb: cara del cordón que da a la calle; far: cordón de enfrente;
+// drop: cuánto más abajo queda la calzada. tree: fresno de vereda con su cazuela de tierra.
+const STREET = { edge: -3.0, curb: -3.15, far: -11.15, drop: 0.15, tree: { x: 2.2, z: -2.4, pit: 0.9 } };
 const CARPORT = { x0: 5.52, x1: 8.40, z0: 0.10, z1: 7.86, top: 2.92, drop: 0.28, bays: 9 };   // llega hasta la reja (cara de adentro, z = 0,10)
 
 // Muebles: las ubicaciones y medidas están en buildFurniture() (sección 3b), dentro de los mismos
@@ -264,7 +268,9 @@ const ROOMS = [
   { n: 'Galería', lvl: 0, r: [-1, 9, 17.54, 19.52] },
   { n: 'Patio trasero', lvl: 0, r: [-1, 9, 19.52, 99] },
   { n: 'Cochera', lvl: 0, r: [CARPORT.x0, CARPORT.x1, CARPORT.z0, CARPORT.z1] },
-  { n: 'Jardín delantero', lvl: 0, r: [-1, 9, -99, 8.16] },
+  { n: 'Vereda', lvl: 0, r: [-99, 99, -3.15, 0] },
+  { n: 'Calle', lvl: 0, r: [-99, 99, -99, -3.15] },
+  { n: 'Jardín delantero', lvl: 0, r: [-1, 9, 0, 8.16] },
   { n: 'Habitación principal', lvl: 1, r: [0, 5.23, 5.44, 9.02] },
   { n: 'Habitación principal (paso al baño)', lvl: 1, r: [0, 1.02, 9.11, 11.80] },
   { n: 'Lavatorio del baño en suite', lvl: 1, r: [0, 1.72, 11.94, 13.09] },
@@ -287,8 +293,11 @@ const SEASON_DECL = 0;                          // declinación solar: 0 = otoñ
 const TIMES = {                                 // hora solar de cada momento del día
   manana:   { label: 'Mañana',   hour: 8 },     // sol del este: frente y costado del garage
   mediodia: { label: 'Mediodía', hour: 12.5 },  // sol del norte: costado del garage
-  tarde:    { label: 'Tarde',    hour: 16.5 },  // sol del oeste-noroeste: patio y galería
+  tarde:    { label: 'Tarde',    hour: 16.5, lamps: true },  // sol del oeste-noroeste: patio y galería (lámparas prendidas)
+  noche:    { label: 'Noche',    hour: 21, lamps: true, night: true },   // luna, cielo estrellado y todas las luces prendidas
 };
+// De noche la "luz del sol" pasa a ser la luna: alta, del noreste, fría y suave
+const MOON_DIR = new THREE.Vector3(0.55, 0.78, 0.3).normalize();
 const NORTH = new THREE.Vector3(1, 0, -1).normalize(), EAST = new THREE.Vector3(1, 0, 1).normalize();
 // Dirección hacia el sol para una hora solar (fórmula astronómica estándar)
 function solarDirection(hour, target = new THREE.Vector3()) {
@@ -299,6 +308,7 @@ function solarDirection(hour, target = new THREE.Vector3()) {
   return target.copy(EAST).multiplyScalar(e).addScaledVector(NORTH, n).setY(u).normalize();
 }
 const EXPOSURE = 0.6;           // exposición de la "cámara"
+const NIGHT_EXPOSURE = 0.85;    // de noche se abre un poco más (como el ojo acostumbrado a la oscuridad)
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
@@ -321,8 +331,9 @@ const sunDir = solarDirection(TIMES.manana.hour);   // se actualiza con setTimeO
 //  - como luz ambiente (environment map) mezclado con una bruma blanca cálida y un "suelo" claro
 //    debajo del horizonte, para que el rebote de luz ilumine techos y caras inferiores y los
 //    interiores no queden teñidos de azul.
-function buildEnvironment() {
+function buildEnvironment(night = false) {
   const envScene = new THREE.Scene();
+  if (night) return buildNightEnvironment(envScene);
   const sky = new Sky();
   sky.scale.setScalar(100);
   const u = sky.material.uniforms;
@@ -348,10 +359,46 @@ function buildEnvironment() {
   pmrem.dispose();
   return { background, lighting, backgroundCube, lightingCube };
 }
+// Cielo de noche: degradé azul muy oscuro (más claro y apenas cálido en el horizonte, por el resplandor
+// de la ciudad), estrellas chicas y la luna. Como luz ambiente queda casi a oscuras, con un tinte azul frío.
+function buildNightEnvironment(envScene) {
+  const c = document.createElement('canvas'), W2 = 2048, H2 = 1024;
+  c.width = W2; c.height = H2;
+  const g = c.getContext('2d'), r = seeded(11);
+  const grad = g.createLinearGradient(0, 0, 0, H2 / 2);
+  grad.addColorStop(0, '#040814'); grad.addColorStop(0.55, '#0a1428'); grad.addColorStop(0.9, '#18233b'); grad.addColorStop(1, '#2a2a3a');
+  g.fillStyle = grad; g.fillRect(0, 0, W2, H2 / 2);
+  g.fillStyle = '#0b0c10'; g.fillRect(0, H2 / 2, W2, H2 / 2);                      // abajo del horizonte
+  for (let i = 0; i < 1400; i++) {                                                  // estrellas (menos cerca del horizonte)
+    const y = Math.pow(r(), 1.6) * H2 * 0.45, a = 0.25 + r() * 0.75 * (1 - y / (H2 * 0.5));
+    g.fillStyle = `rgba(${220 + r() * 35 | 0}, ${225 + r() * 30 | 0}, 255, ${a})`;
+    const sz = r() < 0.08 ? 3 : 2;
+    g.fillRect(r() * W2, y, sz, sz);
+  }
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  envScene.add(new THREE.Mesh(new THREE.SphereGeometry(50, 64, 32), new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide, depthWrite: false })));
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(1.3, 24, 12), new THREE.MeshBasicMaterial({ color: 0xe6ecff }));
+  moon.position.copy(MOON_DIR).multiplyScalar(45);
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(3.2, 24, 12), new THREE.MeshBasicMaterial({ color: 0x6f86b8, transparent: true, opacity: 0.12, depthWrite: false }));
+  halo.position.copy(moon.position);
+  envScene.add(halo, moon);
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const cube = () => {
+    const rt = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType });
+    new THREE.CubeCamera(0.1, 200, rt).update(renderer, envScene);
+    return rt;
+  };
+  const background = pmrem.fromScene(envScene, 0, 0.1, 200).texture;
+  const backgroundCube = cube();
+  const lighting = pmrem.fromScene(envScene, 0.04, 0.1, 200).texture;
+  const lightingCube = cube();
+  pmrem.dispose(); tex.dispose();
+  return { background, lighting, backgroundCube, lightingCube };
+}
 let env = null;
-function applyEnvironment() {
+function applyEnvironment(night = false) {
   if (env) { env.background.dispose(); env.lighting.dispose(); env.backgroundCube.dispose(); env.lightingCube.dispose(); }
-  env = buildEnvironment();
+  env = buildEnvironment(night);
   scene.environment = env.lighting;
   scene.background = env.background;
 }
@@ -372,7 +419,7 @@ function fitSunShadow(mapSize) {
   // Esquinas del lote (casa, medianeras, reja) en el espacio de la luz
   const inv = cam.matrixWorldInverse, p = new THREE.Vector3();
   const lo = new THREE.Vector3(Infinity, Infinity, Infinity), hi = lo.clone().negate();
-  for (const x of [-0.6, 9.0]) for (const y of [0, 7.6]) for (const z of [0.5, -40.2]) {   // 7,6: hasta la cumbrera
+  for (const x of [-0.6, 9.0]) for (const y of [0, 8.6]) for (const z of [3.6, -40.2]) {   // 8,6: copa del fresno de la vereda; 3,6: vereda
     p.set(x, y, z).applyMatrix4(inv); lo.min(p); hi.max(p);
   }
   Object.assign(cam, { left: lo.x, right: hi.x, bottom: lo.y, top: hi.y, near: Math.max(0.1, -hi.z - 1), far: -lo.z + 1 });
@@ -383,17 +430,25 @@ function fitSunShadow(mapSize) {
 }
 
 // Cambia la hora del día: mueve el sol, regenera cielo y luz ambiente y recalcula la sombra
-const SUN_LOW = new THREE.Color(0xffc890), SUN_HIGH = new THREE.Color(0xfff6ec);
+const SUN_LOW = new THREE.Color(0xffc890), SUN_HIGH = new THREE.Color(0xfff6ec), MOON_COLOR = 0x9fb3e6;
 let timeOfDay = null;
 function setTimeOfDay(name) {
   if (!TIMES[name]) return;
   timeOfDay = name;
-  solarDirection(TIMES[name].hour, sunDir);
-  const elev = THREE.MathUtils.radToDeg(Math.asin(sunDir.y));
-  const t = THREE.MathUtils.clamp((elev - 10) / 45, 0, 1);       // 0 = sol bajo (cálido), 1 = alto (blanco)
-  sun.color.copy(SUN_LOW).lerp(SUN_HIGH, t);
-  sun.intensity = 2.6 + 0.8 * t;
-  applyEnvironment();
+  const night = !!TIMES[name].night;
+  if (night) {                                                   // la luna: luz fría y suave
+    sunDir.copy(MOON_DIR);
+    sun.color.set(MOON_COLOR); sun.intensity = 0.32;
+  } else {
+    solarDirection(TIMES[name].hour, sunDir);
+    const elev = THREE.MathUtils.radToDeg(Math.asin(sunDir.y));
+    const t = THREE.MathUtils.clamp((elev - 10) / 45, 0, 1);     // 0 = sol bajo (cálido), 1 = alto (blanco)
+    sun.color.copy(SUN_LOW).lerp(SUN_HIGH, t);
+    sun.intensity = 2.6 + 0.8 * t;
+  }
+  renderer.toneMappingExposure = night ? NIGHT_EXPOSURE : EXPOSURE;
+  setNightLights(night, !!TIMES[name].lamps);
+  applyEnvironment(night);
   fitSunShadow(sun.shadow.mapSize.x);
   photoLightingChanged();
   mirrorsDirty = true;                                         // los espejos vuelven a sacar su reflejo
@@ -885,6 +940,7 @@ function floor(x0, x1, z0, z1, y, mat, texSize = 2, world = false) {
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.set((x0 + x1) / 2, y, -(z0 + z1) / 2);
   scene.add(mesh);
+  return mesh;
 }
 
 // Marco fino blanco de una abertura (jambas, dintel, antepecho opcional y parante central opcional)
@@ -1099,7 +1155,9 @@ function buildWalls() {
 
 function buildFloorsAndCeilings() {
   // Terreno y exterior
-  floor(-30, 40, -20, LOT_D + 20, -0.02, M.outside, 4);
+  // (el pasto no pasa por la calle, que queda 15 cm más abajo: ver buildStreet)
+  floor(-30, 40, -20, STREET.far - 0.15, -0.02, M.outside, 4);
+  floor(-30, 40, 0, LOT_D + 20, -0.02, M.outside, 4);
   // Jardín delantero: todo el piso de baldosas rojas, sin pasto (también la entrada de autos y el camino a la
   // puerta), de la reja a la fachada y, del lado del garage, hasta el portón. Dos rectángulos con la UV anclada
   // al plano para que las juntas sigan sin corte.
@@ -2524,33 +2582,278 @@ function buildExterior() {
   // Galería: losa en voladizo desde el muro del fondo, sin columnas ni apoyos visibles
   box(-0.28, LOT_W + 0.28, GALERIA_Z[0], GALERIA_Z[1], H_WALL, H_WALL + 0.18, [M.facade, M.facade, M.roof, M.ceiling, M.facade, M.facade], false);
 
-  // Reja del frente sobre la L.M (h = 2,00 m): planchuelas negras verticales, con portón peatonal
-  // y portón de autos (cerrados) del mismo diseño
+  // Reja del frente sobre la L.M (h = 2,00 m): planchuelas negras verticales sobre un murete. La puerta
+  // peatonal (de abrir, hacia adentro) y el portón de autos (corredizo, por adentro) son del mismo diseño y
+  // se mueven con E (ver FRONT_GATES).
   const X0 = -0.28, X1 = LOT_W + 0.28, TOP = 2.0;
-  const gates = [[4.02, 5.04], [5.62, 8.30]];
   const fixed = [[X0, 4.02], [5.04, 5.62], [8.30, X1]];
-  for (const [x0, x1] of fixed) box(x0, x1, -0.1, 0.1, 0, 0.35, M.medianera);         // murete
-  box(X0, X1, -0.035, -0.015, TOP - 0.1, TOP - 0.06, M.rail, false);                  // planchuela horizontal superior
-  box(X0, X1, -0.035, -0.015, 0.5, 0.54, M.rail, false);                              // planchuela horizontal inferior
-  for (const [x0, x1] of gates) {
-    box(x0, x1, -0.03, 0.03, 0.03, 0.08, M.rail, false);                              // bastidor de los portones
-    for (const x of [x0 + 0.03, x1 - 0.03]) box(x - 0.025, x + 0.025, -0.03, 0.03, 0.03, TOP, M.rail, false);
+  for (const [x0, x1] of fixed) {
+    box(x0, x1, -0.1, 0.1, 0, 0.35, M.medianera);                                     // murete
+    box(x0, x1, -0.035, -0.015, TOP - 0.1, TOP - 0.06, M.rail, false);                // planchuela horizontal superior
+    box(x0, x1, -0.035, -0.015, 0.5, 0.54, M.rail, false);                            // planchuela horizontal inferior
+    colliders.push({ x0, x1, z0: -0.1, z1: 0.1, y0: 0, y1: TOP });
   }
-  for (const x of [4.02, 5.04, 5.62, 8.30]) box(x - 0.04, x + 0.04, -0.04, 0.04, 0, TOP + 0.04, M.rail, false);   // postes
-  colliders.push({ x0: X0, x1: X1, z0: -0.1, z1: 0.1, y0: 0, y1: TOP });
+  for (const x of [4.02, 5.04, 5.62, 8.30]) box(x - 0.04, x + 0.04, -0.04, 0.04, 0, TOP + 0.04, M.rail);   // postes
   const bars = [];                                                                    // [x, y0, y1]
   for (const [x0, x1] of fixed) for (let x = x0 + 0.05; x < x1 - 0.02; x += 0.09) bars.push([x, 0.35, TOP + 0.05]);
-  for (const [x0, x1] of gates) for (let x = x0 + 0.1; x < x1 - 0.06; x += 0.09) bars.push([x, 0.08, TOP + 0.05]);
   const plate = new THREE.BoxGeometry(0.04, 1, 0.008), mtx = new THREE.Matrix4();
   const inst = new THREE.InstancedMesh(plate, M.rail, bars.length);
   bars.forEach(([x, y0, y1], i) => { mtx.makeScale(1, y1 - y0, 1).setPosition(x, (y0 + y1) / 2, 0); inst.setMatrixAt(i, mtx); });
   scene.add(inst);
+  frontGates(TOP);
   buildJasmine(X0, X1, TOP);
+  buildStreet();
   buildGarden();
   // Volvo XC60 negra en el jardín delantero, frente al portón del garage, bajo la cochera: la cola a 50 cm
   // de la fachada (corrida a la derecha: queda paso del lado de la casa para llegar al portón)
   buildCar(CAR_SPECS.volvo, 7.2, CARPORT.z1 - 0.5 - CAR_SPECS.volvo.L / 2);
   buildCarport();
+  buildNightLights();
+}
+
+// ---- Puerta peatonal y portón corredizo de la reja (ver estilos.md → Exterior) ----
+// Hojas del mismo diseño que la reja fija. La puerta peatonal es de abrir: gira sobre el poste de la
+// izquierda (x = 4,02) y abre hacia adentro del jardín. El portón de autos es corredizo: corre por adentro
+// de la reja, sobre un riel en el piso, hacia la izquierda (queda detrás de la puerta peatonal y de la
+// reja fija, porque a la derecha está la medianera). Como abierto tapa la puerta peatonal por adentro,
+// nunca están abiertos los dos: al abrir uno, el otro se cierra primero. Se mueven con E o con el botón
+// "Abrir / cerrar" del celular.
+const FRONT_GATES = {
+  door: { open: 0, target: 0, speed: 1.1, hx: 4.065, w: 0.93, g: null, cols: [] },
+  slide: { s: 0, target: 0, speed: 0.6, x0: 5.60, w: 2.74, max: 2.74, zc: 0.28, g: null, col: null },
+  clear: 0.5,   // hasta 50 cm abierto el portón no llega a la puerta peatonal
+};
+function railLeaf(w, TOP) {
+  const g = new THREE.Group(), R = M.rail, o = { r: 0.004, seg: 1, parent: g };
+  rbox(0, w, -0.03, 0.03, 0.03, 0.08, R, o);                                          // bastidor de abajo
+  rbox(0, 0.05, -0.03, 0.03, 0.03, TOP, R, o);                                        // parantes
+  rbox(w - 0.05, w, -0.03, 0.03, 0.03, TOP, R, o);
+  rbox(0.05, w - 0.05, -0.035, -0.015, TOP - 0.1, TOP - 0.06, R, o);                  // planchuelas horizontales
+  rbox(0.05, w - 0.05, -0.035, -0.015, 0.5, 0.54, R, o);
+  const xs = [];
+  for (let x = 0.1; x < w - 0.06; x += 0.09) xs.push(x);                              // planchuelas verticales
+  const inst = new THREE.InstancedMesh(new THREE.BoxGeometry(0.04, 1, 0.008), R, xs.length), m = new THREE.Matrix4();
+  const y0 = 0.08, y1 = TOP + 0.05;
+  xs.forEach((x, i) => { m.makeScale(1, y1 - y0, 1).setPosition(x, (y0 + y1) / 2, 0); inst.setMatrixAt(i, m); });
+  g.add(inst);
+  return g;
+}
+function frontGates(TOP) {
+  const { door: D, slide: S } = FRONT_GATES;
+  // Puerta peatonal: hoja con cerradura y picaporte de los dos lados, sobre dos bisagras
+  D.g = railLeaf(D.w, TOP);
+  const o = { r: 0.004, seg: 1, parent: D.g };
+  rbox(D.w - 0.16, D.w - 0.04, -0.045, 0.045, 0.95, 1.12, M.rail, o);                 // caja de la cerradura
+  for (const f of [-1, 1]) rbox(D.w - 0.2, D.w - 0.08, f * 0.06 - 0.01, f * 0.06 + 0.01, 1.04, 1.06, M.rail, o);   // picaportes
+  for (const y of [0.3, TOP - 0.3]) rbox(-0.012, 0.02, -0.02, 0.02, y, y + 0.12, M.rail, o);                      // bisagras
+  D.g.position.copy(W(D.hx, 0, 0));
+  scene.add(D.g);
+  for (let i = 0; i < 4; i++) { const c = { y0: 0.03, y1: TOP }; D.cols.push(c); colliders.push(c); }
+  placeFrontDoor();
+  // Portón corredizo: riel en el piso a todo lo largo del recorrido y una guía con dos ruedas arriba
+  S.g = railLeaf(S.w, TOP);
+  scene.add(S.g);
+  S.col = { z0: S.zc - 0.04, z1: S.zc + 0.04, y0: 0, y1: TOP };
+  colliders.push(S.col);
+  placeSlideGate();
+  rbox(S.x0 - S.max - 0.04, S.x0 + S.w + 0.02, S.zc - 0.012, S.zc + 0.012, 0, 0.018, M.rail, { r: 0.004 });      // riel
+  const gx0 = 5.47, gx1 = 5.53;
+  box(gx0, gx1, S.zc + 0.06, S.zc + 0.1, 0, TOP + 0.14, M.rail);                     // poste de la guía
+  box(gx0, gx1, S.zc - 0.07, S.zc + 0.1, TOP + 0.1, TOP + 0.14, M.rail, false);      // brazo sobre la hoja
+  for (const dz of [-0.052, 0.052]) rod(W(5.5, TOP - 0.04, S.zc + dz), W(5.5, TOP + 0.1, S.zc + dz), 0.014, M.rail);   // ruedas
+}
+function placeFrontDoor() {
+  const D = FRONT_GATES.door, a = D.open * Math.PI / 2, c = Math.cos(a), sn = Math.sin(a);
+  D.g.rotation.y = a;                                  // abre hacia adentro (z del plano positiva)
+  D.cols.forEach((C, i) => {                           // la hoja en 4 tramos, cada uno con su caja
+    const s0 = i * D.w / 4, s1 = (i + 1) * D.w / 4;
+    const xa = D.hx + s0 * c, xb = D.hx + s1 * c, za = s0 * sn, zb = s1 * sn;
+    Object.assign(C, { x0: Math.min(xa, xb) - 0.03, x1: Math.max(xa, xb) + 0.03, z0: Math.min(za, zb) - 0.03, z1: Math.max(za, zb) + 0.03 });
+  });
+}
+function placeSlideGate() {
+  const S = FRONT_GATES.slide, x = S.x0 - S.s;
+  S.g.position.copy(W(x, 0, S.zc));
+  Object.assign(S.col, { x0: x, x1: x + S.w });
+}
+// Devuelve el texto del cartel, o null si no hay ninguna de las dos cerca
+function toggleFrontGates() {
+  const { door: D, slide: S } = FRONT_GATES;
+  if (player.feet > 1) return null;
+  const dD = Math.hypot(player.x - (D.hx + D.w / 2), player.z);
+  const dS = Math.hypot(Math.max(0, Math.abs(player.x - 6.96) - 0.9), player.z - S.zc / 2);
+  if (Math.min(dD, dS) > 1.8) return null;
+  if (dD <= dS) {
+    D.target = D.target > 0 ? 0 : 1;
+    if (!D.target) return 'Cerrando la puerta de la reja';
+    if (S.target > 0 || S.s > 0) { S.target = 0; return 'Cerrando el portón para abrir la puerta de la reja'; }
+    return 'Abriendo la puerta de la reja';
+  }
+  S.target = S.target > 0 ? 0 : S.max;
+  if (!S.target) return 'Cerrando el portón corredizo';
+  if (D.target > 0 || D.open > 0) { D.target = 0; return 'Cerrando la puerta de la reja para abrir el portón'; }
+  return 'Abriendo el portón corredizo';
+}
+let frontGateShadowFrame = 0;
+function updateFrontGates(dt) {
+  const { door: D, slide: S, clear } = FRONT_GATES;
+  let moved = false, done = false;
+  // la puerta solo abre si el portón no la tapa
+  if (D.open !== D.target && !(D.target > D.open && S.s > clear)) {
+    const step = D.speed * dt;
+    D.open = Math.abs(D.target - D.open) <= step ? D.target : D.open + Math.sign(D.target - D.open) * step;
+    placeFrontDoor(); moved = true; done ||= D.open === D.target;
+  }
+  // el portón pasa de los 50 cm recién cuando la puerta está cerrada
+  const goal = D.open > 0 ? Math.min(S.target, clear) : S.target;
+  if (S.s !== goal) {
+    const step = S.speed * dt;
+    S.s = Math.abs(goal - S.s) <= step ? goal : S.s + Math.sign(goal - S.s) * step;
+    placeSlideGate(); moved = true; done ||= S.s === S.target;
+  }
+  if (moved && ++frontGateShadowFrame % 4 === 0) renderer.shadowMap.needsUpdate = true;
+  if (done) refreshShadows();
+}
+
+// ---- Vereda, cordón, calle y fresno (ver estilos.md → Exterior) ----
+// Vereda de 3 m con las mismas baldosas que el jardín delantero (las juntas siguen de un lado al otro de la
+// reja), cordón de hormigón con cordón cuneta, calzada de asfalto 15 cm más abajo y el cordón de enfrente.
+// Frente a la casa, un fresno con su cazuela de tierra. Se puede salir a la vereda y a la calle por la puerta
+// o el portón; unos límites invisibles evitan perderse más allá de este tramo.
+function buildStreet() {
+  const S = STREET, XA = -30, XB = 40, y = -S.drop;
+  const curbMat = std(0xbdb8ae, 0.9);
+  const asphalt = std(0xffffff, 0.95, { map: canvasTexture(512, (g, n) => {
+    const r = seeded(7);
+    g.fillStyle = '#4a4b4d'; g.fillRect(0, 0, n, n);
+    for (let i = 0; i < 9000; i++) {                                   // granza del asfalto
+      const l = 22 + r() * 40;
+      g.fillStyle = `hsl(30, ${3 + r() * 5}%, ${l}%)`;
+      g.fillRect(r() * n, r() * n, 1 + r() * 2, 1 + r() * 2);
+    }
+  }) });
+  floor(XA, XB, S.edge, 0, 0, M.pavers, 1, true);                                     // vereda
+  rbox(XA, XB, S.curb, S.edge, y - 0.1, 0.01, curbMat, { r: 0.02 });                   // cordón
+  floor(XA, XB, S.curb - 0.45, S.curb, y + 0.003, curbMat, 2);                         // cordón cuneta (hormigón)
+  floor(XA, XB, S.far, S.curb - 0.45, y, asphalt, 3);                                  // calzada
+  floor(XA, XB, S.far, S.far + 0.45, y + 0.003, curbMat, 2);                           // cuneta de enfrente
+  rbox(XA, XB, S.far - 0.15, S.far, y - 0.1, 0.01, curbMat, { r: 0.02 });              // cordón de enfrente
+  floor(XA, XB, S.far - 0.15 - 2.5, S.far - 0.15, 0.001, M.pavers, 1, true);           // vereda de enfrente (angosta)
+  // límites: no se entra a los lotes vecinos ni se sale de este tramo de calle
+  const LX0 = -12, LX1 = LOT_W + 12, LZ = S.far - 0.15;
+  colliders.push({ x0: LX0, x1: -0.28, z0: 0, z1: 0.3, y0: -1, y1: 3 }, { x0: LOT_W + 0.28, x1: LX1, z0: 0, z1: 0.3, y0: -1, y1: 3 });
+  colliders.push({ x0: LX0 - 0.3, x1: LX0, z0: LZ, z1: 0.3, y0: -1, y1: 3 }, { x0: LX1, x1: LX1 + 0.3, z0: LZ, z1: 0.3, y0: -1, y1: 3 });
+  colliders.push({ x0: LX0, x1: LX1, z0: LZ - 0.3, z1: LZ, y0: -1, y1: 3 });
+  // Cazuela del árbol: borde de hormigón y tierra
+  const T = S.tree, h = T.pit / 2, [x0, x1, z0, z1] = [T.x - h, T.x + h, T.z - h, T.z + h], e = 0.06;
+  for (const [a0, a1, b0, b1] of [[x0, x1, z0, z0 + e], [x0, x1, z1 - e, z1], [x0, x0 + e, z0 + e, z1 - e], [x1 - e, x1, z0 + e, z1 - e]])
+    rbox(a0, a1, b0, b1, 0, 0.05, curbMat, { r: 0.01 });
+  const soil = floor(x0 + e, x1 - e, z0 + e, z1 - e, 0.01, M.soil, 1.2); soil.userData.noCast = true;
+  fresno(T.x, T.z);
+}
+// Fresno de vereda: tronco gris derecho, ramas principales que abren desde unos 2,8 m y copa ovalada
+// de hojas compuestas finas, verde claro (manchones con instancias de follaje, semilla fija)
+function fresno(x, z) {
+  const rnd = seeded(77), bark = std(0x6e675d, 0.95), TH = 3.0;
+  mesh(new THREE.CylinderGeometry(0.11, 0.17, TH, 12), bark, scene, x, TH / 2, -z);                      // tronco
+  colliders.push({ x0: x - 0.19, x1: x + 0.19, z0: z - 0.19, z1: z + 0.19, y0: -1, y1: TH });
+  const C = W(x, 5.3, z), RX = 2.7, RY = 2.1;
+  for (let i = 0; i < 6; i++) {                                     // ramas principales y secundarias
+    const a = i / 6 * Math.PI * 2 + rnd() * 0.6, y0 = 2.5 + rnd() * 0.5;
+    const base = W(x, y0, z), mid = W(x + Math.cos(a) * 1.1, y0 + 1.3 + rnd() * 0.4, z + Math.sin(a) * 1.1);
+    rod(base, mid, 0.075, bark, scene, 7);
+    for (const da of [-0.5, 0.45]) {
+      const tip = W(x + Math.cos(a + da) * (1.9 + rnd() * 0.5), y0 + 2.4 + rnd() * 0.8, z + Math.sin(a + da) * (1.9 + rnd() * 0.5));
+      rod(mid, tip, 0.04, bark, scene, 6);
+    }
+  }
+  rod(W(x, TH - 0.05, z), W(x + 0.1, 6.2, z - 0.1), 0.07, bark, scene, 7);  // guía central
+  for (let i = 0; i < 95; i++) {                                    // copa
+    const u = -0.55 + rnd() * 1.55, ph = rnd() * Math.PI * 2, f = 0.6 + 0.4 * Math.sqrt(rnd()), q = Math.sqrt(Math.max(0, 1 - u * u));
+    const p = C.clone().add(new THREE.Vector3(Math.cos(ph) * q * RX * f, Math.min(u, 1) * RY * f, Math.sin(ph) * q * RX * f));
+    const k = 0.55 + rnd() * 0.4;
+    gPiece('foliage', p, _gq.setFromEuler(_ge.set((rnd() - 0.5) * 0.6, rnd() * 6, (rnd() - 0.5) * 0.6)), k, k * 0.8, k,
+      hsl(0.22 + rnd() * 0.05, 0.4 + rnd() * 0.15, 0.22 + rnd() * 0.09));
+  }
+}
+
+// ---- Iluminación de noche (ver estilos.md → Iluminación de noche) ----
+// A la mañana y al mediodía las lámparas de adentro están apagadas; a la tarde se prenden (luz de siempre) y de
+// noche pasan a luz cálida (~2700 K) y más fuertes, y además se prenden las luces de
+// afuera: apliques junto a la puerta de entrada, la luz bajo la cochera, balizas en los canteros (adelante y en
+// el patio) y el farol de la calle. Para que ande fluido, las luces de afuera NO proyectan sombra y hay pocas
+// (una cada una o dos balizas); los artefactos brillan solos. Las ventanas de la casa se ven iluminadas
+// desde afuera con un velo cálido del lado de adentro del vidrio (solo se ve desde afuera).
+const WARM_2700K = new THREE.Color(0xffb873), LAMP_NIGHT_BOOST = 1.6;
+const NIGHT = { lights: [], glows: [], lens: glow(0xfff4e4, 0xffc27e, 0), streetLens: glow(0xf4f6f8, 0xfff1dc, 0) };
+function nightLight(x, y, z, intensity, range, color = WARM_2700K) {
+  const l = new THREE.PointLight(color, intensity, range, 2);
+  l.position.copy(W(x, y, z)); l.castShadow = false; l.visible = false;
+  scene.add(l); NIGHT.lights.push(l);
+  return l;
+}
+// lampsOn: lámparas de adentro prendidas (desde la tarde; a la mañana y al mediodía están apagadas)
+function setNightLights(night, lampsOn = night) {
+  for (const l of LAMPS) {
+    l.userData.base ??= { i: l.intensity, c: l.color.clone() };
+    l.visible = lampsOn;
+    l.intensity = l.userData.base.i * (night ? LAMP_NIGHT_BOOST : 1);
+    l.color.copy(night ? WARM_2700K : l.userData.base.c);
+  }
+  for (const l of NIGHT.lights) l.visible = night;
+  for (const m of NIGHT.glows) m.visible = night;
+  NIGHT.lens.emissiveIntensity = night ? 2.4 : 0;
+  NIGHT.streetLens.emissiveIntensity = night ? 3 : 0;
+  for (const m of Object.values(SHADE)) { m.userData.k ??= m.emissiveIntensity; m.emissiveIntensity = lampsOn ? m.userData.k * (night ? 1.5 : 1) : 0; }
+  refreshShadows();
+}
+function buildNightLights() {
+  const dark = std(0x1c1d1f, 0.5, { metalness: 0.4 });
+  // Apliques en la fachada, a los dos lados de la puerta de entrada: cilindro negro que tira luz arriba y abajo
+  for (const x of [3.80, 5.22]) {
+    rbox(x - 0.045, x + 0.045, 5.04, 5.16, 1.95, 2.21, dark, { r: 0.02 });
+    for (const y of [1.94, 2.21]) rbox(x - 0.032, x + 0.032, 5.07, 5.13, y - 0.006, y + 0.006, NIGHT.lens, { r: 0.004 });
+  }
+  nightLight(4.53, 2.05, 4.85, 4.5, 6);
+  // Luz bajo la cochera: artefacto lineal estanco colgado de la chapa, a mitad de camino
+  rbox(6.62, 7.30, 3.92, 4.06, 2.66, 2.72, dark, { r: 0.015 });
+  rbox(6.65, 7.27, 3.94, 4.04, 2.65, 2.662, NIGHT.lens, { r: 0.004, seg: 1 });
+  nightLight(6.96, 2.5, 4.0, 9, 7);
+  // Balizas en los canteros: postecito negro de 45 cm con una franja que brilla arriba
+  const bollards = [[1.05, 1.7], [1.05, 3.9], [1.7, 4.45], [3.5, 4.45],                      // jardín delantero
+    [2.25, 24], [2.25, 30], [2.25, 35.5], [LOT_W - 2.25, 24], [LOT_W - 2.25, 30], [LOT_W - 2.25, 35.5], [3.0, 37.2], [5.4, 37.2]];   // patio
+  for (const [x, z] of bollards) {
+    mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.36, 16), dark, scene, x, 0.18, -z);
+    mesh(new THREE.CylinderGeometry(0.043, 0.043, 0.07, 16), NIGHT.lens, scene, x, 0.395, -z);
+    mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.03, 16), dark, scene, x, 0.445, -z);
+    colliders.push({ x0: x - 0.06, x1: x + 0.06, z0: z - 0.06, z1: z + 0.06, y0: 0, y1: 0.46 });
+  }
+  for (const [x, z, k] of [[1.05, 2.8, 1.6], [2.6, 4.4, 1.6], [2.25, 30, 2.5], [LOT_W - 2.25, 30, 2.5], [4.2, 37.0, 2.2]]) nightLight(x, 0.45, z, k, k > 2 ? 6 : 3.5);
+  // Farol de la calle: columna gris en la vereda (frente al lote vecino, a la derecha) con un brazo que sale
+  // sobre la calle y una luminaria LED blanca neutra que ilumina hacia abajo la vereda y la calzada
+  const PX = 9.6, PZ = STREET.edge + 0.25, HZ = STREET.curb - 1.2, pole = std(0x8a8e92, 0.45, { metalness: 0.6 });
+  mesh(new THREE.CylinderGeometry(0.055, 0.075, 7.0, 14), pole, scene, PX, 3.5, -PZ);
+  rbox(PX - 0.12, PX + 0.12, PZ - 0.12, PZ + 0.12, 0, 0.5, pole, { r: 0.02 });              // base
+  rod(W(PX, 6.75, PZ), W(PX, 7.05, HZ + 0.25), 0.04, pole);                                  // brazo
+  rbox(PX - 0.16, PX + 0.16, HZ - 0.32, HZ + 0.3, 6.98, 7.1, pole, { r: 0.03 });              // luminaria
+  rbox(PX - 0.12, PX + 0.12, HZ - 0.26, HZ + 0.24, 6.965, 6.985, NIGHT.streetLens, { r: 0.005, seg: 1 });
+  colliders.push({ x0: PX - 0.12, x1: PX + 0.12, z0: PZ - 0.12, z1: PZ + 0.12, y0: -1, y1: 7 });
+  const street = new THREE.SpotLight(0xfff0dc, 70, 22, 1.15, 0.7, 2);
+  street.position.copy(W(PX, 6.95, HZ)); street.target.position.copy(W(PX - 0.5, 0, HZ + 0.6));
+  street.castShadow = false; street.visible = false;
+  scene.add(street, street.target); NIGHT.lights.push(street);
+  // Ventanas iluminadas: velo cálido apenas adentro del vidrio, mirando hacia afuera (de adentro no se ve)
+  const veil = new THREE.MeshBasicMaterial({ color: 0xffb46a, transparent: true, opacity: 0.16, depthWrite: false, blending: THREE.AdditiveBlending });
+  for (const o of OPENINGS) {
+    if (!o.ext || !(o.t === 'window' || o.leaf) || o.r[0] === 5.88) continue;   // la del garage no (no tiene luz)
+    const [x0, x1, z0, z1] = o.r, base = o.lvl * PA_Y;
+    const y0 = base + (o.t === 'window' ? o.sill : 0), y1 = base + (o.head ?? (o.t === 'door' ? 2.05 : 2.1));
+    const front = o.ext === 'z0', z = (z0 + z1) / 2 + (front ? 0.03 : -0.03);
+    const m = mesh(new THREE.PlaneGeometry(x1 - x0 - 0.04, y1 - y0 - 0.04), veil, scene, (x0 + x1) / 2, (y0 + y1) / 2, -z);
+    if (!front) m.rotation.y = Math.PI;
+    m.userData.noCast = true; m.visible = false; m.renderOrder = 2;
+    NIGHT.glows.push(m);
+  }
 }
 
 // Cochera (ver estilos.md → Exterior; referencia exterior/techo-auto.jpg, solo techo y estructura).
@@ -2609,11 +2912,12 @@ function buildJasmine(X0, X1, TOP) {
       const r = Math.sqrt(rnd()), a = rnd() * Math.PI * 2;
       const x = cx + Math.cos(a) * r * rx, y = cy + Math.sin(a) * r * ry;
       if (x < X0 || x > X1 || y < 0.3 || y > TOP + 0.18) continue;
+      if ((x > 3.98 && x < 5.08) || (x > 5.58 && x < 8.34)) continue;   // la puerta y el portón se mueven: sin enredadera
       const z = (rnd() - 0.5) * 0.14;
       (rnd() < 0.22 ? flowers : leaves).push([x, y, z]);
     }
   };
-  // cordón tupido a lo largo de la parte de arriba (el portón de autos queda más ralo)
+  // cordón tupido a lo largo de la parte de arriba (sobre la puerta y el portón no va: se mueven)
   for (let x = X0; x < X1; x += 0.25) {
     const onCarGate = x > 5.7 && x < 8.2;
     add(x, TOP - 0.12 + rnd() * 0.1, 0.35, 0.22, onCarGate ? 40 : 220);
@@ -2829,11 +3133,9 @@ function flushGarden() {
 function buildGarden() {
   const H = 2.45, back = LOT_D, start = GALERIA_Z[1] + 0.4;
   // Jardín delantero (piso de baldosas, sin pasto): canteros contra la medianera izquierda y bajo la ventana
-  // del living, y una franja angosta de gramíneas entre el camino y la entrada de autos (deja paso junto a la
-  // casa). Contra la reja no va cantero.
+  // del living. Entre el camino de entrada y el auto no va cantero (queda libre). Contra la reja no va cantero.
   border({ axis: 'z', c: 0, dir: 1, a0: 1.15, a1: 4.45, depth: 0.95, seed: 102 });
   border({ axis: 'x', c: 5.16, dir: -1, a0: 1.1, a1: 4.0, depth: 0.6, seed: 103, rows: ['low'] });
-  border({ axis: 'z', c: 5.08, dir: 1, a0: 0.12, a1: 4.3, depth: 0.4, seed: 104, rows: ['mid'], spacing: 0.55 });
   // Patio trasero: cerco alto contra las tres medianeras y borduras anchas delante, con el frente ondulado
   hedge(0, 0.8, start, back, H, 201);
   hedge(LOT_W - 0.8, LOT_W, start, back, H, 202);
@@ -2881,7 +3183,7 @@ function stairHeight(x, z) {
 }
 // Piso más alto bajo el jugador al que se puede "subir" (un escalón como máximo)
 function groundHeight(x, z, feet) {
-  let g = 0;
+  let g = z < STREET.curb && z > STREET.far ? -STREET.drop : 0;      // calzada: 15 cm más abajo que la vereda
   const cands = [];
   const s = stairHeight(x, z);
   if (s !== null) cands.push(s);
@@ -3081,7 +3383,7 @@ function currentRoom() {
   if (stairHeight(player.x, player.z) !== null && player.feet > 0.05 && player.feet < PA_Y - 0.05) return ['Escalera', 'Entre plantas'];
   const lvl = player.feet > PA_Y / 2 ? 1 : 0;
   const r = ROOMS.find(r => r.lvl === lvl && inRect(player.x, player.z, r.r));
-  const floorName = lvl ? 'Planta alta' : (r && /Galería|Patio|Jardín|Cochera/.test(r.n) ? 'Exterior' : 'Planta baja');
+  const floorName = lvl ? 'Planta alta' : (r && /Galería|Patio|Jardín|Cochera|Vereda|Calle/.test(r.n) ? 'Exterior' : 'Planta baja');
   return [r ? r.n : (lvl ? 'Planta alta' : 'Exterior'), floorName];
 }
 function updateHud() {
@@ -3353,13 +3655,15 @@ addEventListener('keydown', e => {
 // Tecla E o botón "Abrir / cerrar" del celular
 function toggleNearestDoor() {
   const laundry = toggleBathDoor(D => D.pair, 1.1);                      // el lavadero del hall gana si está cerca (queda junto a la puerta de vidrio)
+  const gate = laundry ? null : toggleFrontGates();
   if (laundry) showNotice(laundry.target > 0 ? 'Abriendo el lavadero' : 'Cerrando el lavadero');
+  else if (gate) showNotice(gate);
   else if (toggleSlider()) showNotice(SLIDER.target > 0 ? 'Abriendo la puerta corrediza' : 'Cerrando la puerta corrediza');
   else if (toggleGarageDoor()) showNotice(GARAGE.target > 0 ? 'Abriendo el portón' : 'Cerrando el portón');
   else {
     const d = toggleBathDoor();
     if (d) showNotice(d.target > 0 ? `Abriendo ${d.name}` : `Cerrando ${d.name}`);
-    else showNotice('Acercate al portón del garage, a la puerta de vidrio del living, al lavadero del hall o a una puerta de baño para abrirlos o cerrarlos');
+    else showNotice('Acercate a la puerta o al portón de la reja, al portón del garage, a la puerta de vidrio del living, al lavadero del hall o a una puerta de baño para abrirlos o cerrarlos');
   }
 }
 addEventListener('keydown', e => {
@@ -3398,6 +3702,7 @@ function loop() {
   updateGarageDoor(dt);
   updateSlider(dt);
   updateBathDoors(dt);
+  updateFrontGates(dt);
   updateHud();
   if (mirrorsDirty) bakeMirrors();
   if (!renderPhoto(rawDt)) renderNormal();
@@ -3415,7 +3720,7 @@ addEventListener('resize', () => {
 
 // Utilidades para pruebas automáticas (no afectan el uso normal)
 window.__debug = Object.assign(debug, {
-  player, keys, camera, touch, startTouch, pauseTouch, isTouch, room: () => currentRoom(), photo, garage: GARAGE, toggleGarageDoor, updateGarageDoor, slider: SLIDER, toggleSlider, updateSlider, bathDoors: BATH_DOORS, toggleBathDoor, updateBathDoors, setQuality, quality: () => quality, setTimeOfDay, timeOfDay: () => timeOfDay,
+  player, keys, camera, touch, startTouch, pauseTouch, isTouch, room: () => currentRoom(), photo, garage: GARAGE, toggleGarageDoor, updateGarageDoor, slider: SLIDER, toggleSlider, updateSlider, lamps: LAMPS, bathDoors: BATH_DOORS, toggleBathDoor, updateBathDoors, frontGates: FRONT_GATES, toggleFrontGates, updateFrontGates, setQuality, quality: () => quality, setTimeOfDay, timeOfDay: () => timeOfDay,
   place(x, z, feet = 0, yawDeg = 0) { Object.assign(player, { x, z, feet, vy: 0, eyeY: feet + EYE }); camera.rotation.set(0, yawDeg * Math.PI / 180, 0, 'YXZ'); camera.position.set(x, feet + EYE, -z); },
   simulate(codes, seconds, look) { if (look !== undefined) camera.rotation.set(0, look * Math.PI / 180, 0, 'YXZ'); codes.forEach(c => keys.add(c)); for (let t = 0; t < seconds; t += 1 / 60) update(1 / 60, true); codes.forEach(c => keys.delete(c)); updateHud(); },
 });
