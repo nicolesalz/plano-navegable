@@ -189,7 +189,8 @@ Referencia: `exterior/techo-auto.jpg` (solo el techo y la estructura; el resto n
 Cuarto momento del día: **Noche (21:00)**, después de Tarde. Se elige en el cartel de inicio (botón "Noche"), con la tecla **T** o con el botón táctil "Hora" del celular (pasa Mañana → Mediodía → Tarde → Noche → Mañana).
 - **Cielo**: degradé azul muy oscuro, casi negro arriba y un poco más claro (con un resplandor apenas cálido de la ciudad) en el horizonte; estrellas chicas y la **luna** alta hacia el noreste, con un halo suave.
 - **Luz de luna**: fría (azul grisácea) y suave; proyecta sombras tenues. La cámara se abre un poco más que de día (exposición 0,85 en vez de 0,6), como el ojo acostumbrado a la oscuridad.
-- **Adentro**: se prenden todas las luces de la casa (colgantes, veladores, plafones y apliques) con **luz cálida de ~2700 K** y más fuertes que de día (x1,6), iluminando de verdad su ambiente; las pantallas (papel, lino, vidrio opalino) brillan más.
+- **Lámparas de adentro según la hora**: a la **mañana** y al **mediodía** están **apagadas** (las pantallas no brillan); a la **tarde** se prenden con su luz de siempre; de **noche** quedan como se describe abajo.
+- **Adentro**: de noche están prendidas todas las luces de la casa (colgantes, veladores, plafones y apliques) con **luz cálida de ~2700 K** y más fuertes que de día (x1,6), iluminando de verdad su ambiente; las pantallas (papel, lino, vidrio opalino) brillan más.
 - **Afuera** (todas cálidas salvo el farol):
   - **Apliques en la fachada**: dos cilindros negros a los lados de la puerta de entrada, con luz hacia arriba y hacia abajo.
   - **Cochera**: artefacto lineal estanco negro colgado del techo, a mitad de la cochera.

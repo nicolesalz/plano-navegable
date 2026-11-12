@@ -293,8 +293,8 @@ const SEASON_DECL = 0;                          // declinación solar: 0 = otoñ
 const TIMES = {                                 // hora solar de cada momento del día
   manana:   { label: 'Mañana',   hour: 8 },     // sol del este: frente y costado del garage
   mediodia: { label: 'Mediodía', hour: 12.5 },  // sol del norte: costado del garage
-  tarde:    { label: 'Tarde',    hour: 16.5 },  // sol del oeste-noroeste: patio y galería
-  noche:    { label: 'Noche',    hour: 21, night: true },   // luna, cielo estrellado y todas las luces prendidas
+  tarde:    { label: 'Tarde',    hour: 16.5, lamps: true },  // sol del oeste-noroeste: patio y galería (lámparas prendidas)
+  noche:    { label: 'Noche',    hour: 21, lamps: true, night: true },   // luna, cielo estrellado y todas las luces prendidas
 };
 // De noche la "luz del sol" pasa a ser la luna: alta, del noreste, fría y suave
 const MOON_DIR = new THREE.Vector3(0.55, 0.78, 0.3).normalize();
@@ -447,7 +447,7 @@ function setTimeOfDay(name) {
     sun.intensity = 2.6 + 0.8 * t;
   }
   renderer.toneMappingExposure = night ? NIGHT_EXPOSURE : EXPOSURE;
-  setNightLights(night);
+  setNightLights(night, !!TIMES[name].lamps);
   applyEnvironment(night);
   fitSunShadow(sun.shadow.mapSize.x);
   photoLightingChanged();
@@ -2778,7 +2778,8 @@ function fresno(x, z) {
 }
 
 // ---- Iluminación de noche (ver estilos.md → Iluminación de noche) ----
-// De noche todas las lámparas de la casa pasan a luz cálida (~2700 K) y más fuertes, y se prenden las luces de
+// A la mañana y al mediodía las lámparas de adentro están apagadas; a la tarde se prenden (luz de siempre) y de
+// noche pasan a luz cálida (~2700 K) y más fuertes, y además se prenden las luces de
 // afuera: apliques junto a la puerta de entrada, la luz bajo la cochera, balizas en los canteros (adelante y en
 // el patio) y el farol de la calle. Para que ande fluido, las luces de afuera NO proyectan sombra y hay pocas
 // (una cada una o dos balizas); los artefactos brillan solos. Las ventanas de la casa se ven iluminadas
@@ -2791,9 +2792,11 @@ function nightLight(x, y, z, intensity, range, color = WARM_2700K) {
   scene.add(l); NIGHT.lights.push(l);
   return l;
 }
-function setNightLights(night) {
+// lampsOn: lámparas de adentro prendidas (desde la tarde; a la mañana y al mediodía están apagadas)
+function setNightLights(night, lampsOn = night) {
   for (const l of LAMPS) {
     l.userData.base ??= { i: l.intensity, c: l.color.clone() };
+    l.visible = lampsOn;
     l.intensity = l.userData.base.i * (night ? LAMP_NIGHT_BOOST : 1);
     l.color.copy(night ? WARM_2700K : l.userData.base.c);
   }
@@ -2801,7 +2804,7 @@ function setNightLights(night) {
   for (const m of NIGHT.glows) m.visible = night;
   NIGHT.lens.emissiveIntensity = night ? 2.4 : 0;
   NIGHT.streetLens.emissiveIntensity = night ? 3 : 0;
-  for (const m of Object.values(SHADE)) { m.userData.k ??= m.emissiveIntensity; m.emissiveIntensity = m.userData.k * (night ? 1.5 : 1); }
+  for (const m of Object.values(SHADE)) { m.userData.k ??= m.emissiveIntensity; m.emissiveIntensity = lampsOn ? m.userData.k * (night ? 1.5 : 1) : 0; }
   refreshShadows();
 }
 function buildNightLights() {
@@ -3717,7 +3720,7 @@ addEventListener('resize', () => {
 
 // Utilidades para pruebas automáticas (no afectan el uso normal)
 window.__debug = Object.assign(debug, {
-  player, keys, camera, touch, startTouch, pauseTouch, isTouch, room: () => currentRoom(), photo, garage: GARAGE, toggleGarageDoor, updateGarageDoor, slider: SLIDER, toggleSlider, updateSlider, bathDoors: BATH_DOORS, toggleBathDoor, updateBathDoors, frontGates: FRONT_GATES, toggleFrontGates, updateFrontGates, setQuality, quality: () => quality, setTimeOfDay, timeOfDay: () => timeOfDay,
+  player, keys, camera, touch, startTouch, pauseTouch, isTouch, room: () => currentRoom(), photo, garage: GARAGE, toggleGarageDoor, updateGarageDoor, slider: SLIDER, toggleSlider, updateSlider, lamps: LAMPS, bathDoors: BATH_DOORS, toggleBathDoor, updateBathDoors, frontGates: FRONT_GATES, toggleFrontGates, updateFrontGates, setQuality, quality: () => quality, setTimeOfDay, timeOfDay: () => timeOfDay,
   place(x, z, feet = 0, yawDeg = 0) { Object.assign(player, { x, z, feet, vy: 0, eyeY: feet + EYE }); camera.rotation.set(0, yawDeg * Math.PI / 180, 0, 'YXZ'); camera.position.set(x, feet + EYE, -z); },
   simulate(codes, seconds, look) { if (look !== undefined) camera.rotation.set(0, look * Math.PI / 180, 0, 'YXZ'); codes.forEach(c => keys.add(c)); for (let t = 0; t < seconds; t += 1 / 60) update(1 / 60, true); codes.forEach(c => keys.delete(c)); updateHud(); },
 });
