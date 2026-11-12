@@ -15,7 +15,7 @@ Referencias: `base/`, `pisos/`
 - Portón del garage: seccional blanco, de paneles horizontales, con marco blanco fino.
 - Escalera: totalmente revestida en madera (pedadas, alzadas y laterales), en el mismo tono que el piso de madera, con baranda metálica negra fina. El bajo escalera queda vacío y abierto: sin paredes, placard ni cerramiento debajo.
 - Fachada: revoque liso pintado color crema (cálido, mate); baranda de vidrio en planta alta.
-- Reja y portón del frente: planchuelas verticales negras, con enredadera (tipo jazmín) creciendo sobre la reja.
+- Reja y portón del frente: planchuelas verticales negras, con enredadera (tipo jazmín) creciendo sobre la parte fija de la reja (sobre la puerta peatonal y el portón corredizo no, porque se mueven).
 
 ## Techos
 Referencia: `base/techos.jpeg` (de esa imagen, solo los techos; el resto no aplica).
@@ -155,9 +155,23 @@ Los artefactos van donde los marca `plano.pdf`; los muebles, revestimientos y lu
 ## Exterior
 Referencias: `exterior/`, `base/frente de la casa reja.jpeg`
 - Jardín delantero: sin pasto. Todo el piso, de la reja a la fachada (incluida la entrada de autos y el camino a la puerta), de baldosas rojas de terracota (Megascans *Red Pavers*, `texturas/galeria-frente`; escaneo de 2 x 2 m, baldosas de unos 22 cm).
-  - Canteros (gramíneas altas, hortensias rosas y blancas, flores en tonos rosa y bordó): contra la medianera izquierda (el del costado), debajo de la ventana del living y una franja angosta de gramíneas entre el camino y la entrada de autos. Contra la reja del frente no va cantero.
+  - Canteros (gramíneas altas, hortensias rosas y blancas, flores en tonos rosa y bordó): contra la medianera izquierda (el del costado), y debajo de la ventana del living. Entre el camino de entrada y el auto (a la derecha apenas entrás) **no** va cantero: queda libre, con baldosas. Contra la reja del frente no va cantero.
 - Patio trasero: césped amplio (Megascans *Lawn Grass*, `texturas/pasto-jardin`; escaneo de 2 x 2 m), borduras de plantas en los bordes y cerco verde alto contra las medianeras.
 - Frente: reja negra de planchuelas con enredadera (ver Base).
+
+### Reja: puerta peatonal y portón corredizo
+- **Puerta peatonal** (x = 4,02 a 5,04): hoja de abrir, del mismo diseño que la reja (planchuelas negras, bastidor y dos planchuelas horizontales), con caja de cerradura y picaporte de los dos lados y dos bisagras. Gira sobre el poste de la izquierda y **abre hacia adentro** del jardín (90°).
+- **Portón de autos corredizo** (x = 5,62 a 8,30): una sola hoja de 2,74 m del mismo diseño, que **corre por adentro** de la reja (28 cm detrás, para pasar por delante de las columnas de la cochera) sobre un riel negro en el piso, **hacia la izquierda** (a la derecha está la medianera). Abierto queda detrás de la reja fija y de la puerta peatonal. Arriba, junto a la columna de la cochera, una guía negra con dos ruedas sostiene la hoja.
+- Como el portón abierto tapa la puerta peatonal desde adentro, **nunca están abiertos los dos**: al abrir uno, el otro se cierra primero.
+- Se abren y cierran con **E** (o el botón "Abrir / cerrar" del celular) estando cerca, de los dos lados de la reja.
+
+### Vereda y calle
+- **Vereda** de 3 m frente a la reja, con las **mismas baldosas rojas** del jardín delantero (`texturas/galeria-frente`); las juntas siguen de un lado al otro de la reja. Corre a lo largo de toda la cuadra que se ve.
+- **Cordón de hormigón** gris claro (15 cm de ancho) y, del lado de la calle, una franja de cordón cuneta de hormigón de 45 cm.
+- **Calle de asfalto** gris oscuro con granza, 8 m de ancho y 15 cm más abajo que la vereda, sin líneas pintadas (calle de barrio). Enfrente, el otro cordón y un pedazo de vereda.
+- **Árbol de vereda frente a la casa**: un **fresno** (tronco gris derecho de unos 3 m, ramas que abren y copa ovalada de verde claro, de unos 5,5 m de ancho y 7,5 m de alto), frente a la ventana del living (x ≈ 2,2), cerca del cordón, para no tapar la puerta ni el portón.
+  - **Cazuela** cuadrada de 90 cm con borde de hormigón y tierra.
+- Se puede salir a la vereda y bajar a la calle; unos límites invisibles evitan entrar a los lotes vecinos o irse más allá de este tramo.
 
 ### Cochera cubierta (Volvo)
 Referencia: `exterior/techo-auto.jpg` (solo el techo y la estructura; el resto no aplica).
@@ -183,4 +197,5 @@ Referencia: `exterior/techo-auto.jpg` (solo el techo y la estructura; el resto n
 - **Joystick**: círculo blanco translúcido con borde y una bolita blanca, abajo a la izquierda. Aparece donde apoyás el dedo en la mitad izquierda y vuelve a su lugar al soltar.
 - **Botones de acción** abajo a la derecha, en columna: píldoras oscuras translúcidas con borde blanco y texto blanco ("Abrir / cerrar", "Hora", "Correr"). "Correr" queda azul mientras está prendido.
 - **Arriba a la derecha**: dos botones redondos chicos, pantalla completa (⛶) y pausa (❚❚).
+- El botón "Abrir / cerrar" también abre la puerta peatonal y el portón corredizo de la reja.
 - Los avisos (por ejemplo "Abriendo el portón") se ven arriba al centro para no tapar los botones.
