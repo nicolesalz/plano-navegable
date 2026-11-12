@@ -188,9 +188,9 @@ const GABLE = { x0: -0.29, x1: 5.52, z0: 5.16, z1: 15.83, pitch: 30, eave: 0.25,
 const PARAPET = { h: 0.6, t: 0.15 };
 // Cochera cubierta para la Volvo (ver estilos.md → Exterior), en el jardín delantero frente al portón del garage.
 // Ocupa todo el ancho libre entre la pared lateral del living (x = 5,52) y la medianera (8,40): 2,88 m.
-// Del lado de la casa va amurada a la fachada del garage (z = 7,86); del lado de la reja, 2 columnas.
+// Del lado de la casa va amurada a la fachada del garage (z = 7,86) y llega hasta la reja, donde apoya en 2 columnas.
 // top: alto de la viga perimetral contra la fachada; drop: lo que baja hacia la reja (desagüe).
-const CARPORT = { x0: 5.52, x1: 8.40, z0: 2.36, z1: 7.86, top: 2.92, drop: 0.2, bays: 7 };
+const CARPORT = { x0: 5.52, x1: 8.40, z0: 0.10, z1: 7.86, top: 2.92, drop: 0.28, bays: 9 };   // llega hasta la reja (cara de adentro, z = 0,10)
 
 // Muebles: las ubicaciones y medidas están en buildFurniture() (sección 3b), dentro de los mismos
 // rectángulos que ocupaban los bloques del plano original.
@@ -2488,10 +2488,9 @@ function buildExterior() {
   scene.add(inst);
   buildJasmine(X0, X1, TOP);
   buildGarden();
-  // Volvo XC60 negra en el jardín delantero, frente al portón del garage, bajo la cochera: la trompa a 29 cm
-  // del borde de adelante del techo y la cola a ~50 cm de la fachada (corrida a la derecha: queda paso
-  // del lado de la casa para llegar al portón)
-  buildCar(CAR_SPECS.volvo, 7.2, CARPORT.z0 + 0.29 + CAR_SPECS.volvo.L / 2);
+  // Volvo XC60 negra en el jardín delantero, frente al portón del garage, bajo la cochera: la cola a 50 cm
+  // de la fachada (corrida a la derecha: queda paso del lado de la casa para llegar al portón)
+  buildCar(CAR_SPECS.volvo, 7.2, CARPORT.z1 - 0.5 - CAR_SPECS.volvo.L / 2);
   buildCarport();
 }
 
@@ -2533,7 +2532,7 @@ function buildCarport() {
   }
   // Ménsulas de anclaje a la fachada debajo de la viga de atrás
   for (const x of [C.x0 + 0.5, (C.x0 + C.x1) / 2, C.x1 - 0.5]) piece(x - 0.05, x + 0.05, 0, 0.012, -BH - 0.12, -BH + 0.02, S, 0.003);
-  // 2 columnas finas negras (8 x 8 cm) del lado de la reja, bajo las esquinas de la viga del frente,
+  // 2 columnas finas negras (8 x 8 cm) del lado de la reja, justo detrás de ella, bajo las esquinas de la viga del frente,
   // alineadas con los postes del portón de autos de la reja: no molestan para entrar con el auto
   const sCol = L - BW / 2, yb = C.top - sCol * Math.sin(theta) - BH * Math.cos(theta) + 0.01, zc = C.z1 - sCol * Math.cos(theta);
   for (const xc of [C.x0 + 0.04, C.x1 - 0.04]) {
