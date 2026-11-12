@@ -159,7 +159,19 @@ Referencias: `exterior/`, `base/frente de la casa reja.jpeg`
 - Patio trasero: césped amplio (Megascans *Lawn Grass*, `texturas/pasto-jardin`; escaneo de 2 x 2 m), borduras de plantas en los bordes y cerco verde alto contra las medianeras.
 - Frente: reja negra de planchuelas con enredadera (ver Base).
 
+### Cochera cubierta (Volvo)
+Referencia: `exterior/techo-auto.jpg` (solo el techo y la estructura; el resto no aplica).
+- En el jardín delantero, frente al portón del garage, en el hueco entre la pared lateral del living y la medianera derecha: **2,88 x 7,76 m** (de x = 5,52 a 8,40; de la fachada del garage, z = 7,86, **hasta la reja**, z = 0,10). El ancho es todo lo que hay entre la pared y la medianera.
+- **Estructura** metálica negra mate: viga perimetral gruesa (tubo de 8 x 22 cm) y 8 vigas transversales (5 x 15 cm) de lado a lado.
+  - Del lado de la casa va **amurada a la fachada** del garage (con tres ménsulas de anclaje), a la altura de la losa, por debajo de la ventana de la habitación 2. La viga izquierda también queda contra la pared lateral del living.
+  - Del lado de la reja apoya en **2 columnas finas negras** (8 x 8 cm, con planchuela de base), en las esquinas de adelante, justo detrás de la reja, alineadas con los postes del portón de autos de la reja.
+- **Techo plano** con pendiente leve (28 cm en 7,76 m, ~3,6 %) hacia la reja, para el desagüe: arriba de la viga a 2,92 m contra la fachada y a 2,64 m junto a la reja (la viga de adelante queda a 2,42 m del piso, por encima de la reja de 2,00 m y su enredadera).
+- **Paños alternados** entre las vigas transversales (9 paños): chapa acanalada gris oscuro en los impares (el 1.º contra la fachada y el 9.º junto a la reja) y policarbonato translúcido en los pares (2.º, 4.º, 6.º y 8.º), con la onda a lo largo de la pendiente.
+- El policarbonato deja pasar el sol: en el piso de baldosas quedan las sombras de las vigas, y bajo la chapa, sombra.
+- No tapa la ventana del living ni la puerta de entrada (quedan a la izquierda de la pared lateral del living), ni la ventana de la habitación 2 (su antepecho está a 3,70 m).
+- La **Volvo** queda entera debajo: cola a 50 cm de la fachada y trompa a unos 2,5 m de la reja; sigue corrida a la derecha, con paso del lado de la casa.
+
 ## Autos
 - Garage (lateral derecho de planta baja): BMW 120i blanco (hatchback compacto), estacionado de frente hacia la calle.
-- Afuera, en el jardín delantero frente al portón del garage: Volvo XC60 negra (SUV mediana).
+- Afuera, en el jardín delantero frente al portón del garage: Volvo XC60 negra (SUV mediana), bajo la cochera cubierta (ver Exterior).
 - Modelos simplificados pero con proporciones y colores fieles; sin logos.

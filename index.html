@@ -186,6 +186,11 @@ const PA_ROOF = [[-0.29, 5.52, 5.16, 15.83], [5.38, 8.69, 7.86, 15.83]];   // lo
 // (triángulo) mirando a la calle; alero chico. Volumen de la derecha (PA_ROOF[1]): techo plano con parapeto liso.
 const GABLE = { x0: -0.29, x1: 5.52, z0: 5.16, z1: 15.83, pitch: 30, eave: 0.25, rake: 0.2 };   // pitch en grados; aleros en m
 const PARAPET = { h: 0.6, t: 0.15 };
+// Cochera cubierta para la Volvo (ver estilos.md → Exterior), en el jardín delantero frente al portón del garage.
+// Ocupa todo el ancho libre entre la pared lateral del living (x = 5,52) y la medianera (8,40): 2,88 m.
+// Del lado de la casa va amurada a la fachada del garage (z = 7,86) y llega hasta la reja, donde apoya en 2 columnas.
+// top: alto de la viga perimetral contra la fachada; drop: lo que baja hacia la reja (desagüe).
+const CARPORT = { x0: 5.52, x1: 8.40, z0: 0.10, z1: 7.86, top: 2.92, drop: 0.28, bays: 9 };   // llega hasta la reja (cara de adentro, z = 0,10)
 
 // Muebles: las ubicaciones y medidas están en buildFurniture() (sección 3b), dentro de los mismos
 // rectángulos que ocupaban los bloques del plano original.
@@ -199,6 +204,7 @@ const ROOMS = [
   { n: 'Garage', lvl: 0, r: [5.52, 8.40, 8.16, 17.40] },
   { n: 'Galería', lvl: 0, r: [-1, 9, 17.54, 19.52] },
   { n: 'Patio trasero', lvl: 0, r: [-1, 9, 19.52, 99] },
+  { n: 'Cochera', lvl: 0, r: [CARPORT.x0, CARPORT.x1, CARPORT.z0, CARPORT.z1] },
   { n: 'Jardín delantero', lvl: 0, r: [-1, 9, -99, 8.16] },
   { n: 'Habitación principal', lvl: 1, r: [0, 5.23, 5.44, 9.02] },
   { n: 'Habitación principal (paso al baño)', lvl: 1, r: [0, 1.02, 9.11, 11.80] },
@@ -420,6 +426,11 @@ const M = {
     depthWrite: false, side: THREE.DoubleSide, envMapIntensity: 2.0, specularIntensity: 1 }),
   frame: std(0xf6f4ef, 0.4),                                  // carpinterías blancas (aluminio pintado)
   rail: std(0x1b1c1e, 0.45, { metalness: 0.5 }),              // herrería negra (barandas, reja)
+  // Cochera: estructura negra mate, chapa acanalada oscura y policarbonato translúcido (no hace sombra: deja pasar el sol)
+  carportSteel: std(0x141516, 0.72, { metalness: 0.3 }),
+  carportSheet: std(0x2c2f33, 0.5, { metalness: 0.55, side: THREE.DoubleSide }),
+  polycarb: new THREE.MeshPhysicalMaterial({ color: 0xf2f5f0, roughness: 0.3, metalness: 0, transparent: true, opacity: 0.4,
+    side: THREE.DoubleSide, depthWrite: false, specularIntensity: 0.8 }),
   leaf: std(0xffffff, 0.8, { side: THREE.DoubleSide }),       // hojas de la enredadera
   flower: std(0xfbfaf3, 0.7, { side: THREE.DoubleSide }),     // flores de jazmín
 };
@@ -2477,9 +2488,57 @@ function buildExterior() {
   scene.add(inst);
   buildJasmine(X0, X1, TOP);
   buildGarden();
-  // Volvo XC60 negra en el jardín delantero, frente al portón del garage (corrida a la derecha: queda paso
-  // del lado de la casa para llegar al portón)
-  buildCar(CAR_SPECS.volvo, 7.2, 0.95 + CAR_SPECS.volvo.L / 2);
+  // Volvo XC60 negra en el jardín delantero, frente al portón del garage, bajo la cochera: la cola a 50 cm
+  // de la fachada (corrida a la derecha: queda paso del lado de la casa para llegar al portón)
+  buildCar(CAR_SPECS.volvo, 7.2, CARPORT.z1 - 0.5 - CAR_SPECS.volvo.L / 2);
+  buildCarport();
+}
+
+// Cochera (ver estilos.md → Exterior; referencia exterior/techo-auto.jpg, solo techo y estructura).
+// Todo el techo se arma en un grupo inclinado: en el grupo x = x del plano, y = 0 arriba de la viga
+// perimetral y s (eje z del grupo) = distancia desde la fachada hacia la reja. El grupo gira sobre la
+// arista de la fachada, así que el techo baja hacia la calle (desagüe hacia la reja, lejos de la casa).
+function buildCarport() {
+  const C = CARPORT, L = C.z1 - C.z0, theta = Math.atan2(C.drop, L);
+  const root = new THREE.Group();
+  root.position.copy(W(0, C.top, C.z1));
+  root.rotation.x = theta;
+  scene.add(root);
+  const piece = (x0, x1, s0, s1, y0, y1, mat, r = 0.006) =>
+    mesh(new RoundedBoxGeometry(x1 - x0, y1 - y0, s1 - s0, 2, Math.min(r, (x1 - x0) / 2.01, (y1 - y0) / 2.01, (s1 - s0) / 2.01)),
+      mat, root, (x0 + x1) / 2, (y0 + y1) / 2, (s0 + s1) / 2);
+  const S = M.carportSteel, BW = 0.08, BH = 0.22;          // viga perimetral gruesa: 8 x 22 cm (tubo negro)
+  const xi0 = C.x0 + BW, xi1 = C.x1 - BW;
+  // Viga perimetral: amurada a la fachada (atrás) y a la pared del living (izquierda), libre adelante y a la derecha
+  piece(C.x0, C.x1, 0, BW, -BH, 0, S);                     // contra la fachada del garage
+  piece(C.x0, C.x1, L - BW, L, -BH, 0, S);                 // frente (sobre las columnas)
+  piece(C.x0, xi0, BW, L - BW, -BH, 0, S);                 // izquierda (contra la pared del living)
+  piece(xi1, C.x1, BW, L - BW, -BH, 0, S);                 // derecha (junto a la medianera)
+  // Vigas transversales (5 x 15 cm) de lado a lado: separan los paños y sostienen la chapa
+  const TW = 0.05, TOP = -0.05, bayD = (L - 2 * BW) / C.bays, edges = [];
+  for (let k = 0; k <= C.bays; k++) edges.push(BW + k * bayD);
+  for (let k = 1; k < C.bays; k++) piece(xi0, xi1, edges[k] - TW / 2, edges[k] + TW / 2, TOP - 0.15, TOP, S);
+  // Paños alternados: chapa acanalada oscura (contra la fachada y en los extremos) y policarbonato translúcido.
+  // La onda corre a lo largo de la pendiente para que el agua escurra hacia la reja.
+  const P = 0.076, A = 0.009, w = xi1 - xi0;
+  const sheet = new THREE.PlaneGeometry(w, bayD, Math.round(w / P) * 8, 1);
+  sheet.rotateX(-Math.PI / 2);
+  const p = sheet.attributes.position;
+  for (let i = 0; i < p.count; i++) p.setY(i, A * (1 + Math.sin(2 * Math.PI * (p.getX(i) + w / 2) / P)));
+  sheet.computeVertexNormals();
+  for (let k = 0; k < C.bays; k++) {
+    const m = mesh(sheet, k % 2 ? M.polycarb : M.carportSheet, root, (xi0 + xi1) / 2, TOP, (edges[k] + edges[k + 1]) / 2);
+    if (k % 2) { m.userData.noCast = true; m.renderOrder = 1; }  // el sol pasa: en el piso quedan las sombras de las vigas
+  }
+  // Ménsulas de anclaje a la fachada debajo de la viga de atrás
+  for (const x of [C.x0 + 0.5, (C.x0 + C.x1) / 2, C.x1 - 0.5]) piece(x - 0.05, x + 0.05, 0, 0.012, -BH - 0.12, -BH + 0.02, S, 0.003);
+  // 2 columnas finas negras (8 x 8 cm) del lado de la reja, justo detrás de ella, bajo las esquinas de la viga del frente,
+  // alineadas con los postes del portón de autos de la reja: no molestan para entrar con el auto
+  const sCol = L - BW / 2, yb = C.top - sCol * Math.sin(theta) - BH * Math.cos(theta) + 0.01, zc = C.z1 - sCol * Math.cos(theta);
+  for (const xc of [C.x0 + 0.04, C.x1 - 0.04]) {
+    box(xc - 0.04, xc + 0.04, zc - 0.04, zc + 0.04, 0, yb, S);
+    rbox(xc - 0.08, xc + 0.08, zc - 0.08, zc + 0.08, 0, 0.01, S, { r: 0.003 });   // planchuela de base
+  }
 }
 
 // Enredadera tipo jazmín sobre la reja: hojas verde oscuro y florcitas blancas en manchones
@@ -2855,7 +2914,7 @@ function currentRoom() {
   if (stairHeight(player.x, player.z) !== null && player.feet > 0.05 && player.feet < PA_Y - 0.05) return ['Escalera', 'Entre plantas'];
   const lvl = player.feet > PA_Y / 2 ? 1 : 0;
   const r = ROOMS.find(r => r.lvl === lvl && inRect(player.x, player.z, r.r));
-  const floorName = lvl ? 'Planta alta' : (r && /Galería|Patio|Jardín/.test(r.n) ? 'Exterior' : 'Planta baja');
+  const floorName = lvl ? 'Planta alta' : (r && /Galería|Patio|Jardín|Cochera/.test(r.n) ? 'Exterior' : 'Planta baja');
   return [r ? r.n : (lvl ? 'Planta alta' : 'Exterior'), floorName];
 }
 function updateHud() {
