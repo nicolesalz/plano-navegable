@@ -2,7 +2,7 @@
 
 Guía de materiales y estilo por zona. Las imágenes de referencia están en `inspiracion/<zona>/`.
 Reglas para todas las zonas:
-- No cambiar la distribución ni las medidas del plano (`plano.pdf`).
+- No cambiar la distribución ni las medidas del plano (`plano.pdf`). El quincho y la pileta del fondo salen de `plano-planta-baja-v6.pdf`.
 - Materiales con texturas realistas (escaneos Megascans de `texturas/`, Poly Haven CC0 o generadas por código), sin perder fluidez.
 - Texturas escaneadas (`texturas/<carpeta>/`): siempre a la escala real del escaneo ("Scan Area" del `.json` de cada carpeta). Solo se usan los mapas BaseColor, Normal, Roughness y AO (si falta alguno, sin ese), en versión liviana para la web en `texturas/<carpeta>/web/` (se generan con `python3 scripts/preparar-texturas.py`).
 - Muebles simples y creíbles; nada de logos ni marcas visibles.
@@ -156,7 +156,7 @@ Los artefactos van donde los marca `plano.pdf`; los muebles, revestimientos y lu
 Referencias: `exterior/`, `base/frente de la casa reja.jpeg`
 - Jardín delantero: sin pasto. Todo el piso, de la reja a la fachada (incluida la entrada de autos y el camino a la puerta), de baldosas rojas de terracota (Megascans *Red Pavers*, `texturas/galeria-frente`; escaneo de 2 x 2 m, baldosas de unos 22 cm).
   - Canteros (gramíneas altas, hortensias rosas y blancas, flores en tonos rosa y bordó): contra la medianera izquierda (el del costado), y debajo de la ventana del living. Entre el camino de entrada y el auto (a la derecha apenas entrás) **no** va cantero: queda libre, con baldosas. Contra la reja del frente no va cantero.
-- Patio trasero: césped amplio (Megascans *Lawn Grass*, `texturas/pasto-jardin`; escaneo de 2 x 2 m), borduras de plantas en los bordes y cerco verde alto contra las medianeras.
+- Patio trasero: césped amplio (Megascans *Lawn Grass*, `texturas/pasto-jardin`; escaneo de 2 x 2 m), borduras de plantas y cerco verde alto contra las medianeras de los costados. El cerco de la izquierda termina antes del solárium de la pileta y el de la derecha deja libre la puerta del pasillo del baño del quincho. Al fondo, el quincho y la pileta (ver abajo).
 - Frente: reja negra de planchuelas con enredadera (ver Base).
 
 ### Reja: puerta peatonal y portón corredizo
@@ -185,6 +185,41 @@ Referencia: `exterior/techo-auto.jpg` (solo el techo y la estructura; el resto n
 - No tapa la ventana del living ni la puerta de entrada (quedan a la izquierda de la pared lateral del living), ni la ventana de la habitación 2 (su antepecho está a 3,70 m).
 - La **Volvo** queda entera debajo: cola a 50 cm de la fachada y trompa a unos 2,5 m de la reja; sigue corrida a la derecha, con paso del lado de la casa.
 
+## Quincho y pileta
+Medidas de `plano-planta-baja-v6.pdf`. El lote no cambia: el quincho ocupa los últimos 4,15 m del fondo y el patio queda de 15,95 m desde el borde de la galería (en el plano dice 16,5 porque ahí la galería está dibujada de 1,5 m; la ya armada mide 1,98).
+
+### Quincho
+- **Medidas**: todo el ancho del lote (8,40) x **4,00 m** de fondo por dentro, contra la medianera del fondo. Muro de adelante de 15 cm, cielorraso a 2,60 y techo de losa como el de la galería.
+- **Muro de adelante**: revoque crema por fuera (como la fachada) y blanco cálido por dentro. **Ventanal corredizo** de 3,88 m (x = 1,22 a 5,10) con marco blanco fino: la hoja de la izquierda (detrás de la pileta) es fija y se entra por la derecha, desde la vereda del solárium. Al lado de la medianera derecha, la puerta al pasillo del baño (x = 7,60 a 8,30).
+- **Paredes**: blanco cálido por dentro (también las medianeras). **Piso**: las mismas baldosas rojas de terracota del jardín delantero.
+- **Lado de la cocina** (medianera izquierda, mirando al fondo):
+  - **Parrilla de ladrillo a la vista** en el rincón del fondo (0,75 x 0,87 m): leñero abajo con leña, fogón con parrilla de acero a 1,05 m, dintel, campana y chimenea de ladrillo hasta el techo.
+  - **Pared corta** (90 cm) que separa la parrilla de la mesada.
+  - **Mesada** de 65 cm de fondo hasta el frente: bajo mesada de nogal oscuro, mesada de piedra clara, bacha de acero con canilla y **heladera bajo mesada** de acero junto al ventanal. Dos estantes de madera arriba, con un jarrón y platos.
+  - **Barra** de 0,82 x 3,02 m contra el fondo, en nogal oscuro con mesada de piedra, entre la cocina y la mesa.
+- **Comedor**: mesa larga de madera miel de 1,24 x 2,60 m con **10 sillas** (4 por lado y 1 en cada cabecera); colgante lineal negro arriba.
+- **Estar**: sillón de lino beige (0,71 x 1,44 m) con almohadones terracota y rosa, mirando a la medianera derecha, donde hay un mueble bajo de nogal oscuro y la tele colgada.
+- **Luces** (se prenden desde la tarde, como las de la casa): colgante lineal sobre la mesa y plafones sobre la cocina y sobre el estar.
+
+### Baño del quincho
+- Bloque de **1,71 x 2,05 m** delante del quincho, en el rincón derecho, con revoque crema por fuera y el mismo techo de losa.
+- **Toilette** a la izquierda (0,71 m de ancho por dentro): inodoro contra el lateral, lavatorio chico de colgar con canilla de pared y plafón. Piso de porcelanato beige.
+- **Pasillo** a la derecha (0,80 m), contra la medianera: une el jardín (puerta al frente) con el quincho (puerta al fondo); la puerta del toilette está en el tabique.
+
+### Pileta
+- **3,02 x 5,03 m**, a 29 cm de la medianera izquierda y a 44 cm del quincho, de 1,40 m de profundidad.
+- Revestida en **venecitas** de 2,5 cm en celestes y aguamarina, con **escalera de 3 escalones** a lo ancho del lado de la casa.
+- **Borde atérmico** de 30 cm y **solárium** del mismo material (placas de 50 x 50 color arena) alrededor, hasta x = 4,30 y 60 cm más allá del borde hacia la casa; una vereda del mismo material de 1 m sigue frente al quincho hasta el baño.
+- Agua celeste transparente con ondas suaves que se mueven. No se puede caminar sobre el agua.
+- Dos macetas grandes en la vereda frente al quincho, delante de la hoja de la derecha del ventanal y a su costado.
+
+## Milonga (la perrita)
+Referencia: foto de Milonga sentada (caniche toy).
+- **Cómo es**: caniche toy chiquita (unos 40 cm sentada hasta la cabeza), de pelo **crema enrulado**, con las **orejas largas color damasco**, ojos y nariz negros, hocico corto y cabeza redonda. **Collar oscuro** con una **chapita celeste en forma de hueso**. Sentada ladea un poco la cabeza, como en la foto.
+- **Dónde aparece**: cada vez que se abre la página está **sentada en un lugar distinto** (nunca el mismo que la vez anterior): living junto al sillón, cocina al lado de la isla, hall de planta baja, galería, patio, solárium de la pileta, quincho junto al sillón u hall de planta alta. Para probar un lugar fijo: `index.html?milonga=0` … `7`.
+- **Cómo se comporta**: mientras no te acercás se queda sentada, mueve apenas la cola y te sigue con la mirada. Cuando estás a menos de **2,5 m** (en la misma planta) se levanta y **te sigue** por el mismo camino que hiciste vos (pasa por las puertas y sube la escalera detrás tuyo), a **1 m** de distancia; si te alejás corre para alcanzarte. Cuando te quedás quieto, se **sienta** mirándote y mueve la cola.
+- Tiene su propia sombrita suave debajo (la sombra del sol de la casa se calcula una sola vez y ella se mueve). Se la puede atravesar caminando (no choca).
+
 ## Iluminación de noche
 Cuarto momento del día: **Noche (21:00)**, después de Tarde. Se elige en el cartel de inicio (botón "Noche"), con la tecla **T** o con el botón táctil "Hora" del celular (pasa Mañana → Mediodía → Tarde → Noche → Mañana).
 - **Cielo**: degradé azul muy oscuro, casi negro arriba y un poco más claro (con un resplandor apenas cálido de la ciudad) en el horizonte; estrellas chicas y la **luna** alta hacia el noreste, con un halo suave.
@@ -194,7 +229,9 @@ Cuarto momento del día: **Noche (21:00)**, después de Tarde. Se elige en el ca
 - **Afuera** (todas cálidas salvo el farol):
   - **Apliques en la fachada**: dos cilindros negros a los lados de la puerta de entrada, con luz hacia arriba y hacia abajo.
   - **Cochera**: artefacto lineal estanco negro colgado del techo, a mitad de la cochera.
-  - **Balizas**: postecitos negros de 45 cm con una franja que brilla arriba: 4 en los canteros del jardín delantero y 8 en las borduras del patio trasero.
+  - **Balizas**: postecitos negros de 45 cm con una franja que brilla arriba: 4 en los canteros del jardín delantero y 6 en el patio trasero (borduras, esquina del solárium y junto al baño del quincho).
+  - **Quincho**: tres apliques como los de la entrada, a los dos lados del ventanal y en el frente del baño.
+  - **Pileta**: luz celeste debajo del agua y dos focos sumergidos que brillan; el agua toma un brillo celeste suave.
   - **Farol de la calle**: columna gris galvanizada de 7 m en la vereda (frente al lote vecino de la derecha), con brazo sobre la calle y luminaria LED de luz blanca neutra hacia abajo.
 - **Ventanas iluminadas**: desde afuera, todas las ventanas y puertas-ventana de ambientes con luz se ven cálidas (además de verse el interior iluminado). La puerta-ventana del garage no, porque no tiene luz.
 - **Para que ande fluido**: las luces de afuera no proyectan sombra y son pocas (una cada una o dos balizas; los artefactos brillan solos). Las sombras de las lámparas de adentro siguen igual que antes: solo en calidad Alta y solo las 4 más cercanas.
