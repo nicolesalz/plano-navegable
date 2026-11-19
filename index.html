@@ -254,6 +254,15 @@ const PARAPET = { h: 0.6, t: 0.15 };
 // drop: cuánto más abajo queda la calzada. tree: fresno de vereda con su cazuela de tierra.
 const STREET = { edge: -3.0, curb: -3.15, far: -11.15, drop: 0.15, tree: { x: 2.2, z: -2.4, pit: 0.9 } };
 const CARPORT = { x0: 5.52, x1: 8.40, z0: 0.10, z1: 7.86, top: 2.92, drop: 0.28, bays: 9 };   // llega hasta la reja (cara de adentro, z = 0,10)
+// Quincho y pileta al fondo del patio (plano-planta-baja-v6.pdf; ver estilos.md → Quincho y pileta).
+// Quincho: todo el ancho (8,40) x 4,00 de fondo por dentro, contra la medianera del fondo; muro de adelante de
+// 15 cm con un ventanal corredizo (x = 1,22 a 5,10) y la puerta del pasillo (x = 7,60 a 8,30).
+// Delante, en el rincón derecho, el bloque del baño (1,71 x 2,05): toilette a la izquierda y pasillo a la derecha
+// que une el jardín con el quincho.
+const QUINCHO = { z0: LOT_D - 4.0 - 0.15, zi: LOT_D - 4.0, z1: LOT_D, slider: [1.22, 5.10], door: [7.60, 8.30] };
+const QBATH = { x0: 6.69, xp: 7.50, x1: 8.40, z0: QUINCHO.z0 - 2.05, t: 0.1, door: [34.30, 34.95] };
+// Pileta de 3,02 x 5,03 a 29 cm de la medianera izquierda y a 44 cm del quincho, con solárium alrededor
+const POOL = { x0: 0.29, x1: 3.31, z0: QUINCHO.z0 - 5.47, z1: QUINCHO.z0 - 0.44, depth: 1.4, water: 0.08, deck: [0, 4.3, QUINCHO.z0 - 6.07, QUINCHO.z0] };
 
 // Muebles: las ubicaciones y medidas están en buildFurniture() (sección 3b), dentro de los mismos
 // rectángulos que ocupaban los bloques del plano original.
@@ -266,6 +275,10 @@ const ROOMS = [
   { n: 'Cocina', lvl: 0, r: [0, 5.38, 13.09, 17.40] },
   { n: 'Garage', lvl: 0, r: [5.52, 8.40, 8.16, 17.40] },
   { n: 'Galería', lvl: 0, r: [-1, 9, 17.54, 19.52] },
+  { n: 'Baño del quincho', lvl: 0, r: [QBATH.x0, QBATH.xp, QBATH.z0, QUINCHO.z0] },
+  { n: 'Quincho', lvl: 0, r: [QBATH.xp, QBATH.x1, QBATH.z0, QUINCHO.z0] },   // pasillo del jardín al quincho
+  { n: 'Quincho', lvl: 0, r: [-1, 9, QUINCHO.z0, 99] },
+  { n: 'Pileta', lvl: 0, r: [POOL.deck[0], POOL.deck[1], POOL.deck[2], POOL.deck[3]] },
   { n: 'Patio trasero', lvl: 0, r: [-1, 9, 19.52, 99] },
   { n: 'Cochera', lvl: 0, r: [CARPORT.x0, CARPORT.x1, CARPORT.z0, CARPORT.z1] },
   { n: 'Vereda', lvl: 0, r: [-99, 99, -3.15, 0] },
@@ -943,6 +956,15 @@ function floor(x0, x1, z0, z1, y, mat, texSize = 2, world = false) {
   return mesh;
 }
 
+// Piso rectangular con un hueco rectangular (la pileta): hasta cuatro rectángulos alrededor del hueco
+function floorAround(x0, x1, z0, z1, { x0: hx0, x1: hx1, z0: hz0, z1: hz1 }, y, mat, texSize = 2, world = false) {
+  const piece = (a0, a1, b0, b1) => { if (a1 - a0 > 1e-3 && b1 - b0 > 1e-3) floor(a0, a1, b0, b1, y, mat, texSize, world); };
+  piece(x0, x1, z0, Math.min(z1, hz0));
+  piece(x0, x1, Math.max(z0, hz1), z1);
+  piece(x0, hx0, Math.max(z0, hz0), Math.min(z1, hz1));
+  piece(hx1, x1, Math.max(z0, hz0), Math.min(z1, hz1));
+}
+
 // Marco fino blanco de una abertura (jambas, dintel, antepecho opcional y parante central opcional)
 function frameOpening([x0, x1, z0, z1], yb, yt, { sill = true, mullion = false } = {}) {
   const t = 0.025, alongX = (x1 - x0) > (z1 - z0);
@@ -1157,14 +1179,14 @@ function buildFloorsAndCeilings() {
   // Terreno y exterior
   // (el pasto no pasa por la calle, que queda 15 cm más abajo: ver buildStreet)
   floor(-30, 40, -20, STREET.far - 0.15, -0.02, M.outside, 4);
-  floor(-30, 40, 0, LOT_D + 20, -0.02, M.outside, 4);
+  floorAround(-30, 40, 0, LOT_D + 20, POOL, -0.02, M.outside, 4);   // con el hueco de la pileta
   // Jardín delantero: todo el piso de baldosas rojas, sin pasto (también la entrada de autos y el camino a la
   // puerta), de la reja a la fachada y, del lado del garage, hasta el portón. Dos rectángulos con la UV anclada
   // al plano para que las juntas sigan sin corte.
   floor(-0.28, LOT_W + 0.28, 0, 5.16, 0, M.pavers, 1, true);
   floor(5.38, LOT_W + 0.28, 5.16, 7.86, 0, M.pavers, 1, true);
   floor(-0.28, LOT_W + 0.28, GALERIA_Z[0], GALERIA_Z[1], 0.004, M.tile, 1);       // galería: calcáreo con flores
-  floor(-0.28, LOT_W + 0.28, GALERIA_Z[1], LOT_D, 0, M.lawn, 1);                   // césped del patio trasero
+  floorAround(-0.28, LOT_W + 0.28, GALERIA_Z[1], QUINCHO.z0, POOL, 0, M.lawn, 1, true);   // césped del patio trasero (hasta el quincho)
   // Nogal en living, entrada, hall y baño PB; porcelanato 60 x 120 en la cocina
   floor(0, 5.38, 5.16, 13.09, 0.006, M.wood);
   floor(0, 5.38, 13.09, 17.40, 0.006, M.porcelain, 2.4);
@@ -2604,6 +2626,8 @@ function buildExterior() {
   buildJasmine(X0, X1, TOP);
   buildStreet();
   buildGarden();
+  buildQuincho();
+  buildPool();
   // Volvo XC60 negra en el jardín delantero, frente al portón del garage, bajo la cochera: la cola a 50 cm
   // de la fachada (corrida a la derecha: queda paso del lado de la casa para llegar al portón)
   buildCar(CAR_SPECS.volvo, 7.2, CARPORT.z1 - 0.5 - CAR_SPECS.volvo.L / 2);
@@ -2804,6 +2828,7 @@ function setNightLights(night, lampsOn = night) {
   for (const m of NIGHT.glows) m.visible = night;
   NIGHT.lens.emissiveIntensity = night ? 2.4 : 0;
   NIGHT.streetLens.emissiveIntensity = night ? 3 : 0;
+  if (NIGHT.water) NIGHT.water.emissiveIntensity = night ? 0.45 : 0;
   for (const m of Object.values(SHADE)) { m.userData.k ??= m.emissiveIntensity; m.emissiveIntensity = lampsOn ? m.userData.k * (night ? 1.5 : 1) : 0; }
   refreshShadows();
 }
@@ -2821,14 +2846,24 @@ function buildNightLights() {
   nightLight(6.96, 2.5, 4.0, 9, 7);
   // Balizas en los canteros: postecito negro de 45 cm con una franja que brilla arriba
   const bollards = [[1.05, 1.7], [1.05, 3.9], [1.7, 4.45], [3.5, 4.45],                      // jardín delantero
-    [2.25, 24], [2.25, 30], [2.25, 35.5], [LOT_W - 2.25, 24], [LOT_W - 2.25, 30], [LOT_W - 2.25, 35.5], [3.0, 37.2], [5.4, 37.2]];   // patio
+    [2.25, 24], [2.25, 28.4], [LOT_W - 2.25, 24], [LOT_W - 2.25, 29], [POOL.deck[1] + 0.25, POOL.deck[2] - 0.1], [6.35, QBATH.z0 - 0.3]];   // patio
   for (const [x, z] of bollards) {
     mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.36, 16), dark, scene, x, 0.18, -z);
     mesh(new THREE.CylinderGeometry(0.043, 0.043, 0.07, 16), NIGHT.lens, scene, x, 0.395, -z);
     mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.03, 16), dark, scene, x, 0.445, -z);
     colliders.push({ x0: x - 0.06, x1: x + 0.06, z0: z - 0.06, z1: z + 0.06, y0: 0, y1: 0.46 });
   }
-  for (const [x, z, k] of [[1.05, 2.8, 1.6], [2.6, 4.4, 1.6], [2.25, 30, 2.5], [LOT_W - 2.25, 30, 2.5], [4.2, 37.0, 2.2]]) nightLight(x, 0.45, z, k, k > 2 ? 6 : 3.5);
+  for (const [x, z, k] of [[1.05, 2.8, 1.6], [2.6, 4.4, 1.6], [2.25, 26, 2.5], [LOT_W - 2.25, 26.5, 2.5], [4.8, 30.5, 2.2]]) nightLight(x, 0.45, z, k, k > 2 ? 6 : 3.5);
+  // Quincho: dos apliques iguales a los de la entrada, a los lados del ventanal, y uno en el frente del baño,
+  // junto a la puerta del pasillo
+  for (const x of [0.75, 5.40, 7.25]) {
+    const z = x > 7 ? QBATH.z0 : QUINCHO.z0;
+    rbox(x - 0.045, x + 0.045, z - 0.12, z, 1.95, 2.21, dark, { r: 0.02 });
+    for (const y of [1.94, 2.21]) rbox(x - 0.032, x + 0.032, z - 0.09, z - 0.03, y - 0.006, y + 0.006, NIGHT.lens, { r: 0.004 });
+    nightLight(x, 2.05, z - 0.4, 3, 5);
+  }
+  // Pileta: luz debajo del agua (celeste) y el agua que brilla apenas
+  nightLight((POOL.x0 + POOL.x1) / 2, -0.7, (POOL.z0 + POOL.z1) / 2, 7, 6, new THREE.Color(0x9fe6ff));
   // Farol de la calle: columna gris en la vereda (frente al lote vecino, a la derecha) con un brazo que sale
   // sobre la calle y una luminaria LED blanca neutra que ilumina hacia abajo la vereda y la calzada
   const PX = 9.6, PZ = STREET.edge + 0.25, HZ = STREET.curb - 1.2, pole = std(0x8a8e92, 0.45, { metalness: 0.6 });
@@ -3130,20 +3165,214 @@ function flushGarden() {
   }
   GARDEN.clear();
 }
+// ---- Quincho y pileta (ver estilos.md → Quincho y pileta) ----
+// Ladrillo común a la vista (parrilla): 25 x 6 cm en hilada trabada, junta clara (1 textura = 50 cm)
+const BRICK_TEX = tileSet(512, (g, s, hm) => {
+  const rnd = seeded(71), rows = 8, rh = s / rows, bw = s / 2, j = 5;
+  const col = Array.from({ length: rows * 2 }, () => `hsl(${10 + rnd() * 12}, ${42 + rnd() * 16}%, ${30 + rnd() * 13}%)`);
+  g.fillStyle = hm ? '#000' : '#cbbca8'; g.fillRect(0, 0, s, s);
+  for (let r = 0; r < rows; r++) for (let i = -1; i < 3; i++) {
+    g.fillStyle = hm ? '#c8c8c8' : col[r * 2 + ((i % 2) + 2) % 2];      // el ladrillo que se corta en un borde sigue igual del otro lado
+    g.fillRect(i * bw + (r % 2) * bw / 2 + j / 2, r * rh + j / 2, bw - j, rh - j);
+  }
+}, 3);
+// Venecitas de la pileta: 2,5 x 2,5 cm en celestes y aguamarina (1 textura = 50 cm → 20 x 20)
+const POOL_TILE_TEX = tileSet(512, (g, s, hm) => {
+  const rnd = seeded(72), n = 20, T = s / n, j = 1.4;
+  g.fillStyle = hm ? '#000' : '#e4eeee'; g.fillRect(0, 0, s, s);
+  for (let i = 0; i < n; i++) for (let k = 0; k < n; k++) {
+    g.fillStyle = hm ? '#c8c8c8' : `hsl(${186 + rnd() * 12}, ${40 + rnd() * 20}%, ${52 + rnd() * 16}%)`;
+    g.fillRect(i * T + j, k * T + j, T - 2 * j, T - 2 * j);
+  }
+}, 2);
+// Borde atérmico y solárium: placas de 50 x 50 color arena, con poro (1 textura = 1 m → 2 x 2)
+const copingTex = canvasTexture(512, (g, s) => {
+  const rnd = seeded(73), T = s / 2;
+  for (let i = 0; i < 2; i++) for (let k = 0; k < 2; k++) {
+    g.fillStyle = `hsl(38, ${20 + rnd() * 4}%, ${80 + rnd() * 4}%)`; g.fillRect(i * T, k * T, T, T);
+    for (let n = 0; n < 1800; n++) {
+      g.fillStyle = `rgba(${rnd() < 0.5 ? '120,105,85' : '255,250,240'}, ${0.05 + rnd() * 0.08})`;
+      g.fillRect(i * T + rnd() * T, k * T + rnd() * T, 1 + rnd() * 2, 1 + rnd() * 2);
+    }
+  }
+  g.fillStyle = '#b3a791';
+  for (let i = 0; i < 2; i++) { g.fillRect(i * T, 0, 2, s); g.fillRect(0, i * T, s, 2); }
+});
+const QM = {
+  brick: std(0xffffff, 0.9, { map: BRICK_TEX.map, normalMap: BRICK_TEX.normal, normalScale: v2(1) }),
+  soot: std(0x1d1a18, 0.95),                                                                            // interior de la parrilla
+  poolTile: std(0xffffff, 0.15, { map: POOL_TILE_TEX.map, normalMap: POOL_TILE_TEX.normal, normalScale: v2(0.6) }),
+  coping: std(0xffffff, 0.85, { map: copingTex }),
+};
+// Agua: celeste transparente con ondas suaves que se mueven (ver loop) y un brillo apenas celeste de noche
+const WATER = new THREE.MeshPhysicalMaterial({
+  color: 0x4fb3c8, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.6, depthWrite: false, envMapIntensity: 1.5,
+  emissive: 0x2a9fc0, emissiveIntensity: 0, normalScale: v2(0.35),
+  normalMap: normalFrom(heightCanvas(256, (x, y) => {
+    const u = x / 256 * Math.PI * 2, v = y / 256 * Math.PI * 2;
+    return 0.5 + 0.22 * Math.sin(3 * u + v) + 0.16 * Math.sin(-2 * u + 5 * v) + 0.08 * Math.sin(7 * u + 4 * v);
+  }), 2.5),
+});
+WATER.normalMap.repeat.set(1.5, 2.5);
+
+function buildQuincho() {
+  const Q = QUINCHO, B = QBATH, T = H_WALL, HEAD = 2.05, [s0, s1] = Q.slider, [d0, d1] = Q.door, zf = [Q.z0, Q.zi];
+  // Muro de adelante (revoque crema afuera): macizo, ventanal corredizo y la puerta del pasillo. La hoja fija
+  // es la de la izquierda (detrás de la pileta) y se entra por la derecha, desde la vereda del solárium.
+  for (const [a, b] of [[0, s0], [s1, d0], [d1, LOT_W]]) box(a, b, ...zf, 0, T, M.wall, true, 'z0');
+  for (const [a, b] of [[s0, s1], [d0, d1]]) { box(a, b, ...zf, HEAD, T, M.wall, true, 'z0'); frameOpening([a, b, ...zf], 0, HEAD, { sill: false }); }
+  const leaf = [s0, (s0 + s1) / 2, ...zf];
+  glassPane(leaf, 0, HEAD, true); frameOpening(leaf, 0, HEAD);
+  // Bloque del baño: lateral izquierdo, frente del toilette, puerta del pasillo al jardín y tabique con la
+  // puerta del toilette
+  const bz = [B.z0, B.z0 + B.t], px = [B.xp, B.xp + B.t], [bd0, bd1] = B.door;
+  box(B.x0, B.x0 + B.t, B.z0, Q.z0, 0, T, M.wall, true, 'x0,z0');
+  box(B.x0 + B.t, px[1], ...bz, 0, T, M.wall, true, 'z0');
+  box(px[1], B.x1, ...bz, HEAD, T, M.wall, true, 'z0');
+  frameOpening([px[1], B.x1, ...bz], 0, HEAD, { sill: false });
+  box(...px, bz[1], bd0, 0, T, M.wall); box(...px, bd1, Q.z0, 0, T, M.wall); box(...px, bd0, bd1, HEAD, T, M.wall);
+  frameOpening([...px, bd0, bd1], 0, HEAD, { sill: false });
+  // Techo: losa como la de la galería, sobre el quincho y sobre el baño
+  const roofMats = [M.facade, M.facade, M.roof, M.ceiling, M.facade, M.facade];
+  box(-0.28, LOT_W + 0.28, Q.z0, LOT_D + 0.28, T, T + 0.18, roofMats, false);
+  box(B.x0, LOT_W + 0.28, B.z0, Q.z0, T, T + 0.18, roofMats, false);
+  // Pisos: baldosas de terracota (las del frente) en el quincho y el pasillo; porcelanato beige en el toilette
+  floor(0, LOT_W, Q.z0, LOT_D, 0.006, M.pavers, 1, true);
+  floor(px[1], B.x1, B.z0, Q.z0, 0.006, M.pavers, 1, true);
+  floor(B.x0 + B.t, B.xp, bz[1], Q.z0, 0.006, F.bathFloor, 1.2);
+  // Adentro, las medianeras van pintadas de blanco cálido como el resto de las paredes
+  paintFace('x', 0.003, Q.zi, LOT_D, 0, T, M.wall);
+  paintFace('x', LOT_W - 0.003, Q.zi, LOT_D, 0, T, M.wall);
+  paintFace('x', LOT_W - 0.003, B.z0, Q.z0, 0, T, M.wall);
+  paintFace('z', LOT_D - 0.003, 0, LOT_W, 0, T, M.wall);
+
+  // --- Lado de la cocina (medianera izquierda) ---
+  // Parrilla de ladrillo en el rincón del fondo: leñero abajo, fogón con la parrilla, campana y chimenea
+  const PX = 0.75, PZ = LOT_D - 0.87, br = { r: 0.008, uv: 0.5 };
+  rbox(0, PX, PZ, LOT_D, 0, 0.1, QM.brick, br);
+  rbox(0, PX, PZ, PZ + 0.12, 0.1, 0.7, QM.brick, br); rbox(0, PX, LOT_D - 0.12, LOT_D, 0.1, 0.7, QM.brick, br);
+  rbox(0, 0.12, PZ + 0.12, LOT_D - 0.12, 0.1, 0.7, QM.soot);
+  rbox(0, PX + 0.02, PZ - 0.02, LOT_D, 0.7, 0.85, QM.brick, br);                       // mesada del fogón
+  [[0.25, 0.155], [0.4, 0.155], [0.55, 0.155], [0.33, 0.24], [0.48, 0.24], [0.41, 0.325]]
+    .forEach(([x, y]) => rod(W(x, y, PZ + 0.16), W(x, y, LOT_D - 0.16), 0.045, F.bark, scene, 10));   // leña
+  rbox(0, PX, PZ, PZ + 0.1, 0.85, 1.6, QM.brick, br); rbox(0, PX, LOT_D - 0.1, LOT_D, 0.85, 1.6, QM.brick, br);
+  rbox(0, 0.1, PZ + 0.1, LOT_D - 0.1, 0.85, 1.6, QM.soot);
+  rbox(0.1, PX, PZ + 0.1, LOT_D - 0.1, 0.85, 0.87, QM.soot);                          // cenizas
+  for (let x = 0.15; x < PX - 0.03; x += 0.035) rod(W(x, 1.05, PZ + 0.12), W(x, 1.05, LOT_D - 0.12), 0.004, F.steel, scene, 5);
+  for (const z of [PZ + 0.13, LOT_D - 0.13]) rod(W(0.12, 1.04, z), W(PX - 0.02, 1.04, z), 0.008, F.steel, scene, 6);
+  rbox(0, PX + 0.04, PZ - 0.03, LOT_D, 1.6, 1.72, QM.brick, br);                      // dintel
+  rbox(0, 0.62, PZ + 0.02, LOT_D, 1.72, 2.05, QM.brick, br);                          // campana
+  rbox(0, 0.42, PZ + 0.2, LOT_D - 0.15, 2.05, T, QM.brick, br);                       // chimenea
+  colliders.push({ x0: 0, x1: PX + 0.04, z0: PZ - 0.03, z1: LOT_D, y0: 0, y1: T });
+  box(0, 0.9, LOT_D - 1.65, LOT_D - 1.52, 0, T, M.wall);                               // pared corta junto a la parrilla
+  // Mesada con bacha de acero y heladera bajo mesada, y dos estantes de madera arriba
+  const KZ = [Q.zi, LOT_D - 1.65];
+  counter([0, 0.65, ...KZ], 'x1', { body: F.walnutDark });
+  const sz = LOT_D - 2.57;
+  rbox(0.12, 0.5, sz - 0.25, sz + 0.25, 0.9, 0.903, F.steelIn, { r: 0.02, seg: 1 });
+  rod(W(0.07, 0.9, sz), W(0.07, 1.22, sz), 0.012, F.steel, scene, 14);
+  rod(W(0.07, 1.22, sz), W(0.3, 1.22, sz), 0.011, F.steel, scene, 14);
+  rod(W(0.3, 1.22, sz), W(0.3, 1.16, sz), 0.011, F.steel, scene, 14);
+  rbox(0.62, 0.645, Q.zi + 0.06, Q.zi + 0.93, 0.12, 0.84, F.steel, { r: 0.01 });     // heladera bajo mesada
+  rod(W(0.665, 0.77, Q.zi + 0.14), W(0.665, 0.77, Q.zi + 0.85), 0.008, F.steel, scene, 8);
+  for (const y of [1.5, 1.85]) rbox(0, 0.26, KZ[0] + 0.3, KZ[1] - 0.2, y, y + 0.035, F.veneer, { r: 0.005, uv: 1 });
+  vase(0.13, KZ[0] + 0.7, 1.535, 0.24, 0.07, F.creamCeramic);
+  for (let i = 0; i < 4; i++) mesh(new THREE.CylinderGeometry(0.11, 0.09, 0.018, 28), F.creamCeramic, scene, 0.13, 1.885 + 0.009 + i * 0.019, -(KZ[1] - 0.6));
+  ceilingLight(1.15, LOT_D - 2.4, T, 4);
+  // Barra contra el fondo, entre la cocina y la mesa
+  counter([1.89, 2.71, LOT_D - 3.02, LOT_D], 'x0', { body: F.walnutDark });
+
+  // --- Comedor: mesa larga de madera para 10 (4 por lado y 1 en cada cabecera) ---
+  const TX = [3.76, 5.0], TZ = [LOT_D - 3.2, LOT_D - 0.6], xm = (TX[0] + TX[1]) / 2;
+  rbox(TX[0], TX[1], ...TZ, 0.72, 0.76, F.veneer, { r: 0.012, uv: 1 });
+  for (const x of [TX[0] + 0.06, TX[1] - 0.13]) for (const z of [TZ[0] + 0.06, TZ[1] - 0.13]) rbox(x, x + 0.07, z, z + 0.07, 0, 0.72, F.veneer, { r: 0.01, uv: 1 });
+  colliders.push({ x0: TX[0], x1: TX[1], z0: TZ[0], z1: TZ[1], y0: 0, y1: 0.76 });
+  const seats = [];
+  for (const k of [1.0, 1.6, 2.22, 2.82]) seats.push([TX[0] - 0.31, LOT_D - k, 1, 0], [TX[1] + 0.31, LOT_D - k, -1, 0]);
+  for (const x of [xm - 0.29, xm + 0.29]) seats.push([x, LOT_D - 0.33, 0, -1], [x, TZ[0] - 0.29, 0, 1]);
+  for (const [x, z, dx, dz] of seats) modelSlot(['dining_chair_02', 'WoodenChair_01'], chair(x, z, dx, dz), { x, z, h: 0.85, rotY: faceAngle(dx, dz) });
+  linearPendant(xm, TZ[0] + 0.45, TZ[1] - 0.45, 1.75, T);
+
+  // --- Estar: sillón de lino mirando a la tele, contra la medianera derecha ---
+  const SX = [6.18, 6.89], SZ = [LOT_D - 2.4, LOT_D - 0.96], so = { r: 0.04 };
+  rbox(SX[0] + 0.03, SX[1], ...SZ, 0.08, 0.42, F.beige, so);
+  rbox(SX[0], SX[0] + 0.2, ...SZ, 0.42, 0.84, F.beige, { r: 0.06 });                  // respaldo
+  for (const [a, b] of [[SZ[0], SZ[0] + 0.16], [SZ[1] - 0.16, SZ[1]]]) rbox(SX[0], SX[1], a, b, 0.42, 0.62, F.beige, so);   // brazos
+  const zc = (SZ[0] + SZ[1]) / 2;
+  for (const [a, b] of [[SZ[0] + 0.17, zc - 0.005], [zc + 0.005, SZ[1] - 0.17]]) rbox(SX[0] + 0.2, SX[1] - 0.01, a, b, 0.42, 0.53, F.beige, so);   // almohadones
+  for (const [z, m] of [[SZ[0] + 0.35, F.sofa], [SZ[1] - 0.35, F.rose]]) rbox(SX[0] + 0.2, SX[0] + 0.32, z - 0.2, z + 0.2, 0.53, 0.88, m, { r: 0.05 });
+  for (const x of [SX[0] + 0.07, SX[1] - 0.07]) for (const z of [SZ[0] + 0.07, SZ[1] - 0.07]) rbox(x - 0.025, x + 0.025, z - 0.025, z + 0.025, 0, 0.08, F.black, { r: 0.01 });
+  colliders.push({ x0: SX[0], x1: SX[1], z0: SZ[0], z1: SZ[1], y0: 0, y1: 0.84 });
+  // mueble bajo de nogal y tele colgada en la medianera
+  const TV = [7.98, LOT_W, LOT_D - 2.17, LOT_D - 0.67], tz = (TV[2] + TV[3]) / 2;
+  rbox(TV[0] + 0.04, TV[1], TV[2] + 0.03, TV[3] - 0.03, 0, 0.08, F.plinth, { r: 0.004 });
+  rbox(...TV, 0.08, 0.5, F.walnutDark, { r: 0.008, uv: 1 });
+  doorSeams(TV, 'x0', 0.08, 0.5, 0.5);
+  colliders.push({ x0: TV[0], x1: TV[1], z0: TV[2], z1: TV[3], y0: 0, y1: 0.5 });
+  rbox(LOT_W - 0.045, LOT_W - 0.01, tz - 0.61, tz + 0.61, 0.95, 1.63, F.black, { r: 0.004 });
+  box(LOT_W - 0.0455, LOT_W - 0.044, tz - 0.6, tz + 0.6, 0.958, 1.622, F.screen, false);
+  vase(LOT_W - 0.2, TV[2] + 0.2, 0.5, 0.22, 0.07, F.creamCeramic);
+  ceilingLight(7.1, LOT_D - 1.7, T, 3.5);
+
+  // --- Toilette: inodoro contra el lateral, lavatorio chico de colgar y plafón ---
+  toilet(B.x0 + B.t, B.z0 + B.t + 0.43, 0, 1);
+  rbox(B.x0 + B.t, B.x0 + B.t + 0.34, Q.z0 - 0.47, Q.z0 - 0.07, 0.78, 0.86, F.ceramic, { r: 0.03 });
+  wallSpout(B.x0 + B.t + 0.003, 0.97, Q.z0 - 0.27, 1, 0, 0.12, F.steel);
+  ceilingLight((B.x0 + B.t + B.xp) / 2, (bz[1] + Q.z0) / 2, T, 2.5);
+}
+
+function buildPool() {
+  const P = POOL, D = P.depth, t = 0.12, c = 0.3, o = { r: 0.01, uv: 0.5 };
+  // Vaso revestido en venecitas (paredes, fondo y escalera de 3 escalones del lado de la casa)
+  rbox(P.x0 - t, P.x0, P.z0 - t, P.z1 + t, -D, 0, QM.poolTile, o);
+  rbox(P.x1, P.x1 + t, P.z0 - t, P.z1 + t, -D, 0, QM.poolTile, o);
+  rbox(P.x0, P.x1, P.z0 - t, P.z0, -D, 0, QM.poolTile, o);
+  rbox(P.x0, P.x1, P.z1, P.z1 + t, -D, 0, QM.poolTile, o);
+  rbox(P.x0, P.x1, P.z0, P.z1, -D - 0.1, -D, QM.poolTile, o);
+  for (let i = 0; i < 3; i++) rbox(P.x0, P.x1, P.z0, P.z0 + 0.3 * (i + 1), -D, -0.35 * (i + 1), QM.poolTile, o);
+  // Borde atérmico de 30 cm y solárium del mismo material alrededor; vereda hasta el baño frente al quincho
+  const oc = { r: 0.015, uv: 1 }, X0 = Math.max(0, P.x0 - c), X1 = P.x1 + c;
+  rbox(X0, X1, P.z0 - c, P.z0, 0, 0.045, QM.coping, oc);
+  rbox(X0, X1, P.z1, P.z1 + c, 0, 0.045, QM.coping, oc);
+  rbox(X0, P.x0, P.z0, P.z1, 0, 0.045, QM.coping, oc);
+  rbox(P.x1, X1, P.z0, P.z1, 0, 0.045, QM.coping, oc);
+  const [dx0, dx1, dz0, dz1] = P.deck;
+  floorAround(dx0, dx1, dz0, dz1, { x0: X0, x1: X1, z0: P.z0 - c, z1: P.z1 + c }, 0.012, QM.coping, 1, true);
+  floor(dx1, QBATH.x0, dz1 - 1.0, dz1, 0.012, QM.coping, 1, true);
+  // Agua
+  const water = mesh(new THREE.PlaneGeometry(P.x1 - P.x0, P.z1 - P.z0), WATER, scene, (P.x0 + P.x1) / 2, -P.water, -(P.z0 + P.z1) / 2);
+  water.rotation.x = -Math.PI / 2; water.userData.noCast = true; water.renderOrder = 1;
+  NIGHT.water = WATER;
+  // Dos focos sumergidos en la pared de la derecha (de noche brillan celeste)
+  const lensGlow = new THREE.MeshBasicMaterial({ color: 0xc8f4ff });
+  for (const z of [P.z0 + 1.6, P.z1 - 1.3]) {
+    mesh(new THREE.CircleGeometry(0.1, 28), F.white, scene, P.x1 - 0.003, -0.45, -z).rotation.y = -Math.PI / 2;
+    const g = mesh(new THREE.CircleGeometry(0.075, 28), lensGlow, scene, P.x1 - 0.005, -0.45, -z);
+    g.rotation.y = -Math.PI / 2; g.visible = false; g.userData.noCast = true;
+    NIGHT.glows.push(g);
+  }
+  // No se camina sobre el agua
+  colliders.push({ x0: P.x0, x1: P.x1, z0: P.z0, z1: P.z1, y0: -D, y1: 1.2 });
+}
+
 function buildGarden() {
   const H = 2.45, back = LOT_D, start = GALERIA_Z[1] + 0.4;
   // Jardín delantero (piso de baldosas, sin pasto): canteros contra la medianera izquierda y bajo la ventana
   // del living. Entre el camino de entrada y el auto no va cantero (queda libre). Contra la reja no va cantero.
   border({ axis: 'z', c: 0, dir: 1, a0: 1.15, a1: 4.45, depth: 0.95, seed: 102 });
   border({ axis: 'x', c: 5.16, dir: -1, a0: 1.1, a1: 4.0, depth: 0.6, seed: 103, rows: ['low'] });
-  // Patio trasero: cerco alto contra las tres medianeras y borduras anchas delante, con el frente ondulado
-  hedge(0, 0.8, start, back, H, 201);
-  hedge(LOT_W - 0.8, LOT_W, start, back, H, 202);
-  hedge(0.8, LOT_W - 0.8, back - 0.8, back, H, 203);
-  border({ axis: 'z', c: 0.8, dir: 1, a0: start + 0.6, a1: back - 0.8, depth: 1.35, seed: 211 });
-  border({ axis: 'z', c: LOT_W - 0.8, dir: -1, a0: start + 0.6, a1: back - 0.8, depth: 1.35, seed: 212 });
-  border({ axis: 'x', c: back - 0.8, dir: -1, a0: 0.8, a1: LOT_W - 0.8, depth: 1.5, seed: 213 });
+  // Patio trasero: cerco alto contra las medianeras de los costados y borduras anchas delante, con el frente
+  // ondulado. Al fondo están la pileta (a la izquierda, con su solárium) y el quincho con el baño (a la
+  // derecha): el cerco izquierdo termina antes del solárium y el derecho deja libre la puerta del pasillo.
+  const leftEnd = POOL.deck[2] - 0.2, rightEnd = QBATH.z0 - 1.2;
+  hedge(0, 0.8, start, leftEnd, H, 201);
+  hedge(LOT_W - 0.8, LOT_W, start, rightEnd, H, 202);
+  border({ axis: 'z', c: 0.8, dir: 1, a0: start + 0.6, a1: leftEnd - 0.1, depth: 1.35, seed: 211 });
+  border({ axis: 'z', c: LOT_W - 0.8, dir: -1, a0: start + 0.6, a1: rightEnd - 0.1, depth: 1.35, seed: 212 });
   flushGarden();
+  // macetas grandes a los lados del ventanal del quincho
+  modelSlot(['pachira_aquatica_01'], plant('ficus', 5.45, QUINCHO.z0 - 0.35, { h: 1.5, seed: 31, pot: F.pot }), { x: 5.45, z: QUINCHO.z0 - 0.35, h: 1.5, variant: 'd' });
+  modelSlot(['potted_plant_04'], plant('strap', 4.6, QUINCHO.z0 - 0.3, { h: 0.75, seed: 32, pot: F.potLight }), { x: 4.6, z: QUINCHO.z0 - 0.3, h: 0.75 });
 }
 
 buildWalls();
@@ -3383,7 +3612,7 @@ function currentRoom() {
   if (stairHeight(player.x, player.z) !== null && player.feet > 0.05 && player.feet < PA_Y - 0.05) return ['Escalera', 'Entre plantas'];
   const lvl = player.feet > PA_Y / 2 ? 1 : 0;
   const r = ROOMS.find(r => r.lvl === lvl && inRect(player.x, player.z, r.r));
-  const floorName = lvl ? 'Planta alta' : (r && /Galería|Patio|Jardín|Cochera|Vereda|Calle/.test(r.n) ? 'Exterior' : 'Planta baja');
+  const floorName = lvl ? 'Planta alta' : (r && /Galería|Patio|Jardín|Cochera|Vereda|Calle|Pileta|[Qq]uincho/.test(r.n) ? 'Exterior' : 'Planta baja');
   return [r ? r.n : (lvl ? 'Planta alta' : 'Exterior'), floorName];
 }
 function updateHud() {
@@ -3703,6 +3932,7 @@ function loop() {
   updateSlider(dt);
   updateBathDoors(dt);
   updateFrontGates(dt);
+  WATER.normalMap.offset.set((WATER.normalMap.offset.x + dt * 0.012) % 1, (WATER.normalMap.offset.y + dt * 0.007) % 1);   // ondas de la pileta
   updateHud();
   if (mirrorsDirty) bakeMirrors();
   if (!renderPhoto(rawDt)) renderNormal();
