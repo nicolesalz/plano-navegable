@@ -3393,6 +3393,184 @@ loadModels();
 loadScannedTextures();
 
 /* ==========================================================================
+   3c. MILONGA (la perrita; ver estilos.md → Milonga)
+   Caniche toy crema de pelo enrulado, orejas color damasco, collar oscuro con chapita celeste de hueso.
+   Cada vez que se abre la página aparece sentada en un lugar distinto de la casa. Cuando te acercás
+   (a menos de 2,5 m, en la misma planta) se levanta y te sigue por el mismo camino que hiciste vos
+   (así no atraviesa paredes ni muebles); cuando te quedás quieto, se sienta al lado tuyo y mueve la cola.
+   ========================================================================== */
+// Lugares donde puede estar al empezar: [x, z, piso, hacia dónde mira (dx, dz)]
+const MILONGA_SPOTS = [
+  [3.55, 6.35, 0, -1, 0.3],        // living, junto al sillón
+  [3.85, 13.75, 0, -0.5, 1],        // cocina, al lado de la isla
+  [1.75, 11.2, 0, 1, -0.6],         // hall de planta baja
+  [2.6, 18.75, 0, 0, -1],           // galería, mirando a la casa
+  [4.3, 23.2, 0, 0.3, -1],          // patio, en el pasto
+  [4.6, 32.4, 0, -1, -0.3],         // solárium de la pileta
+  [7.2, 36.4, 0, -1, -0.4],         // quincho, junto al sillón
+  [2.8, 10.6, PA_Y, 0.4, -1],       // hall de planta alta
+];
+const MILONGA = { root: null, parts: {}, x: 0, z: 0, y: 0, yaw: 0, sit: 1, walk: 0, wag: 0, state: 'waiting', trail: [], idle: 0, speed: 0, look: 0 };
+
+function buildMilonga() {
+  const D = MILONGA, rnd = seeded(808);
+  const fur = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1 });
+  const curlGeo = new THREE.IcosahedronGeometry(1, 1);
+  const cream = () => new THREE.Color().setHSL(0.1 + rnd() * 0.02, 0.32 + rnd() * 0.12, 0.84 + rnd() * 0.08);
+  const apricot = () => new THREE.Color().setHSL(0.09 + rnd() * 0.02, 0.45 + rnd() * 0.1, 0.7 + rnd() * 0.08);
+  const solid = (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 1 });
+  // Una "masa" de rulos: elipsoide macizo y rulitos encima, al azar sobre la superficie
+  const blobs = [];
+  function fluff(parent, [cx, cy, cz], [rx, ry, rz], n, color = cream, base = 0xeee3d1) {
+    const core = mesh(new THREE.SphereGeometry(1, 16, 12), solid(base), parent, cx, cy, cz);
+    core.scale.set(rx * 0.92, ry * 0.92, rz * 0.92);
+    const inst = new THREE.InstancedMesh(curlGeo, fur, n), m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3();
+    for (let i = 0; i < n; i++) {
+      v.set(rnd() * 2 - 1, rnd() * 2 - 1, rnd() * 2 - 1).normalize();
+      const r = 0.016 + rnd() * 0.01;
+      q.setFromEuler(e.set(rnd() * 6, rnd() * 6, rnd() * 6));
+      m.compose(new THREE.Vector3(cx + v.x * rx, cy + v.y * ry, cz + v.z * rz), q, new THREE.Vector3(r, r * 0.85, r));
+      inst.setMatrixAt(i, m); inst.setColorAt(i, color());
+    }
+    parent.add(inst); blobs.push(inst);
+    return inst;
+  }
+  const part = (name) => { const g = new THREE.Group(); D.root.add(g); D.parts[name] = g; return g; };
+  D.root = new THREE.Group(); scene.add(D.root);
+  // Cuerpo, pecho y cola (pompón)
+  fluff(part('torso'), [0, 0, 0], [0.08, 0.078, 0.135], 260);
+  fluff(part('chest'), [0, 0, 0], [0.068, 0.085, 0.068], 150);
+  const tail = part('tail');
+  fluff(tail, [0, 0.055, 0], [0.04, 0.045, 0.04], 60);
+  // Patas: el pivote arriba, la pata baja 20 cm
+  for (const n of ['legFL', 'legFR', 'legBL', 'legBR']) {
+    const g = part(n);
+    fluff(g, [0, -0.09, 0], [0.032, 0.1, 0.034], 70);
+    fluff(g, [0, -0.18, 0.012], [0.034, 0.022, 0.042], 30);
+  }
+  // Cabeza: copete redondo, hocico, nariz y ojos negros, orejas largas damasco
+  const head = part('head');
+  fluff(head, [0, 0.01, 0], [0.078, 0.08, 0.076], 220);
+  fluff(head, [0, -0.03, 0.068], [0.038, 0.033, 0.042], 60);
+  const black = std(0x0d0c0c, 0.25);
+  mesh(new THREE.SphereGeometry(0.015, 16, 12), black, head, 0, -0.02, 0.112).scale.set(1.15, 0.85, 0.9);
+  for (const s of [-1, 1]) {
+    mesh(new THREE.SphereGeometry(0.011, 14, 10), black, head, s * 0.03, 0.008, 0.07);
+    const ear = new THREE.Group(); ear.position.set(s * 0.07, -0.005, -0.005); ear.rotation.z = s * 0.18; head.add(ear);
+    fluff(ear, [0, -0.04, 0], [0.026, 0.062, 0.04], 70, apricot, 0xe0c8a6);
+  }
+  // Collar oscuro con la chapita celeste de hueso (en el pecho)
+  const chest = D.parts.chest;
+  const collar = mesh(new THREE.TorusGeometry(0.052, 0.009, 8, 28), std(0x1e2a2c, 0.6), chest, 0, 0.06, 0.012);
+  collar.rotation.x = Math.PI / 2 - 0.35;
+  const tag = new THREE.Group(); tag.position.set(0, 0.0, 0.07); chest.add(tag);
+  const blue = std(0x5fb6d6, 0.3, { metalness: 0.6 });
+  mesh(new THREE.BoxGeometry(0.02, 0.012, 0.003), blue, tag);
+  for (const sx of [-1, 1]) for (const sy of [-1, 1]) mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.003, 12), blue, tag, sx * 0.011, sy * 0.005, 0).rotation.x = Math.PI / 2;
+  // Sombrita suave (la sombra del sol de la casa se calcula una sola vez y ella se mueve)
+  D.shadow = mesh(new THREE.CircleGeometry(0.16, 24), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.22, depthWrite: false }), scene);
+  D.shadow.rotation.x = -Math.PI / 2; D.shadow.scale.set(0.8, 1.3, 1);
+  D.root.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = true; o.userData.noCast = true; } });
+  D.shadow.userData.noCast = true;
+  // Lugar del día: al azar, distinto del de la vez anterior
+  let last = -1;
+  try { last = +(localStorage.getItem('milonga') ?? -1); } catch (e) {}
+  const forced = new URLSearchParams(location.search).get('milonga');
+  let k = forced !== null ? +forced % MILONGA_SPOTS.length : Math.floor(Math.random() * MILONGA_SPOTS.length);
+  if (forced === null && k === last) k = (k + 1 + Math.floor(Math.random() * (MILONGA_SPOTS.length - 1))) % MILONGA_SPOTS.length;
+  try { localStorage.setItem('milonga', k); } catch (e) {}
+  const [x, z, y, dx, dz] = MILONGA_SPOTS[k];
+  Object.assign(D, { x, z, y, yaw: faceAngle(dx, dz), spot: k });
+  poseMilonga(0);
+}
+
+// Poses: sentada (sit = 1) y parada (sit = 0). Por parte: posición, giro (x, y, z) y largo (escala y)
+const MILONGA_POSE = {
+  stand: {
+    torso: [[0, 0.25, -0.01], [0, 0, 0], 1], chest: [[0, 0.3, 0.11], [0, 0, 0], 1], head: [[0, 0.41, 0.17], [-0.1, 0, 0], 1],
+    legFL: [[0.042, 0.21, 0.1], [0, 0, 0], 1.05], legFR: [[-0.042, 0.21, 0.1], [0, 0, 0], 1.05],
+    legBL: [[0.048, 0.21, -0.1], [0, 0, 0], 1.05], legBR: [[-0.048, 0.21, -0.1], [0, 0, 0], 1.05],
+    tail: [[0, 0.3, -0.14], [-0.6, 0, 0], 1],
+  },
+  sit: {
+    torso: [[0, 0.16, -0.045], [-1.05, 0, 0], 1], chest: [[0, 0.265, 0.045], [-0.2, 0, 0], 1], head: [[0, 0.395, 0.07], [0.05, 0, 0], 1],
+    legFL: [[0.04, 0.215, 0.07], [0, 0, 0], 1.08], legFR: [[-0.04, 0.215, 0.07], [0, 0, 0], 1.08],
+    legBL: [[0.06, 0.085, -0.05], [-1.35, 0.15, 0], 0.62], legBR: [[-0.06, 0.085, -0.05], [-1.35, -0.15, 0], 0.62],
+    tail: [[0, 0.05, -0.13], [-1.5, 0, 0], 1],
+  },
+};
+function poseMilonga(t) {
+  const D = MILONGA, S = MILONGA_POSE.stand, Z = MILONGA_POSE.sit, k = D.sit, l = THREE.MathUtils.lerp;
+  const swing = Math.sin(D.walk) * 0.55 * (1 - k), bob = Math.abs(Math.cos(D.walk)) * 0.012 * (1 - k);
+  const legSwing = { legFL: swing, legBR: swing, legFR: -swing, legBL: -swing };
+  for (const [n, g] of Object.entries(D.parts)) {
+    const [pa, ra, sa] = S[n], [pb, rb, sb] = Z[n];
+    g.position.set(l(pa[0], pb[0], k), l(pa[1], pb[1], k) + (n.startsWith('leg') ? 0 : bob), l(pa[2], pb[2], k));
+    g.rotation.set(l(ra[0], rb[0], k) + (legSwing[n] ?? 0), l(ra[1], rb[1], k), l(ra[2], rb[2], k));
+    g.scale.y = l(sa, sb, k);
+  }
+  D.parts.tail.rotation.z = Math.sin(D.wag) * 0.5 * (D.state === 'waiting' ? 0.3 : 1);
+  D.parts.head.rotation.y = D.look;
+  D.parts.head.rotation.z = D.state === 'waiting' ? 0.18 : Math.sin(t * 0.7) * 0.05;   // la cabeza ladeada, como en la foto
+  D.root.position.copy(W(D.x, D.y, D.z));
+  D.root.rotation.y = D.yaw;
+  D.shadow.position.copy(W(D.x, D.y + 0.004, D.z));
+  D.shadow.rotation.z = D.yaw;
+  D.shadow.material.opacity = 0.22 * (D.y > 0.5 && D.y < PA_Y - 0.05 ? 0.5 : 1);
+}
+
+const angleTo = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a));   // diferencia de ángulo más corta
+const MILONGA_FOLLOW = { notice: 2.5, gap: 1.0, step: 0.12, run: 4.5 };
+function updateMilonga(dt, t) {
+  const D = MILONGA, F = MILONGA_FOLLOW, px = player.x, pz = player.z;
+  const dPlayer = Math.hypot(px - D.x, pz - D.z), sameFloor = Math.abs(player.feet - D.y) < 1.2;
+  if (D.state === 'waiting') {
+    if (dPlayer < F.notice && sameFloor) {
+      D.state = 'following';
+      D.trail = [{ x: px, z: pz, y: player.feet }];
+    }
+  } else {
+    // Rastro: los lugares por donde pasaste
+    const lastP = D.trail[D.trail.length - 1];
+    if (!lastP || Math.hypot(px - lastP.x, pz - lastP.z) > F.step || Math.abs(player.feet - lastP.y) > 0.1) D.trail.push({ x: px, z: pz, y: player.feet });
+    // Si quedó muy lejos (por ejemplo, al reiniciar la recorrida) aparece cerca tuyo
+    if (dPlayer > 15 || !sameFloor && dPlayer > 4) {
+      const back = D.trail[Math.max(0, D.trail.length - 8)];
+      Object.assign(D, { x: back.x, z: back.z, y: back.y });
+      D.trail = D.trail.slice(-8);
+    }
+    // Distancia que le falta recorrer por el rastro hasta vos
+    let rest = 0, prev = { x: D.x, z: D.z };
+    for (const p of D.trail) { rest += Math.hypot(p.x - prev.x, p.z - prev.z); prev = p; }
+    let moved = 0;
+    if (rest > F.gap) {
+      const target = Math.min(F.run, 0.8 + (rest - F.gap) * 2.2);
+      D.speed += (target - D.speed) * Math.min(1, dt * 4);
+      let budget = Math.min(D.speed * dt, rest - F.gap);
+      while (budget > 1e-4 && D.trail.length) {
+        const p = D.trail[0], d = Math.hypot(p.x - D.x, p.z - D.z);
+        if (d <= budget) { budget -= d; moved += d; D.x = p.x; D.z = p.z; D.y = p.y; D.trail.shift(); continue; }
+        const k = budget / d, dir = faceAngle(p.x - D.x, p.z - D.z);
+        D.x += (p.x - D.x) * k; D.z += (p.z - D.z) * k; D.y += (p.y - D.y) * k; moved += budget; budget = 0;
+        D.yaw += angleTo(D.yaw, dir) * Math.min(1, dt * 10);
+      }
+    } else D.speed = 0;
+    if (D.trail.length === 0) D.trail.push({ x: px, z: pz, y: player.feet });
+    D.walk += moved * 26;                                  // pasitos cortos
+    D.idle = moved > 1e-3 ? 0 : D.idle + dt;
+    if (D.idle > 0.3) D.yaw += angleTo(D.yaw, faceAngle(px - D.x, pz - D.z)) * Math.min(1, dt * 3);   // quieta: te mira
+  }
+  const wantSit = D.state === 'waiting' || D.idle > 1.2 ? 1 : 0;
+  D.sit += (wantSit - D.sit) * Math.min(1, dt * (wantSit ? 3 : 8));
+  D.wag += dt * (D.state === 'waiting' ? 4 : 13);
+  // Cabeza: mira hacia vos si estás cerca
+  const lookTarget = dPlayer < 6 ? THREE.MathUtils.clamp(angleTo(D.yaw, faceAngle(px - D.x, pz - D.z)), -0.7, 0.7) : 0;
+  D.look += (lookTarget - D.look) * Math.min(1, dt * 4);
+  poseMilonga(t);
+}
+buildMilonga();
+
+/* ==========================================================================
    4. ALTURA DEL PISO (planta baja, planta alta y escalera)
    ========================================================================== */
 const inRect = (x, z, [x0, x1, z0, z1]) => x >= x0 && x <= x1 && z >= z0 && z <= z1;
@@ -3932,6 +4110,7 @@ function loop() {
   updateSlider(dt);
   updateBathDoors(dt);
   updateFrontGates(dt);
+  updateMilonga(dt, performance.now() / 1000);
   WATER.normalMap.offset.set((WATER.normalMap.offset.x + dt * 0.012) % 1, (WATER.normalMap.offset.y + dt * 0.007) % 1);   // ondas de la pileta
   updateHud();
   if (mirrorsDirty) bakeMirrors();
@@ -3950,7 +4129,7 @@ addEventListener('resize', () => {
 
 // Utilidades para pruebas automáticas (no afectan el uso normal)
 window.__debug = Object.assign(debug, {
-  player, keys, camera, touch, startTouch, pauseTouch, isTouch, room: () => currentRoom(), photo, garage: GARAGE, toggleGarageDoor, updateGarageDoor, slider: SLIDER, toggleSlider, updateSlider, lamps: LAMPS, bathDoors: BATH_DOORS, toggleBathDoor, updateBathDoors, frontGates: FRONT_GATES, toggleFrontGates, updateFrontGates, setQuality, quality: () => quality, setTimeOfDay, timeOfDay: () => timeOfDay,
+  player, keys, camera, milonga: MILONGA, updateMilonga, colliders, touch, startTouch, pauseTouch, isTouch, room: () => currentRoom(), photo, garage: GARAGE, toggleGarageDoor, updateGarageDoor, slider: SLIDER, toggleSlider, updateSlider, lamps: LAMPS, bathDoors: BATH_DOORS, toggleBathDoor, updateBathDoors, frontGates: FRONT_GATES, toggleFrontGates, updateFrontGates, setQuality, quality: () => quality, setTimeOfDay, timeOfDay: () => timeOfDay,
   place(x, z, feet = 0, yawDeg = 0) { Object.assign(player, { x, z, feet, vy: 0, eyeY: feet + EYE }); camera.rotation.set(0, yawDeg * Math.PI / 180, 0, 'YXZ'); camera.position.set(x, feet + EYE, -z); },
   simulate(codes, seconds, look) { if (look !== undefined) camera.rotation.set(0, look * Math.PI / 180, 0, 'YXZ'); codes.forEach(c => keys.add(c)); for (let t = 0; t < seconds; t += 1 / 60) update(1 / 60, true); codes.forEach(c => keys.delete(c)); updateHud(); },
 });

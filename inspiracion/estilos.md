@@ -213,6 +213,13 @@ Medidas de `plano-planta-baja-v6.pdf`. El lote no cambia: el quincho ocupa los �
 - Agua celeste transparente con ondas suaves que se mueven. No se puede caminar sobre el agua.
 - Dos macetas grandes en la vereda frente al quincho, delante de la hoja de la derecha del ventanal y a su costado.
 
+## Milonga (la perrita)
+Referencia: foto de Milonga sentada (caniche toy).
+- **Cómo es**: caniche toy chiquita (unos 40 cm sentada hasta la cabeza), de pelo **crema enrulado**, con las **orejas largas color damasco**, ojos y nariz negros, hocico corto y cabeza redonda. **Collar oscuro** con una **chapita celeste en forma de hueso**. Sentada ladea un poco la cabeza, como en la foto.
+- **Dónde aparece**: cada vez que se abre la página está **sentada en un lugar distinto** (nunca el mismo que la vez anterior): living junto al sillón, cocina al lado de la isla, hall de planta baja, galería, patio, solárium de la pileta, quincho junto al sillón u hall de planta alta. Para probar un lugar fijo: `index.html?milonga=0` … `7`.
+- **Cómo se comporta**: mientras no te acercás se queda sentada, mueve apenas la cola y te sigue con la mirada. Cuando estás a menos de **2,5 m** (en la misma planta) se levanta y **te sigue** por el mismo camino que hiciste vos (pasa por las puertas y sube la escalera detrás tuyo), a **1 m** de distancia; si te alejás corre para alcanzarte. Cuando te quedás quieto, se **sienta** mirándote y mueve la cola.
+- Tiene su propia sombrita suave debajo (la sombra del sol de la casa se calcula una sola vez y ella se mueve). Se la puede atravesar caminando (no choca).
+
 ## Iluminación de noche
 Cuarto momento del día: **Noche (21:00)**, después de Tarde. Se elige en el cartel de inicio (botón "Noche"), con la tecla **T** o con el botón táctil "Hora" del celular (pasa Mañana → Mediodía → Tarde → Noche → Mañana).
 - **Cielo**: degradé azul muy oscuro, casi negro arriba y un poco más claro (con un resplandor apenas cálido de la ciudad) en el horizonte; estrellas chicas y la **luna** alta hacia el noreste, con un halo suave.
